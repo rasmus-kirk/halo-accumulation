@@ -8,7 +8,7 @@
 
   outputs = { self, nixpkgs, rust-overlay }:
     let
-      rustVersion = "1.73.0";
+      rustVersion = "1.75.0";
       rustFmtVersion = "2023-04-01";
 
       # Systems supported

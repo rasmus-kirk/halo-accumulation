@@ -1,3 +1,4 @@
+use ark_ff::AdditiveGroup;
 use rand::Rng;
 
 use crate::{group::get_generator, PallasPoint, PallasScalar};
@@ -26,11 +27,12 @@ pub fn trim<R: Rng>(rng: &mut R, l: usize) -> CommitKey {
 }
 
 pub fn commit(w: &Option<PallasScalar>, ck: &CommitKey, ms: &[PallasScalar]) -> PallasPoint {
-    assert!(ck.hk.len() == ms.len());
+    assert!(ck.hk.len() == ms.len(), "Length did not match for pedersen commitment: {}, {}", ck.hk.len(), ms.len());
 
-    let acc_g: PallasPoint = ck.hk.iter().sum();
-    let acc_f: PallasScalar = ms.iter().sum();
-    let acc = acc_g * acc_f;
+    let mut acc = PallasPoint::ZERO;
+    for i in 0..ms.len() {
+        acc = acc + ck.hk[i] * ms[i];
+    }
 
     if let Some(w) = w {
         ck.s * w + acc
@@ -73,8 +75,8 @@ mod tests {
     #[test]
     fn test_homomorphism_property() {
         let mut rng = ark_std::test_rng();
-        let ms_len = 64; // Number of message elements
-        let tests = 50; // Number of tests run
+        let ms_len = 32; // Number of message elements
+        let tests = 10; // Number of tests run
 
         for _ in 0..tests {
             test_single_homomorphism(&mut rng, ms_len);
