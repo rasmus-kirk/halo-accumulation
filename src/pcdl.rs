@@ -1,7 +1,7 @@
+/// Bulletproofs-style polynomial commitments based on the Discrete Log assumption
 use std::ops::Mul;
 
 use ark_ec::CurveGroup;
-/// Bulletproofs-style polynomial commitments based on the Discrete Log assumption
 use ark_ff::{AdditiveGroup, Field};
 use ark_poly::DenseUVPolynomial;
 use ark_poly::{univariate::DensePolynomial, Polynomial};
@@ -77,7 +77,7 @@ fn trim<R: Rng>(rng: &mut R, d: usize) -> (CommitKey, CommitKey) {
 
 fn commit(ck: &CommitKey, p: &PallasPoly, w: &Option<PallasScalar>) -> PallasPoint {
     let d = p.degree();
-    pedersen::commit(w, &ck.ck_pedersen, &p.coeffs)
+    pedersen::commit(&None, &ck.ck_pedersen, &p.coeffs)
 }
 
 /// Constructs the polynomial h(X) based on the formula:
@@ -107,6 +107,15 @@ fn construct_h(xis: Vec<PallasScalar>, lg_n: usize) -> DensePolynomial<PallasSca
     h
 }
 
+fn point_dot(scalars: &[PallasScalar], points: &[PallasPoint]) -> PallasPoint {
+    assert_eq!(scalars.len(), points.len());
+    let mut acc = PallasPoint::ZERO;
+    for (scalar, point) in scalars.iter().zip(points) {
+        acc += *point * scalar
+    }
+    acc
+}
+
 // p.coeffs = a
 
 /// ck: The commitment key ck_PC = (ck, H)
@@ -133,6 +142,7 @@ fn open<R: Rng>(
     // 1. Compute the evaluation v := p(z) ∈ Fq.
     let v = p.evaluate(z);
 
+    /* TODO: Readd hiding
     // 2. Sample a random polynomial p_bar ∈ F^(≤d)_q[X] such that p_bar(z) = 0.
     let z_poly = PallasPoly::from_coefficients_vec(vec![-*z, PallasScalar::ONE]);
     let q = PallasPoly::rand(d - 1, rng);
@@ -159,6 +169,10 @@ fn open<R: Rng>(
 
     // 8. Compute a non-hiding commitment to p' : C' := C + α ⋅ C_bar - ω' ⋅ S ∈ G.
     let C_prime = C + C_bar * a - S * w_prime;
+    */
+    let C_prime = C;
+    let w_prime = PallasScalar::one();
+    let C_bar = PallasPoint::ZERO;
 
     // Compute the 0-th challenge field element ξ_0 := ρ0(C', z, v) ∈ F_q, and use it to compute the group element
     // H' := ξ_0 ⋅ H ∈ G. Initialize the following vectors:
@@ -166,8 +180,7 @@ fn open<R: Rng>(
     // z_0 := (1, z, . . . , z^d) ∈ F^(d+1)_q
     // G_0 := (G_0, G_1, . . . , G_d) ∈ G_(d+1)
     let xi_0 = hash_to_scalar![C_prime, z, v];
-    let mut xis = Vec::with_capacity(lg_n + 1);
-    xis.push(xi_0);
+    let mut xis = Vec::with_capacity(lg_n + 1).push_own(xi_0);
     let H_prime = H * xi_0;
 
     let mut cs = p.coeffs.clone();
@@ -177,11 +190,22 @@ fn open<R: Rng>(
     let mut current = PallasScalar::one();
     for _ in 0..n {
         zs.push(current);
-        current *= z; // Compute the next power
+        current *= z;
     }
 
     let mut Ls = Vec::with_capacity(lg_n);
     let mut Rs = Vec::with_capacity(lg_n);
+
+    // NOTE: --- Testing start ---
+    let mut ls = Vec::with_capacity(lg_n);
+    let mut rs = Vec::with_capacity(lg_n);
+    let mut Cs = Vec::with_capacity(lg_n + 1);
+    Cs.push(C_prime + H_prime * v);
+    assert_eq!(dot_product(&cs, &zs), v);
+    assert_eq!(Cs[0], point_dot(&cs, &gs) + H_prime * dot_product(&cs, &zs));
+    println!("b{}: {}", 0, Cs[0].into_affine());
+    let mut v_i = v;
+    // NOTE: --- Testing end ---
 
     // NOTE: i is zero-indexed here, but one-indexed in spec,
     // and that i has been corrected in below comments.
@@ -201,12 +225,36 @@ fn open<R: Rng>(
 
         let L = pedersen::commit(&None, &sigma_L, &c_r.to_vec().push_own(dot_l));
         let R = pedersen::commit(&None, &sigma_R, &c_l.to_vec().push_own(dot_r));
+
+        //let dot_l = dot_product(c_l, z_r);
+        //let dot_r = dot_product(c_r, z_l);
+
+        //let L = point_dot(
+        //    &c_l.to_vec().push_own(dot_l),
+        //    &g_r.to_vec().push_own(H_prime),
+        //);
+        //let R = point_dot(
+        //    &c_r.to_vec().push_own(dot_r),
+        //    &g_l.to_vec().push_own(H_prime),
+        //);
+
         Ls.push(L);
         Rs.push(R);
 
         // 3. Generate the (i+1)-th challenge ξ_(i+1) := ρ_0(ξ_i, L_(i+1), R_(i+1)) ∈ F_q.
         let xi_next = hash_to_scalar![xis[i], L, R];
+        let xi_next_inv = xi_next.inverse().unwrap();
         xis.push(xi_next);
+
+        // NOTE: --- Testing start ---
+        ls.push(dot_l);
+        rs.push(dot_r);
+        v_i += xi_next * dot_l + xi_next_inv * dot_r;
+        Cs.push(Cs[i] + (L * xi_next_inv) + (R * xi_next));
+        assert_eq!(Cs[i], point_dot(&cs, &gs) + H_prime * dot_product(&cs, &zs));
+        // NOTE: --- Testing end ---
+
+        println!("a{}: {}", i + 1, Cs[i + 1].into_affine());
 
         let mut g = Vec::with_capacity(g_l.len());
         let mut c = Vec::with_capacity(g_l.len());
@@ -217,13 +265,24 @@ fn open<R: Rng>(
             // 5. Construct commitment inputs for the next round:
             // c_(i+1) := l(c_i) + ξ^(−1)_(i+1) · r(c_i)
             // z_(i+1) := l(z_i) + ξ_(i+1) · r(z_i)
-            c.push(c_l[j] + c_r[j] * xi_next.inverse().unwrap());
+            c.push(c_l[j] + c_r[j] * xi_next_inv);
             z.push(z_l[j] + z_r[j] * xi_next);
         }
         gs = g;
         cs = c;
         zs = z;
     }
+    println!();
+
+    // NOTE: --- Testing start ---
+    let mut lr = PallasScalar::ZERO;
+    for i in 0..ls.len() {
+        lr += xis[i + 1] * ls[i];
+        lr += xis[i + 1].inverse().unwrap() * rs[i];
+    }
+    // NOTE: --- Testing end ---
+
+    assert_eq!(v_i - lr, v);
 
     // Finally, set U := G_(log_n), c := c_(log_n), and output the evaluation proof π := (L, R, U, c, C_bar, ω').
     let u = gs[0];
@@ -268,10 +327,10 @@ fn succinct_check(
     };
 
     // 3. Compute the challenge α := ρ_0(C, z, v, C_bar) ∈ F^∗_q.
-    let a = hash_to_scalar![C, z, v, C_bar];
+    //let a = hash_to_scalar![C, z, v, C_bar];
 
     // 4. Compute the non-hiding commitment C' := C + α · C_bar − ω'· S ∈ G.
-    let C_prime = C + C_bar * a - S * w_prime;
+    let C_prime = C; //+ C_bar * a - S * w_prime;
 
     // 5. Compute the 0-th challenge ξ_0 := ρ_0(C', z, v), and set H' := ξ_0 · H ∈ G.
     let xi_0 = hash_to_scalar![C_prime, z, v];
@@ -282,6 +341,7 @@ fn succinct_check(
 
     // 6. Compute the group element C_0 := C' + v · H' ∈ G.
     let mut C_i = C_prime + H_prime * v;
+    println!("b{}: {}", 0, C_i.into_affine());
 
     // 7. For each i ∈ [log_n]:
     for i in 0..lg_n {
@@ -291,7 +351,20 @@ fn succinct_check(
 
         // 7.b Compute the (i+1)-th commitment: C_(i+1) := C_i + ξ^(−1)_(i+1) · L_i + ξ_(i+1) · R_i ∈ G.
         C_i += Ls[i] * xi_next.inverse().unwrap() + Rs[i] * xi_next;
+        println!("b{}: {}", i + 1, C_i.into_affine());
     }
+
+    // For testing
+    let mut LR = PallasPoint::ZERO;
+    for i in 0..Ls.len() {
+        let xi_next = hash_to_scalar!(xis[i], Ls[i], Rs[i]);
+        LR += Ls[i] * xi_next.inverse().unwrap() + Rs[i] * xi_next;
+    }
+
+    let C_0 = C_prime + H_prime * v;
+    assert_eq!(Ls.len(), lg_n);
+    assert_eq!(Ls.len(), Rs.len());
+    assert_eq!(C_0 + LR, C_i);
 
     // 8. Define the univariate polynomial h(X) := π^(lg(n))_(i=0) (1 + ξ_(lg(n)−i) · X^(2^i)) ∈ F_q[X].
     let h = construct_h(xis, lg_n);
@@ -301,7 +374,11 @@ fn succinct_check(
 
     // 10. Check that C_(log_n) = CM.Commit_Σ(c || v'), where Σ = (U || H').
     let sigma = pedersen::CommitKey::new(S, vec![U, H_prime]);
-    if C_i != pedersen::commit(&None, &sigma, &vec![c, v_prime]) {
+    let C_other1 = pedersen::commit(&None, &sigma, &vec![c, v_prime]);
+    let C_other2 = U * c + H_prime * v_prime;
+    println!("other: {:?}", C_other1.into_affine());
+    assert_eq!(C_other1, C_other2);
+    if C_i != C_other1 {
         return Err("C_(log_n) ≠ CM.Commit_Σ(c || v')".to_string());
     };
 
