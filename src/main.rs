@@ -1,6 +1,5 @@
 use ark_ff::PrimeField;
 use ark_serialize::CanonicalSerialize;
-//use sha3::{Digest, Sha3_256};
 
 pub mod group;
 pub mod pedersen;

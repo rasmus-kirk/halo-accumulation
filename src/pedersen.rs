@@ -1,41 +1,36 @@
-use ark_ff::AdditiveGroup;
-use rand::Rng;
+#![allow(non_snake_case)]
 
-use crate::{group::get_generator, PallasPoint, PallasScalar};
+use crate::{group::{point_dot, get_generator_hash}, PallasPoint, PallasScalar};
 
 #[derive(Clone)]
 pub struct CommitKey {
-    pub s: PallasPoint,
-    pub hk: Vec<PallasPoint>,
+    pub S: PallasPoint,
+    pub Gs: Vec<PallasPoint>,
 }
 
 impl CommitKey {
-    pub fn new(s: PallasPoint, hk: Vec<PallasPoint>) -> CommitKey {
-        CommitKey { s, hk }
+    pub fn new(S: PallasPoint, Gs: Vec<PallasPoint>) -> CommitKey {
+        CommitKey { S, Gs }
     }
 }
 
-pub fn trim<R: Rng>(rng: &mut R, l: usize) -> CommitKey {
-    let mut hk = Vec::with_capacity(l);
-    let s = get_generator(rng);
-
-    for _ in 0..l {
-        hk.push(get_generator(rng));
+pub fn trim(l: usize) -> CommitKey {
+    let mut Gs = Vec::with_capacity(l);
+    for i in 0..l {
+        Gs.push(get_generator_hash(i));
     }
 
-    CommitKey { s, hk }
+    let S = get_generator_hash(l);
+
+    CommitKey { S, Gs }
 }
 
 pub fn commit(w: &Option<PallasScalar>, ck: &CommitKey, ms: &[PallasScalar]) -> PallasPoint {
-    assert!(ck.hk.len() == ms.len(), "Length did not match for pedersen commitment: {}, {}", ck.hk.len(), ms.len());
+    assert!(ck.Gs.len() == ms.len(), "Length did not match for pedersen commitment: {}, {}", ck.Gs.len(), ms.len());
 
-    let mut acc = PallasPoint::ZERO;
-    for i in 0..ms.len() {
-        acc = acc + ck.hk[i] * ms[i];
-    }
-
+    let acc = point_dot(ms, &ck.Gs);
     if let Some(w) = w {
-        ck.s * w + acc
+        ck.S * w + acc
     } else {
         acc
     }
@@ -44,12 +39,13 @@ pub fn commit(w: &Option<PallasScalar>, ck: &CommitKey, ms: &[PallasScalar]) -> 
 #[cfg(test)]
 mod tests {
     use ark_std::UniformRand;
+    use rand::Rng;
 
     use super::*;
 
     fn test_single_homomorphism<R: Rng>(rng: &mut R, l: usize) {
         // Generate random commit keys
-        let ck = trim(rng, l);
+        let ck = trim(l);
 
         // Create random message vectors
         let ms1: Vec<PallasScalar> = (0..l).map(|_| PallasScalar::rand(rng)).collect();
@@ -75,7 +71,7 @@ mod tests {
     #[test]
     fn test_homomorphism_property() {
         let mut rng = ark_std::test_rng();
-        let ms_len = 32; // Number of message elements
+        let ms_len = 64; // Number of message elements
         let tests = 10; // Number of tests run
 
         for _ in 0..tests {
