@@ -4,7 +4,7 @@ use ark_ec::{PrimeGroup, VariableBaseMSM, CurveGroup};
 use ark_ff::PrimeField;
 use ark_pallas::Affine;
 use ark_poly::univariate::DensePolynomial;
-use ark_std::{UniformRand, Zero};
+use ark_std::{UniformRand, Zero, One};
 use rand::Rng;
 use sha3::{Digest, Sha3_256};
 
@@ -21,6 +21,17 @@ pub fn scalar_dot(xs: &[PallasScalar], ys: &[PallasScalar]) -> PallasScalar {
 pub fn point_dot(xs: &[PallasScalar], Gs: &[PallasPoint]) -> PallasPoint {
     let Gs: Vec<Affine> = Gs.iter().map(|G| G.into_affine()).collect();
     PallasPoint::msm_unchecked(&Gs, &xs)
+}
+
+/// Given scalar z and length n, computes vector [1, z^1, ..., z^(n-1)]
+pub fn construct_powers(z: &PallasScalar, n: usize) -> Vec<PallasScalar> {
+    let mut zs = Vec::with_capacity(n);
+    let mut current = PallasScalar::one();
+    for _ in 0..n {
+        zs.push(current);
+        current *= z;
+    }
+    zs
 }
 
 // Function to generate a random generator for the Pallas Curve.
@@ -72,8 +83,7 @@ pub fn hash_bytes_to_point(data: &[u8]) -> PallasPoint {
 
 // These are ugly, but it really cleans up the implementation
 // They just hash either points or scalars to a single scalar and point respectively
-// TODO: Ensure these are not buggy!
-macro_rules! hash_to_scalar {
+macro_rules! rho_0 {
     ($($a:expr),+ $(,)?) => {{
         let mut size = 0;
         $(
@@ -86,6 +96,7 @@ macro_rules! hash_to_scalar {
 
         let mut hasher = Sha3_256::new();
         hasher.update(&data);
+        hasher.update(&0u32.to_le_bytes());
         let hash_result = hasher.finalize();
 
         // Interpret the hash as a scalar field element
@@ -97,4 +108,30 @@ macro_rules! hash_to_scalar {
     }};
 }
 
-pub(crate) use hash_to_scalar;
+macro_rules! rho_1 {
+    ($($a:expr),+ $(,)?) => {{
+        let mut size = 0;
+        $(
+            size += $a.compressed_size();
+         )+
+        let mut data = Vec::with_capacity(size);
+        $(
+            $a.serialize_compressed(&mut data).unwrap();
+         )+
+
+        let mut hasher = Sha3_256::new();
+        hasher.update(&data);
+        hasher.update(&1u32.to_le_bytes());
+        let hash_result = hasher.finalize();
+
+        // Interpret the hash as a scalar field element
+        let mut hash_bytes = [0u8; 32];
+        hash_bytes.copy_from_slice(&hash_result[..32]);
+        let scalar = PallasScalar::from_le_bytes_mod_order(&hash_bytes);
+
+        scalar
+    }};
+}
+
+pub(crate) use rho_0;
+pub(crate) use rho_1;

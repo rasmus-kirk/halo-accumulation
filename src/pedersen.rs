@@ -25,7 +25,7 @@ pub fn trim(l: usize) -> CommitKey {
     CommitKey { S, Gs }
 }
 
-pub fn commit(w: &Option<PallasScalar>, ck: &CommitKey, ms: &[PallasScalar]) -> PallasPoint {
+pub fn commit(w: Option<&PallasScalar>, ck: &CommitKey, ms: &[PallasScalar]) -> PallasPoint {
     assert!(ck.Gs.len() == ms.len(), "Length did not match for pedersen commitment: {}, {}", ck.Gs.len(), ms.len());
 
     let acc = point_dot(ms, &ck.Gs);
@@ -57,9 +57,9 @@ mod tests {
         let w1 = PallasScalar::rand(rng);
         let w2 = PallasScalar::rand(rng);
 
-        let inner_sum = commit(&Some(w1 + w2), &ck, &ms_sum);
+        let inner_sum = commit(Some(&(w1 + w2)), &ck, &ms_sum);
         let outer_sum =
-            commit(&Some(w1), &ck, &ms1) + commit(&Some(w2), &ck, &ms2);
+            commit(Some(&w1), &ck, &ms1) + commit(Some(&w2), &ck, &ms2);
 
         // Check if homomorphism property holds
         assert!(

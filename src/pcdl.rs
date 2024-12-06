@@ -10,13 +10,32 @@ use group::{PallasPoly, scalar_dot};
 use rand::Rng;
 use sha3::{Digest, Sha3_256};
 
-use crate::group::{get_generator_hash, hash_to_scalar};
+use crate::group::{get_generator_hash, rho_0, construct_powers};
 use crate::*;
 
 #[derive(Clone)]
 pub struct CommitKey {
-    ck_pedersen: pedersen::CommitKey,
-    H: PallasPoint,
+    pub(crate) ck_pedersen: pedersen::CommitKey,
+    pub(crate) H: PallasPoint,
+}
+
+#[derive(Clone)]
+pub struct ReceiveKey {
+    pub(crate) ck_pedersen: pedersen::CommitKey,
+    pub(crate) H: PallasPoint,
+}
+
+#[derive(Clone)]
+pub struct SuccinctReceiveKey {
+    pub(crate) S: PallasPoint,
+    pub(crate) H: PallasPoint,
+    pub(crate) D: usize,
+}
+
+impl SuccinctReceiveKey {
+    pub fn new(S: PallasPoint, H: PallasPoint, D: usize) -> Self {
+        Self { S, H, D }
+    }
 }
 
 #[derive(Clone)]
@@ -41,16 +60,18 @@ impl<T> VecPushOwn<T> for Vec<T> {
     }
 }
 
-pub fn trim(d: usize) -> (CommitKey, CommitKey) {
+/// Creates the commitment keys
+/// d: a single degree bound d that is at most D
+pub fn trim(d: usize) -> (CommitKey, ReceiveKey) {
     let ck_pedersen = pedersen::trim(d + 1);
     let H = get_generator_hash(d + 2);
 
-    let ck_pc = CommitKey { ck_pedersen, H };
-    let rk_pc = ck_pc.clone();
+    let ck_pc = CommitKey { ck_pedersen: ck_pedersen.clone(), H };
+    let rk_pc = ReceiveKey { ck_pedersen, H };
     (ck_pc, rk_pc)
 }
 
-pub fn commit(ck: &CommitKey, p: &PallasPoly, w: &Option<PallasScalar>) -> PallasPoint {
+pub fn commit(ck: &CommitKey, p: &PallasPoly, w: Option<&PallasScalar>) -> PallasPoint {
     pedersen::commit(w, &ck.ck_pedersen, &p.coeffs)
 }
 
@@ -78,16 +99,6 @@ fn construct_h(xis: Vec<PallasScalar>, lg_n: usize) -> DensePolynomial<PallasSca
     h
 }
 
-fn construct_zs(z: &PallasScalar, n: usize) -> Vec<PallasScalar> {
-    let mut zs = Vec::with_capacity(n);
-    let mut current = PallasScalar::one();
-    for _ in 0..n {
-        zs.push(current);
-        current *= z;
-    }
-    zs
-}
-
 /// ck: The commitment key ck_PC = (ck, H)
 /// p: A univariate polynomial p(X)
 /// c: A commitment to p,
@@ -112,7 +123,7 @@ pub fn open<R: Rng>(
     // 1. Compute the evaluation v := p(z) ∈ Fq.
     let v = p.evaluate(z);
 
-    // 2. Sample a random polynomial p_bar ∈ F^(≤d)_q[X] such that p_bar(z) = 0.
+    // (2). Sample a random polynomial p_bar ∈ F^(≤d)_q[X] such that p_bar(z) = 0.
     // p_bar(X) = (X - z) * q(X), where q(X) is a uniform random polynomial
     let z_poly = PallasPoly::from_coefficients_vec(vec![-*z, PallasScalar::ONE]);
     let q = PallasPoly::rand(d - 1, rng);
@@ -120,14 +131,14 @@ pub fn open<R: Rng>(
     assert_eq!(p_bar.evaluate(z), PallasScalar::ZERO);
     assert_eq!(p_bar.degree(), p.degree());
 
-    // 3. Sample corresponding commitment randomness ω_bar ∈ Fq.
+    // (3). Sample corresponding commitment randomness ω_bar ∈ Fq.
     let w_bar = PallasScalar::rand(rng);
 
-    // 4. Compute a hiding commitment to p_bar: C_bar ← CM.Commit^(ρ0)(ck, p_bar; ω_bar) ∈ G.
-    let C_bar = commit(&ck, &p_bar, &Some(w_bar));
+    // (4). Compute a hiding commitment to p_bar: C_bar ← CM.Commit^(ρ0)(ck, p_bar; ω_bar) ∈ G.
+    let C_bar = commit(&ck, &p_bar, Some(&w_bar));
 
-    // 5. Compute the challenge α := ρ(C, z, v, C_bar) ∈ F^∗_q.
-    let a = hash_to_scalar![C, z, v, C_bar];
+    // (5). Compute the challenge α := ρ(C, z, v, C_bar) ∈ F^∗_q.
+    let a = rho_0![C, z, v, C_bar];
 
     // 6. Compute the polynomial p' := p + α ⋅ p_bar = Σ^d_(i=0) c_i ⋅ X_i ∈ Fq[X].
     let p_prime = p + &p_bar * a;
@@ -143,14 +154,14 @@ pub fn open<R: Rng>(
     // c_0 := (c_0, c_1, . . . , c_d) ∈ F^(d+1)_q
     // z_0 := (1, z, . . . , z^d) ∈ F^(d+1)_q
     // G_0 := (G_0, G_1, . . . , G_d) ∈ G_(d+1)
-    let xi_0 = hash_to_scalar![C_prime, z, v];
+    let xi_0 = rho_0![C_prime, z, v];
     let mut xis = Vec::with_capacity(lg_n + 1).push_own(xi_0);
 
     let H_prime = H * xi_0;
 
     let mut cs = p_prime.coeffs.clone();
     let mut gs = ck.ck_pedersen.Gs.clone();
-    let mut zs = construct_zs(z, n);
+    let mut zs = construct_powers(z, n);
 
     let mut Ls = Vec::with_capacity(lg_n);
     let mut Rs = Vec::with_capacity(lg_n);
@@ -167,16 +178,16 @@ pub fn open<R: Rng>(
 
         let dot_l = scalar_dot(c_r, z_l);
         let sigma_L = pedersen::CommitKey::new(S, g_l.to_vec().push_own(H_prime));
-        let L = pedersen::commit(&None, &sigma_L, &c_r.to_vec().push_own(dot_l));
+        let L = pedersen::commit(None, &sigma_L, &c_r.to_vec().push_own(dot_l));
         Ls.push(L);
 
         let dot_r = scalar_dot(c_l, z_r);
         let sigma_R = pedersen::CommitKey::new(S, g_r.to_vec().push_own(H_prime));
-        let R = pedersen::commit(&None, &sigma_R, &c_l.to_vec().push_own(dot_r));
+        let R = pedersen::commit(None, &sigma_R, &c_l.to_vec().push_own(dot_r));
         Rs.push(R);
 
         // 3. Generate the (i+1)-th challenge ξ_(i+1) := ρ_0(ξ_i, L_(i+1), R_(i+1)) ∈ F_q.
-        let xi_next = hash_to_scalar![xis[i], L, R];
+        let xi_next = rho_0![xis[i], L, R];
         let xi_next_inv = xi_next.inverse().unwrap();
         xis.push(xi_next);
 
@@ -213,7 +224,7 @@ pub fn open<R: Rng>(
 }
 
 pub fn succinct_check(
-    rk: (PallasPoint, PallasPoint, usize),
+    rk: &SuccinctReceiveKey, // (PallasPoint, PallasPoint, usize),
     C: &PallasPoint,
     d: usize,
     z: &PallasScalar,
@@ -225,30 +236,26 @@ pub fn succinct_check(
     assert!(n.is_power_of_two());
 
     // 1. Parse rk as (⟨group⟩, S, H, d'), and π as (L, R, U, c, C_bar, ω').
-    let (S, H, d_prime) = rk;
-    let Ls = pi.Ls;
-    let Rs = pi.Rs;
-    let U = pi.U;
-    let c = pi.c;
-    let C_bar = pi.C_bar;
-    let w_prime = pi.w_prime;
+    #[rustfmt::skip]
+    let EvalProof { Ls, Rs, U, c, C_bar, w_prime } = pi;
+    let SuccinctReceiveKey { S, H, D: d_prime } = rk;
 
     // 2. Check that d = d'.
-    if d != d_prime {
+    if d != *d_prime {
         return Err("d ≠ d'".to_string());
     };
 
-    // 3. Compute the challenge α := ρ_0(C, z, v, C_bar) ∈ F^∗_q.
-    let a = hash_to_scalar![C, z, v, C_bar];
+    // (3). Compute the challenge α := ρ_0(C, z, v, C_bar) ∈ F^∗_q.
+    let a = rho_0![C, z, v, C_bar];
 
     // 4. Compute the non-hiding commitment C' := C + α · C_bar − ω'· S ∈ G.
-    let C_prime = C + C_bar * a - S * w_prime;
+    let C_prime = C + C_bar * a - (*S) * w_prime;
 
     // 5. Compute the 0-th challenge ξ_0 := ρ_0(C', z, v), and set H' := ξ_0 · H ∈ G.
-    let xi_0 = hash_to_scalar![C_prime, z, v];
+    let xi_0 = rho_0![C_prime, z, v];
     let mut xis = Vec::with_capacity(lg_n + 1).push_own(xi_0);
 
-    let H_prime = H * xi_0;
+    let H_prime = (*H) * xi_0;
 
     // 6. Compute the group element C_0 := C' + v · H' ∈ G.
     let mut C_i = C_prime + H_prime * v;
@@ -256,7 +263,7 @@ pub fn succinct_check(
     // 7. For each i ∈ [log_n]:
     for i in 0..lg_n {
         // 7.a Generate the (i+1)-th challenge: ξ_(i+1) := ρ_0(ξ_i, L_i, R_i) ∈ F_q.
-        let xi_next = hash_to_scalar!(xis[i], Ls[i], Rs[i]);
+        let xi_next = rho_0!(xis[i], Ls[i], Rs[i]);
         xis.push(xi_next);
 
         // 7.b Compute the (i+1)-th commitment: C_(i+1) := C_i + ξ^(−1)_(i+1) · L_i + ξ_(i+1) · R_i ∈ G.
@@ -279,7 +286,7 @@ pub fn succinct_check(
 }
 
 pub fn check(
-    rk_pc: &CommitKey,
+    rk_pc: &ReceiveKey,
     C: &PallasPoint,
     d: usize,
     z: &PallasScalar,
@@ -290,14 +297,14 @@ pub fn check(
     // 2. Set d' := |hk| - 1.
     let d_prime = rk_pc.ck_pedersen.Gs.len() - 1;
 
-    // 3. Set rk := (⟨group⟩, S, H, d′).
-    let rk = (rk_pc.ck_pedersen.S, rk_pc.H, d_prime);
+    // 3. Set rk := (⟨group⟩, S, H, d').
+    let rk = SuccinctReceiveKey::new(rk_pc.ck_pedersen.S, rk_pc.H, d_prime);
 
     // 4. Check that PC_DL.SuccinctCheck_ρ0(rk, C, d, z, v, π) accepts and outputs (h, U).
-    let (h, U) = succinct_check(rk, C, d, z, v, pi)?;
+    let (h, U) = succinct_check(&rk, C, d, z, v, pi)?;
 
     // 5. Check that U = CM.Commit(ck, h_vec), where h_vec is the coefficient vector of the polynomial h.
-    if U != pedersen::commit(&None, &rk_pc.ck_pedersen, &h.coeffs) {
+    if U != pedersen::commit(None, &rk_pc.ck_pedersen, &h.coeffs) {
         return Err("U ≠ CM.Commit(ck, h_vec)".to_string());
     }
 
@@ -359,7 +366,7 @@ mod tests {
 
         let h = construct_h(xis.clone(), lg_n);
         let U = gs_mut[0].into_affine();
-        let U_prime = pedersen::commit(&None, &ck.ck_pedersen, &h.coeffs).into_affine();
+        let U_prime = pedersen::commit(None, &ck.ck_pedersen, &h.coeffs).into_affine();
 
         let mut xs = Vec::with_capacity(gs.len());
         let mut acc = PallasPoint::ZERO;
@@ -384,7 +391,7 @@ mod tests {
         // Commit to a random polynomial
         let w = PallasScalar::rand(&mut rng);
         let p = PallasPoly::rand(d, &mut rng);
-        let c = commit(&ck, &p, &Some(w));
+        let c = commit(&ck, &p, Some(&w));
 
         // Generate an evaluation proof
         let z = PallasScalar::rand(&mut rng);
