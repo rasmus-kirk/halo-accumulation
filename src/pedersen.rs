@@ -1,36 +1,45 @@
 #![allow(non_snake_case)]
 
-use crate::{group::{point_dot, get_generator_hash}, PallasPoint, PallasScalar};
+use crate::{group::{point_dot}, PallasPoint, PallasScalar};
+use acc_consts::consts::S;
 
-#[derive(Clone)]
-pub struct CommitKey {
-    pub S: PallasPoint,
-    pub Gs: Vec<PallasPoint>,
-}
+//#[derive(Clone)]
+//pub struct CommitKey {
+//    pub Gs: Vec<*const PallasPoint>,
+//}
+//
+//impl CommitKey {
+//    pub fn new(l: usize) -> CommitKey {
+//        let Gs: Vec<*const PallasPoint> = consts::G[0..l].iter().map(|x| x as *const PallasPoint).collect();
+//
+//        CommitKey { Gs }
+//    }
+//}
 
-impl CommitKey {
-    pub fn new(S: PallasPoint, Gs: Vec<PallasPoint>) -> CommitKey {
-        CommitKey { S, Gs }
-    }
-}
+//#[derive(Clone)]
+//pub struct CommitKey<'a> {
+//    Gs: &'a [PallasPoint],
+//}
+//
+//impl<'a> CommitKey<'a> {
+//    pub fn new(l: usize) -> CommitKey<'a> {
+//        let Gs = &consts::G[0..l];
+//
+//        CommitKey { Gs }
+//    }
+//}
+//
+//
+//pub fn trim(l: usize) -> CommitKey<'a> {
+//    CommitKey::new(l)
+//}
 
-pub fn trim(l: usize) -> CommitKey {
-    let mut Gs = Vec::with_capacity(l);
-    for i in 0..l {
-        Gs.push(get_generator_hash(i));
-    }
+pub fn commit(w: Option<&PallasScalar>, Gs: &[PallasPoint], ms: &[PallasScalar]) -> PallasPoint {
+    assert!(Gs.len() == ms.len(), "Length did not match for pedersen commitment: {}, {}", Gs.len(), ms.len());
 
-    let S = get_generator_hash(l);
-
-    CommitKey { S, Gs }
-}
-
-pub fn commit(w: Option<&PallasScalar>, ck: &CommitKey, ms: &[PallasScalar]) -> PallasPoint {
-    assert!(ck.Gs.len() == ms.len(), "Length did not match for pedersen commitment: {}, {}", ck.Gs.len(), ms.len());
-
-    let acc = point_dot(ms, &ck.Gs);
+    let acc = point_dot(ms, Gs);
     if let Some(w) = w {
-        ck.S * w + acc
+        S * w + acc
     } else {
         acc
     }
@@ -40,12 +49,14 @@ pub fn commit(w: Option<&PallasScalar>, ck: &CommitKey, ms: &[PallasScalar]) -> 
 mod tests {
     use ark_std::UniformRand;
     use rand::Rng;
+    use acc_consts::consts;
 
     use super::*;
 
     fn test_single_homomorphism<R: Rng>(rng: &mut R, l: usize) {
         // Generate random commit keys
-        let ck = trim(l);
+        //let ck = trim(l);
+        let Gs = &consts::Gs[0..l];
 
         // Create random message vectors
         let ms1: Vec<PallasScalar> = (0..l).map(|_| PallasScalar::rand(rng)).collect();
@@ -57,9 +68,9 @@ mod tests {
         let w1 = PallasScalar::rand(rng);
         let w2 = PallasScalar::rand(rng);
 
-        let inner_sum = commit(Some(&(w1 + w2)), &ck, &ms_sum);
+        let inner_sum = commit(Some(&(w1 + w2)), Gs, &ms_sum);
         let outer_sum =
-            commit(Some(&w1), &ck, &ms1) + commit(Some(&w2), &ck, &ms2);
+            commit(Some(&w1), Gs, &ms1) + commit(Some(&w2), Gs, &ms2);
 
         // Check if homomorphism property holds
         assert!(
