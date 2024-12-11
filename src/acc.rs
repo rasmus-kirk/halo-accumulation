@@ -54,8 +54,21 @@ impl AccumulatedHPolys {
         Self { hs: Vec::new(), a }
     }
 
+    fn get_scalars(&self) -> Vec<PallasScalar> {
+        let mut scalars = vec![self.a];
+        for i in 1..self.hs.len() {
+            scalars.extend(&self.hs[i].xis)
+        }
+
+        scalars
+    }
+
+    fn push(&mut self, h: pcdl::HPoly) {
+        self.hs.push(h)
+    }
+
     fn get_poly(&self) -> PallasPoly {
-        let mut h = PallasPoly::zero(); // Start with 1
+        let mut h = PallasPoly::zero();
         for i in 0..self.hs.len() {
             h = h + (&self.hs[i].get_poly() * self.a.pow([i as u64]));
         }
@@ -63,11 +76,17 @@ impl AccumulatedHPolys {
     }
 
     fn eval(&self, z: &PallasScalar) -> PallasScalar {
-        let mut v = PallasScalar::zero(); // Start with 1
+        let mut v = PallasScalar::zero();
         for i in 0..self.hs.len() {
             v += self.hs[i].eval(z) * self.a.pow([i as u64]);
         }
         v
+    }
+}
+
+impl Instance {
+    pub fn new(C: PallasPoint, d: usize, z: PallasScalar, v: PallasScalar, pi: pcdl::EvalProof) -> Self {
+        Self { C, d, z, v, pi }
     }
 }
 
@@ -102,7 +121,7 @@ fn common_subroutine(
     D: usize,
     qs: &[Instance],
     pi_V: &AccumulatorHiding,
-) -> Result<(PallasPoint, usize, PallasScalar, PallasPoly)> {
+) -> Result<(PallasPoint, usize, PallasScalar, AccumulatedHPolys)> {
     let m = qs.len();
 
     // 1. Parse avk as (rk, ck^(1)_(PC)), and rk as (⟨group⟩ = (G, q, G), S, H, D).
@@ -138,16 +157,16 @@ fn common_subroutine(
     let a = rho_1![hi_hash, Us];
 
     // 7. Set the polynomial h(X) := Σ^n_(i=0) α^i · h_i(X) ∈ Fq[X].
-    let mut h = PallasPoly::zero(); // Start with 1
-    for i in 0..hs.len() {
-        h = h + (&hs[i].get_poly() * a.pow([i as u64]));
+    let mut h = AccumulatedHPolys::new(a);
+    for h_i in hs {
+        h.push(h_i)
     }
 
     // 8. Compute the accumulated commitment C := Σ^n_(i=0) α^i · U_i.
     let C = point_dot(&construct_powers(&a, m), Us);
 
     // 9. Compute the challenge z := ρ1(C, h) ∈ F_q.
-    let z = rho_1![C, h];
+    let z = rho_1![C, h.get_scalars()];
 
     // 10. Randomize C : C_bar := C + ω · S ∈ G.
     let C_bar = C + S * w;
@@ -175,11 +194,11 @@ pub fn prover<R: Rng>(
     let (C_bar, d, z, h) = common_subroutine(d, qs, &pi_V)?;
 
     // 5. Compute the evaluation v := h(z)
-    let v = h.evaluate(&z);
+    let v = h.eval(&z);
 
     // 6. Generate the hiding evaluation proof π := PCDL.Open_ρ0(ck_PC, h(X), C_bar, d, z; ω).
     //let pi = pcdl::open(rng, h, C_bar, d, &z, Some(&w));
-    let pi = pcdl::open(rng, h, C_bar, d, &z, Some(&w));
+    let pi = pcdl::open(rng, h.get_poly(), C_bar, d, &z, Some(&w));
 
     // 7. Finally, output the accumulator acc = ((C_bar, d, z, v), π) and the accumulation proof π_V.
     Ok((Accumulator { C_bar, d, z, v, pi }, pi_V))
@@ -207,7 +226,7 @@ pub fn verifier(
     ensure!(C_bar_prime == C_bar, "C_bar' ≠ C_bar");
     ensure!(z_prime == z, "z' = z");
     ensure!(d_prime == d, "d' = d");
-    ensure!(h.evaluate(&z) == v, "h(z) = v");
+    ensure!(h.eval(&z) == v, "h(z) = v");
 
     Ok(())
 }

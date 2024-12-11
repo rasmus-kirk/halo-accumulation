@@ -10,23 +10,23 @@ pub type PallasScalar = ark_pallas::Fr;
 pub type PallasPoly = DensePolynomial<PallasScalar>;
 
 /// Dot product of scalars
-pub fn scalar_dot(xs: &[PallasScalar], ys: &[PallasScalar]) -> PallasScalar {
+pub(crate) fn scalar_dot(xs: &[PallasScalar], ys: &[PallasScalar]) -> PallasScalar {
     xs.iter().zip(ys).map(|(x, y)| x * y).sum()
 }
 
 /// Dot product of points
-pub fn point_dot(xs: &[PallasScalar], Gs: Vec<PallasPoint>) -> PallasPoint {
+pub(crate) fn point_dot(xs: &[PallasScalar], Gs: Vec<PallasPoint>) -> PallasPoint {
     let Gs: Vec<PallasAffine> = Gs.into_iter().map(|x| x.into_affine()).collect();
     PallasPoint::msm_unchecked(&Gs, &xs)
 }
 
 /// Dot product of points
-pub fn point_dot_affine(xs: &[PallasScalar], Gs: &[PallasAffine]) -> PallasPoint {
+pub(crate) fn point_dot_affine(xs: &[PallasScalar], Gs: &[PallasAffine]) -> PallasPoint {
     PallasPoint::msm_unchecked(&Gs, &xs)
 }
 
 /// Given scalar z and length n, computes vector [1, z^1, ..., z^(n-1)]
-pub fn construct_powers(z: &PallasScalar, n: usize) -> Vec<PallasScalar> {
+pub(crate) fn construct_powers(z: &PallasScalar, n: usize) -> Vec<PallasScalar> {
     let mut zs = Vec::with_capacity(n);
     let mut current = PallasScalar::one();
     for _ in 0..n {

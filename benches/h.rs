@@ -11,7 +11,7 @@ use halo_accumulation::{
 const N: usize = 256;
 const K: usize = 16;
 
-fn h_get_poly(c: &mut Criterion) {
+pub fn h_get_poly(c: &mut Criterion) {
     let mut rng = test_rng();
     let lg_n = N.ilog2() as usize;
 
@@ -25,7 +25,7 @@ fn h_get_poly(c: &mut Criterion) {
     c.bench_function("h_get_poly", |b| b.iter(|| h.get_poly()));
 }
 
-fn h_eval(c: &mut Criterion) {
+pub fn h_eval(c: &mut Criterion) {
     let mut rng = test_rng();
     let lg_n = N.ilog2() as usize;
 
@@ -40,7 +40,7 @@ fn h_eval(c: &mut Criterion) {
     c.bench_function("h_eval", |b| b.iter(|| h.eval(&z)));
 }
 
-fn h_eval_naive(c: &mut Criterion) {
+pub fn h_eval_naive(c: &mut Criterion) {
     let mut rng = test_rng();
     let lg_n = N.ilog2() as usize;
 
@@ -57,7 +57,7 @@ fn h_eval_naive(c: &mut Criterion) {
     c.bench_function("h_eval_naive", |b| b.iter(|| h_poly.evaluate(&z)));
 }
 
-fn random_poly_eval_naive(c: &mut Criterion) {
+pub fn random_poly_eval_naive(c: &mut Criterion) {
     let mut rng = test_rng();
 
     let h = PallasPoly::rand(N - 1, &mut rng);
@@ -67,7 +67,7 @@ fn random_poly_eval_naive(c: &mut Criterion) {
     c.bench_function("random_poly_eval_naive", |b| b.iter(|| h.evaluate(&z)));
 }
 
-fn h_eval_multiple(c: &mut Criterion) {
+pub fn h_eval_multiple(c: &mut Criterion) {
     let mut rng = test_rng();
     let lg_n = N.ilog2() as usize;
 
@@ -83,7 +83,7 @@ fn h_eval_multiple(c: &mut Criterion) {
 
     let z = PallasScalar::rand(&mut rng);
 
-    fn f(z: &PallasScalar, a: &PallasScalar, hs: &[HPoly]) -> PallasScalar {
+    pub fn f(z: &PallasScalar, a: &PallasScalar, hs: &[HPoly]) -> PallasScalar {
         let mut v = PallasScalar::ZERO;
         for i in 0..hs.len() {
             v += a.pow([i as u64]) * hs[i].eval(&z);
@@ -95,7 +95,7 @@ fn h_eval_multiple(c: &mut Criterion) {
     c.bench_function("h_eval_multiple", |b| b.iter(|| f(&z, &a, &hs)));
 }
 
-fn h_eval_multiple_naive(c: &mut Criterion) {
+pub fn h_eval_multiple_naive(c: &mut Criterion) {
     let mut rng = test_rng();
     let lg_n = N.ilog2() as usize;
 
@@ -111,7 +111,7 @@ fn h_eval_multiple_naive(c: &mut Criterion) {
 
     let z = PallasScalar::rand(&mut rng);
 
-    fn f(z: &PallasScalar, a: &PallasScalar, hs: &[HPoly]) -> PallasScalar {
+    pub fn f(z: &PallasScalar, a: &PallasScalar, hs: &[HPoly]) -> PallasScalar {
         let mut h = PallasPoly::zero();
         for i in 0..hs.len() {
             h = h + (hs[i].get_poly() * a.pow([i as u64]));
@@ -123,7 +123,7 @@ fn h_eval_multiple_naive(c: &mut Criterion) {
 }
 
 criterion_group!(
-    benches,
+    h_benches,
     h_get_poly,
     h_eval,
     h_eval_naive,
@@ -131,4 +131,5 @@ criterion_group!(
     h_eval_multiple,
     h_eval_multiple_naive
 );
-criterion_main!(benches);
+
+criterion_main!(h_benches);

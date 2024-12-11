@@ -11,11 +11,13 @@ use ark_std::{One, Zero};
 use rand::Rng;
 use sha3::{Digest, Sha3_256};
 
-use crate::group::{
-    construct_powers, point_dot, rho_0, scalar_dot, PallasPoint, PallasPoly, PallasScalar,
+use crate::{
+    consts::{self, GS, H, S},
+    group::{
+        construct_powers, point_dot, rho_0, scalar_dot, PallasPoint, PallasPoly, PallasScalar,
+    },
+    pedersen
 };
-use crate::consts;
-use crate::pedersen;
 
 #[derive(Clone)]
 pub struct EvalProof {
@@ -46,8 +48,7 @@ pub fn commit(p: &PallasPoly, w: Option<&PallasScalar>) -> PallasPoint {
     assert!(n.is_power_of_two());
     assert!(l <= consts::L);
 
-    let Gs = &consts::GS[0..n];
-    pedersen::commit(w, Gs, &p.coeffs)
+    pedersen::commit(w, &GS[0..n], &p.coeffs)
 }
 
 #[derive(Clone)]
@@ -112,8 +113,6 @@ pub fn open<R: Rng>(
     z: &PallasScalar,
     w: Option<&PallasScalar>,
 ) -> EvalProof {
-    let H = consts::H;
-    let S = consts::S;
     let n = d + 1;
     let lg_n = n.ilog2() as usize;
     assert!(n.is_power_of_two());
@@ -170,10 +169,7 @@ pub fn open<R: Rng>(
     let H_prime = H * xi_0;
 
     let mut cs = p_prime.coeffs;
-    let mut gs: Vec<PallasPoint> = consts::GS[0..n]
-        .iter()
-        .map(|x| PallasPoint::from(*x))
-        .collect();
+    let mut gs: Vec<PallasPoint> = GS[0..n].iter().map(|x| PallasPoint::from(*x)).collect();
     let mut zs = construct_powers(z, n);
 
     let mut Ls = Vec::with_capacity(lg_n);
@@ -244,9 +240,6 @@ pub fn succinct_check(
     assert!(n.is_power_of_two());
     assert!(d <= consts::L);
 
-    let S = consts::S;
-    let H = consts::H;
-
     // 1. Parse rk as (⟨group⟩, S, H, d'), and π as (L, R, U, c, C_bar, ω').
     #[rustfmt::skip]
     let EvalProof { Ls, Rs, U, c, C_bar, w_prime } = pi;
@@ -314,8 +307,7 @@ pub fn check(
     let (h, U) = succinct_check(*C, d, z, v, pi)?;
 
     // 5. Check that U = CM.Commit(ck, h_vec), where h_vec is the coefficient vector of the polynomial h.
-    let Gs = &consts::GS[0..(d + 1)];
-    let comm = pedersen::commit(None, Gs, &h.get_poly().coeffs);
+    let comm = pedersen::commit(None, &GS[0..(d + 1)], &h.get_poly().coeffs);
     ensure!(U == comm, "U ≠ CM.Commit(ck, h_vec)");
 
     Ok(())
@@ -339,7 +331,7 @@ mod tests {
             .map(PallasScalar::from)
             .collect();
 
-        let gs_affine = &consts::GS[0..n];
+        let gs_affine = &GS[0..n];
         let gs: Vec<PallasPoint> = gs_affine.iter().map(|x| PallasPoint::from(*x)).collect();
         let mut gs_mut = gs.clone();
 
