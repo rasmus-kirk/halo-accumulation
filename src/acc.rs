@@ -1,5 +1,6 @@
 #![allow(non_snake_case)]
 
+use anyhow::Context;
 use anyhow::ensure;
 use anyhow::Result;
 use ark_ff::{Field, PrimeField};
@@ -33,6 +34,7 @@ pub struct Accumulator {
     z: PallasScalar,
     v: PallasScalar,
     pi: pcdl::EvalProof,
+    pi_V: AccumulatorHiding
 }
 
 /// pi_V in the paper, used for hiding only
@@ -43,62 +45,39 @@ pub struct AccumulatorHiding {
     w: PallasScalar,
 }
 
-#[derive(Clone)]
+#[derive(Clone, CanonicalSerialize)]
 pub struct AccumulatedHPolys {
-    hs: Vec<pcdl::HPoly>,
-    a: PallasScalar,
+    pub(crate) hs: Vec<pcdl::HPoly>,
+    pub(crate) a: Option<PallasScalar>,
 }
 
 impl AccumulatedHPolys {
-    fn new(a: PallasScalar) -> Self {
-        Self { hs: Vec::new(), a }
+    fn new() -> Self {
+        Self { hs: Vec::new(), a: None }
     }
 
-    fn get_scalars(&self) -> Vec<PallasScalar> {
-        let mut scalars = vec![self.a];
-        for i in 1..self.hs.len() {
-            scalars.extend(&self.hs[i].xis)
-        }
-
-        scalars
-    }
-
-    fn push(&mut self, h: pcdl::HPoly) {
-        self.hs.push(h)
-    }
-
-    fn get_poly(&self) -> PallasPoly {
+    fn get_poly(&self) -> Result<PallasPoly> {
+        let a = self.a.context("TODO")?;
         let mut h = PallasPoly::zero();
         for i in 0..self.hs.len() {
-            h = h + (&self.hs[i].get_poly() * self.a.pow([i as u64]));
+            h = h + (&self.hs[i].get_poly() * a.pow([i as u64]));
         }
-        h
+        Ok(h)
     }
 
-    fn eval(&self, z: &PallasScalar) -> PallasScalar {
+    fn eval(&self, z: &PallasScalar) -> Result<PallasScalar> {
+        let a = self.a.context("TODO")?;
         let mut v = PallasScalar::zero();
         for i in 0..self.hs.len() {
-            v += self.hs[i].eval(z) * self.a.pow([i as u64]);
+            v += self.hs[i].eval(z) * a.pow([i as u64]);
         }
-        v
+        Ok(v)
     }
 }
 
 impl Instance {
     pub fn new(C: PallasPoint, d: usize, z: PallasScalar, v: PallasScalar, pi: pcdl::EvalProof) -> Self {
         Self { C, d, z, v, pi }
-    }
-}
-
-impl From<Instance> for Accumulator {
-    fn from(instance: Instance) -> Accumulator {
-        Accumulator {
-            C_bar: instance.C,
-            d: instance.d,
-            z: instance.z,
-            v: instance.v,
-            pi: instance.pi,
-        }
     }
 }
 
@@ -125,7 +104,7 @@ fn common_subroutine(
     let m = qs.len();
 
     // 1. Parse avk as (rk, ck^(1)_(PC)), and rk as (⟨group⟩ = (G, q, G), S, H, D).
-    let mut hs = Vec::with_capacity(m);
+    let mut hs = AccumulatedHPolys::new();
     let mut Us = Vec::with_capacity(m);
 
     // 2. For each i ∈ [m]:
@@ -135,7 +114,7 @@ fn common_subroutine(
 
         // 2.b Compute (h_i(X), U_i) := PCDL.SuccinctCheckρ0(rk, C_i, z_i, v_i, π_i) (see Figure 2).
         let (h_i, U_i) = pcdl::succinct_check(C.clone(), d.clone(), &z, &v, pi.clone())?;
-        hs.push(h_i);
+        hs.hs.push(h_i);
         Us.push(U_i);
 
         // 3. For each i in [n], check that d_i = D. (We accumulate only the degree bound D.)
@@ -153,33 +132,28 @@ fn common_subroutine(
     );
 
     // 6. Compute the challenge α := ρ1([h_i, U_i]^n_(i=0)) ∈ F_q.
-    let hi_hash: Vec<Vec<PallasScalar>> = hs.iter().map(|x| x.xis.clone()).collect();
-    let a = rho_1![hi_hash, Us];
+    hs.a = Some(rho_1!(hs));
 
     // 7. Set the polynomial h(X) := Σ^n_(i=0) α^i · h_i(X) ∈ Fq[X].
-    let mut h = AccumulatedHPolys::new(a);
-    for h_i in hs {
-        h.push(h_i)
-    }
 
     // 8. Compute the accumulated commitment C := Σ^n_(i=0) α^i · U_i.
-    let C = point_dot(&construct_powers(&a, m), Us);
+    let C = point_dot(&construct_powers(&hs.a.unwrap(), m), Us);
 
     // 9. Compute the challenge z := ρ1(C, h) ∈ F_q.
-    let z = rho_1![C, h.get_scalars()];
+    let z = rho_1![C, hs.a];
 
     // 10. Randomize C : C_bar := C + ω · S ∈ G.
     let C_bar = C + S * w;
 
     // 11. Output (C_bar, d, z, h(X)).
-    Ok((C_bar, D, z, h))
+    Ok((C_bar, D, z, hs))
 }
 
 pub fn prover<R: Rng>(
     rng: &mut R,
     d: usize,
     qs: &[Instance],
-) -> Result<(Accumulator, AccumulatorHiding)> {
+) -> Result<Accumulator> {
     // 1. Sample a random linear polynomial h_0 ∈ F_q[X],
     let h_0 = PallasPoly::rand(1, rng);
 
@@ -194,14 +168,14 @@ pub fn prover<R: Rng>(
     let (C_bar, d, z, h) = common_subroutine(d, qs, &pi_V)?;
 
     // 5. Compute the evaluation v := h(z)
-    let v = h.eval(&z);
+    let v = h.eval(&z)?;
 
     // 6. Generate the hiding evaluation proof π := PCDL.Open_ρ0(ck_PC, h(X), C_bar, d, z; ω).
     //let pi = pcdl::open(rng, h, C_bar, d, &z, Some(&w));
-    let pi = pcdl::open(rng, h.get_poly(), C_bar, d, &z, Some(&w));
+    let pi = pcdl::open(rng, h.get_poly()?, C_bar, d, &z, Some(&w));
 
     // 7. Finally, output the accumulator acc = ((C_bar, d, z, v), π) and the accumulation proof π_V.
-    Ok((Accumulator { C_bar, d, z, v, pi }, pi_V))
+    Ok(Accumulator { C_bar, d, z, v, pi, pi_V })
 }
 
 // WARNING: No pi_V argument is mentioned in the protocol!
@@ -209,30 +183,30 @@ pub fn verifier(
     D: usize,
     qs: &[Instance],
     acc: Accumulator,
-    pi_V: &AccumulatorHiding,
-) -> anyhow::Result<()> {
+) -> Result<()> {
     let Accumulator {
         C_bar,
         d,
         z,
         v,
         pi: _,
+        pi_V
     } = acc;
 
     // 1. The accumulation verifier V computes (C_bar', d', z', h(X)) := T^ρ(avk, [qi]^n_(i=1), π_V)
-    let (C_bar_prime, d_prime, z_prime, h) = common_subroutine(D, qs, pi_V)?;
+    let (C_bar_prime, d_prime, z_prime, h) = common_subroutine(D, qs, &pi_V)?;
 
     // 2. Then checks that C_bar' = C_bar, d' = d, z' = z, and h(z) = v.
     ensure!(C_bar_prime == C_bar, "C_bar' ≠ C_bar");
     ensure!(z_prime == z, "z' = z");
     ensure!(d_prime == d, "d' = d");
-    ensure!(h.eval(&z) == v, "h(z) = v");
+    ensure!(h.eval(&z)? == v, "h(z) = v");
 
     Ok(())
 }
 
 pub fn decider(acc: Accumulator) -> Result<()> {
-    let Accumulator { C_bar, d, z, v, pi } = acc;
+    let Accumulator { C_bar, d, z, v, pi, pi_V: _ } = acc;
     pcdl::check(&C_bar, d, &z, &v, pi)
 }
 
@@ -268,8 +242,8 @@ mod tests {
             vec![q]
         };
 
-        let (acc, pi_V) = prover(rng, d, &qs)?;
-        verifier(d, &qs, acc.clone(), &pi_V)?;
+        let acc = prover(rng, d, &qs)?;
+        verifier(d, &qs, acc.clone())?;
 
         Ok(acc)
     }

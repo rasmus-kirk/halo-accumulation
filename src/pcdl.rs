@@ -7,7 +7,7 @@ use ark_poly::DenseUVPolynomial;
 use ark_poly::{univariate::DensePolynomial, Polynomial};
 use ark_serialize::CanonicalSerialize;
 use ark_std::UniformRand;
-use ark_std::{One, Zero};
+use ark_std::One;
 use rand::Rng;
 use sha3::{Digest, Sha3_256};
 
@@ -51,7 +51,7 @@ pub fn commit(p: &PallasPoly, w: Option<&PallasScalar>) -> PallasPoint {
     pedersen::commit(w, &GS[0..n], &p.coeffs)
 }
 
-#[derive(Clone)]
+#[derive(Clone, CanonicalSerialize)]
 pub struct HPoly {
     pub(crate) xis: Vec<PallasScalar>,
 }
@@ -72,7 +72,7 @@ impl HPoly {
             let power = 1 << i;
 
             // Create coefficients for 1 + ξ_(lg(n)-i) * X^(2^i)
-            let mut term = vec![PallasScalar::zero(); power + 1];
+            let mut term = vec![PallasScalar::ZERO; power + 1];
             term[0] = PallasScalar::one(); // Constant term 1
             term[power] = self.xis[lg_n - i]; // Coefficient for X^(2^i)
 
@@ -163,10 +163,8 @@ pub fn open<R: Rng>(
     // c_0 := (c_0, c_1, . . . , c_d) ∈ F^(d+1)_q
     // z_0 := (1, z, . . . , z^d) ∈ F^(d+1)_q
     // G_0 := (G_0, G_1, . . . , G_d) ∈ G_(d+1)
-    let xi_0 = rho_0![C_prime, z, v];
-    let mut xis = Vec::with_capacity(lg_n + 1).push_own(xi_0);
-
-    let H_prime = H * xi_0;
+    let mut xi_i = rho_0![C_prime, z, v];
+    let H_prime = H * xi_i;
 
     let mut cs = p_prime.coeffs;
     let mut gs: Vec<PallasPoint> = GS[0..n].iter().map(|x| PallasPoint::from(*x)).collect();
@@ -179,7 +177,7 @@ pub fn open<R: Rng>(
 
     // NOTE: i is zero-indexed here, but one-indexed in spec,
     // and that i has been corrected in below comments.
-    for i in 0..lg_n {
+    for _ in 0..lg_n {
         // 1&2. Setting Σ_L := l(G_i) || H', Σ_R := r(G i) || H', compute:
         // L_(i+1) := CM.Commit_(Σ_L)(r(c_i) || ⟨r(c_i), l(z_i)⟩)
         // R_(i+1) := CM.Commit_(Σ_R)(l(c_i) || ⟨l(c_i), r(z_i)⟩)
@@ -196,9 +194,9 @@ pub fn open<R: Rng>(
         Rs.push(R);
 
         // 3. Generate the (i+1)-th challenge ξ_(i+1) := ρ_0(ξ_i, L_(i+1), R_(i+1)) ∈ F_q.
-        let xi_next = rho_0![xis[i], L, R];
+        let xi_next = rho_0![xi_i, L, R];
         let xi_next_inv = xi_next.inverse().unwrap();
-        xis.push(xi_next);
+        xi_i = xi_next;
 
         for j in 0..m {
             // 4. Construct the commitment key for the next round: G_(i+1) := l(G_i) + ξ_(i+1) · r(G_i).
@@ -248,11 +246,11 @@ pub fn succinct_check(
     //ensure!(d == d_prime, "d ≠ d'");
 
     // 4. Compute the non-hiding commitment C' := C + α · C_bar − ω'· S ∈ G.
-    let C_prime = if C_bar.is_some() {
+    let C_prime = if let Some(C_bar) = C_bar {
         // (3). Compute the challenge α := ρ_0(C, z, v, C_bar) ∈ F^∗_q.
-        let a = rho_0![C, z, v, C_bar.unwrap()];
+        let a = rho_0![C, z, v, C_bar];
 
-        C + C_bar.unwrap() * a - S * w_prime.unwrap()
+        C + C_bar * a - S * w_prime.unwrap()
     } else {
         C
     };
