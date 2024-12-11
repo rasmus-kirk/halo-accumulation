@@ -1,7 +1,7 @@
 #![allow(non_snake_case)]
 
-use anyhow::Context;
 use anyhow::ensure;
+use anyhow::Context;
 use anyhow::Result;
 use ark_ff::{Field, PrimeField};
 use ark_poly::{DenseUVPolynomial, Polynomial};
@@ -34,7 +34,7 @@ pub struct Accumulator {
     z: PallasScalar,
     v: PallasScalar,
     pi: pcdl::EvalProof,
-    pi_V: AccumulatorHiding
+    pi_V: AccumulatorHiding,
 }
 
 /// pi_V in the paper, used for hiding only
@@ -53,7 +53,10 @@ pub struct AccumulatedHPolys {
 
 impl AccumulatedHPolys {
     fn new() -> Self {
-        Self { hs: Vec::new(), a: None }
+        Self {
+            hs: Vec::new(),
+            a: None,
+        }
     }
 
     fn get_poly(&self) -> Result<PallasPoly> {
@@ -76,7 +79,13 @@ impl AccumulatedHPolys {
 }
 
 impl Instance {
-    pub fn new(C: PallasPoint, d: usize, z: PallasScalar, v: PallasScalar, pi: pcdl::EvalProof) -> Self {
+    pub fn new(
+        C: PallasPoint,
+        d: usize,
+        z: PallasScalar,
+        v: PallasScalar,
+        pi: pcdl::EvalProof,
+    ) -> Self {
         Self { C, d, z, v, pi }
     }
 }
@@ -149,11 +158,7 @@ fn common_subroutine(
     Ok((C_bar, D, z, hs))
 }
 
-pub fn prover<R: Rng>(
-    rng: &mut R,
-    d: usize,
-    qs: &[Instance],
-) -> Result<Accumulator> {
+pub fn prover<R: Rng>(rng: &mut R, d: usize, qs: &[Instance], acc_old: Option<Accumulator>) -> Result<Accumulator> {
     // 1. Sample a random linear polynomial h_0 ∈ F_q[X],
     let h_0 = PallasPoly::rand(1, rng);
 
@@ -165,7 +170,10 @@ pub fn prover<R: Rng>(
     let pi_V = AccumulatorHiding { h: h_0, U: U_0, w };
 
     // 4. Then, compute the tuple (C_bar, d, z, h(X)) := T^ρ(avk, [qi]^n_(i=1), π_V).
-    let (C_bar, d, z, h) = common_subroutine(d, qs, &pi_V)?;
+    let mut qs_new = if let Some(acc) = acc_old { vec![acc.into()] } else { vec![] };
+    qs_new.extend_from_slice(qs);
+    let qs = qs_new;
+    let (C_bar, d, z, h) = common_subroutine(d, &qs, &pi_V)?;
 
     // 5. Compute the evaluation v := h(z)
     let v = h.eval(&z)?;
@@ -175,26 +183,33 @@ pub fn prover<R: Rng>(
     let pi = pcdl::open(rng, h.get_poly()?, C_bar, d, &z, Some(&w));
 
     // 7. Finally, output the accumulator acc = ((C_bar, d, z, v), π) and the accumulation proof π_V.
-    Ok(Accumulator { C_bar, d, z, v, pi, pi_V })
+    Ok(Accumulator {
+        C_bar,
+        d,
+        z,
+        v,
+        pi,
+        pi_V,
+    })
 }
 
 // WARNING: No pi_V argument is mentioned in the protocol!
-pub fn verifier(
-    D: usize,
-    qs: &[Instance],
-    acc: Accumulator,
-) -> Result<()> {
+pub fn verifier(D: usize, qs: &[Instance], acc_old: Option<Accumulator>, acc: Accumulator) -> Result<()> {
     let Accumulator {
         C_bar,
         d,
         z,
         v,
         pi: _,
-        pi_V
+        pi_V,
     } = acc;
 
+    let mut qs_new = if let Some(acc) = acc_old { vec![acc.into()] } else { vec![] };
+    qs_new.extend_from_slice(qs);
+    let qs = qs_new;
+
     // 1. The accumulation verifier V computes (C_bar', d', z', h(X)) := T^ρ(avk, [qi]^n_(i=1), π_V)
-    let (C_bar_prime, d_prime, z_prime, h) = common_subroutine(D, qs, &pi_V)?;
+    let (C_bar_prime, d_prime, z_prime, h) = common_subroutine(D, &qs, &pi_V)?;
 
     // 2. Then checks that C_bar' = C_bar, d' = d, z' = z, and h(z) = v.
     ensure!(C_bar_prime == C_bar, "C_bar' ≠ C_bar");
@@ -206,7 +221,14 @@ pub fn verifier(
 }
 
 pub fn decider(acc: Accumulator) -> Result<()> {
-    let Accumulator { C_bar, d, z, v, pi, pi_V: _ } = acc;
+    let Accumulator {
+        C_bar,
+        d,
+        z,
+        v,
+        pi,
+        pi_V: _,
+    } = acc;
     pcdl::check(&C_bar, d, &z, &v, pi)
 }
 
@@ -233,19 +255,15 @@ mod tests {
     fn accumulate_random_instance<R: Rng>(
         rng: &mut R,
         d: usize,
-        acc: Option<Accumulator>,
+        acc_old: Option<Accumulator>,
     ) -> Result<Accumulator> {
         let q = random_instance(rng, d);
-        let qs = if acc.is_some() {
-            vec![acc.unwrap().into(), q]
-        } else {
-            vec![q]
-        };
+        let qs = [q.clone()];
 
-        let acc = prover(rng, d, &qs)?;
-        verifier(d, &qs, acc.clone())?;
+        let acc_new = prover(rng, d, &qs, acc_old.clone())?;
+        verifier(d, &qs, acc_old, acc_new.clone())?;
 
-        Ok(acc)
+        Ok(acc_new)
     }
 
     #[test]
