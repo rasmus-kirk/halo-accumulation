@@ -2,17 +2,20 @@
 
 // Bulletproofs-style polynomial commitments based on the Discrete Log assumption
 use anyhow::{ensure, Result};
-use ark_ff::{AdditiveGroup, Field};
+use ark_ff::{AdditiveGroup, Field, PrimeField};
 use ark_poly::DenseUVPolynomial;
 use ark_poly::{univariate::DensePolynomial, Polynomial};
+use ark_serialize::CanonicalSerialize;
 use ark_std::UniformRand;
 use ark_std::{One, Zero};
-use group::{scalar_dot, PallasPoly};
 use rand::Rng;
 use sha3::{Digest, Sha3_256};
 
-use crate::group::{construct_powers, rho_0};
-use crate::*;
+use crate::group::{
+    construct_powers, point_dot, rho_0, scalar_dot, PallasPoint, PallasPoly, PallasScalar,
+};
+use crate::consts;
+use crate::pedersen;
 
 #[derive(Clone)]
 pub struct EvalProof {
@@ -38,37 +41,61 @@ impl<T> VecPushOwn<T> for Vec<T> {
 
 pub fn commit(p: &PallasPoly, w: Option<&PallasScalar>) -> PallasPoint {
     let l = p.degree();
-    let n = l+1;
+    let n = l + 1;
 
     assert!(n.is_power_of_two());
     assert!(l <= consts::L);
 
-    let Gs = &consts::Gs[0..n];
+    let Gs = &consts::GS[0..n];
     pedersen::commit(w, Gs, &p.coeffs)
 }
 
-/// Constructs the polynomial h(X) based on the formula:
-/// h(X) := π^(lg(n)-1)_(i=0) (1 + ξ_(lg(n)−i) · X^(2^i)) ∈ F_q[X]
-fn construct_h(xis: Vec<PallasScalar>, lg_n: usize) -> DensePolynomial<PallasScalar> {
-    let mut h = DensePolynomial::from_coefficients_slice(&[PallasScalar::one()]); // Start with 1
+#[derive(Clone)]
+pub struct HPoly {
+    pub(crate) xis: Vec<PallasScalar>,
+}
 
-    for i in 0..lg_n {
-        // Compute 2^i
-        let power = 1 << i;
-
-        // Create coefficients for 1 + ξ_(lg(n)-i) * X^(2^i)
-        let mut term = vec![PallasScalar::zero(); power + 1];
-        term[0] = PallasScalar::one(); // Constant term 1
-        term[power] = xis[lg_n - i]; // Coefficient for X^(2^i)
-
-        // Create polynomial for this term
-        let poly = DensePolynomial::from_coefficients_vec(term);
-
-        // Multiply the current h(X) with the new term
-        h = h * poly;
+impl HPoly {
+    pub fn new(xis: Vec<PallasScalar>) -> Self {
+        Self { xis }
     }
 
-    h
+    /// Constructs the polynomial h(X) based on the formula:
+    /// h(X) := π^(lg(n)-1)_(i=0) (1 + ξ_(lg(n)−i) · X^(2^i)) ∈ F_q[X]
+    pub fn get_poly(&self) -> DensePolynomial<PallasScalar> {
+        let mut h = DensePolynomial::from_coefficients_slice(&[PallasScalar::one()]); // Start with 1
+        let lg_n = self.xis.len() - 1;
+
+        for i in 0..lg_n {
+            // Compute 2^i
+            let power = 1 << i;
+
+            // Create coefficients for 1 + ξ_(lg(n)-i) * X^(2^i)
+            let mut term = vec![PallasScalar::zero(); power + 1];
+            term[0] = PallasScalar::one(); // Constant term 1
+            term[power] = self.xis[lg_n - i]; // Coefficient for X^(2^i)
+
+            // Create polynomial for this term
+            let poly = DensePolynomial::from_coefficients_vec(term);
+
+            // Multiply the current h(X) with the new term
+            h = h * poly;
+        }
+
+        h
+    }
+
+    pub fn eval(&self, z: &PallasScalar) -> PallasScalar {
+        let lg_n = self.xis.len() - 1;
+        let one = PallasScalar::one();
+
+        let mut v = one;
+        for i in 0..lg_n {
+            let power: u64 = 1 << i;
+            v *= one + self.xis[lg_n - i] * z.pow([power]);
+        }
+        v
+    }
 }
 
 /// ck: The commitment key ck_PC = (ck, H)
@@ -143,11 +170,16 @@ pub fn open<R: Rng>(
     let H_prime = H * xi_0;
 
     let mut cs = p_prime.coeffs;
-    let mut gs = consts::Gs[0..n].to_vec();
+    let mut gs: Vec<PallasPoint> = consts::GS[0..n]
+        .iter()
+        .map(|x| PallasPoint::from(*x))
+        .collect();
     let mut zs = construct_powers(z, n);
 
     let mut Ls = Vec::with_capacity(lg_n);
     let mut Rs = Vec::with_capacity(lg_n);
+
+    let mut m = n / 2;
 
     // NOTE: i is zero-indexed here, but one-indexed in spec,
     // and that i has been corrected in below comments.
@@ -155,18 +187,16 @@ pub fn open<R: Rng>(
         // 1&2. Setting Σ_L := l(G_i) || H', Σ_R := r(G i) || H', compute:
         // L_(i+1) := CM.Commit_(Σ_L)(r(c_i) || ⟨r(c_i), l(z_i)⟩)
         // R_(i+1) := CM.Commit_(Σ_R)(l(c_i) || ⟨l(c_i), r(z_i)⟩)
-        let (g_l, g_r) = gs.split_at(gs.len() / 2);
-        let (c_l, c_r) = cs.split_at(gs.len() / 2);
-        let (z_l, z_r) = zs.split_at(gs.len() / 2);
+        let (g_l, g_r) = gs.split_at(m);
+        let (c_l, c_r) = cs.split_at(m);
+        let (z_l, z_r) = zs.split_at(m);
 
         let dot_l = scalar_dot(c_r, z_l);
-        //let sigma_L = pedersen::CommitKey::new(S, g_l.to_vec().push_own(H_prime));
-        let L = pedersen::commit(None, &g_l, &c_r) + H_prime * dot_l;
+        let L = point_dot(c_r, g_l.to_vec()) + H_prime * dot_l;
         Ls.push(L);
 
         let dot_r = scalar_dot(c_l, z_r);
-        //let sigma_R = pedersen::CommitKey::new(S, g_r.to_vec().push_own(H_prime));
-        let R = pedersen::commit(None, &g_r, &c_l) + H_prime * dot_r;
+        let R = point_dot(c_l, g_r.to_vec()) + H_prime * dot_r;
         Rs.push(R);
 
         // 3. Generate the (i+1)-th challenge ξ_(i+1) := ρ_0(ξ_i, L_(i+1), R_(i+1)) ∈ F_q.
@@ -174,21 +204,17 @@ pub fn open<R: Rng>(
         let xi_next_inv = xi_next.inverse().unwrap();
         xis.push(xi_next);
 
-        let mut g = Vec::with_capacity(g_l.len());
-        let mut c = Vec::with_capacity(g_l.len());
-        let mut z = Vec::with_capacity(g_l.len());
-        for j in 0..g_l.len() {
+        for j in 0..m {
             // 4. Construct the commitment key for the next round: G_(i+1) := l(G_i) + ξ_(i+1) · r(G_i).
-            g.push(g_l[j] + g_r[j] * xi_next);
+            gs[j] = gs[j] + gs[j + m] * xi_next;
             // 5. Construct commitment inputs for the next round:
             // c_(i+1) := l(c_i) + ξ^(−1)_(i+1) · r(c_i)
             // z_(i+1) := l(z_i) + ξ_(i+1) · r(z_i)
-            c.push(c_l[j] + c_r[j] * xi_next_inv);
-            z.push(z_l[j] + z_r[j] * xi_next);
+            cs[j] = cs[j] + cs[j + m] * xi_next_inv;
+            zs[j] = zs[j] + zs[j + m] * xi_next;
         }
-        gs = g;
-        cs = c;
-        zs = z;
+
+        m /= 2;
     }
 
     // Finally, set U := G_(log_n), c := c_(log_n), and output the evaluation proof π := (L, R, U, c, C_bar, ω').
@@ -212,7 +238,7 @@ pub fn succinct_check(
     z: &PallasScalar,
     v: &PallasScalar,
     pi: EvalProof,
-) -> Result<(PallasPoly, PallasPoint)> {
+) -> Result<(HPoly, PallasPoint)> {
     let n = d + 1;
     let lg_n = n.ilog2() as usize;
     assert!(n.is_power_of_two());
@@ -258,10 +284,10 @@ pub fn succinct_check(
     }
 
     // 8. Define the univariate polynomial h(X) := π^(lg(n))_(i=0) (1 + ξ_(lg(n)−i) · X^(2^i)) ∈ F_q[X].
-    let h = construct_h(xis, lg_n);
+    let h = HPoly::new(xis);
 
     // 9. Compute the evaluation v' := c · h(z) ∈ F_q.
-    let v_prime = c * h.evaluate(&z);
+    let v_prime = c * h.eval(&z);
 
     // 10. Check that C_(log_n) = CM.Commit_Σ(c || v'), where Σ = (U || H').
     ensure!(
@@ -288,8 +314,8 @@ pub fn check(
     let (h, U) = succinct_check(*C, d, z, v, pi)?;
 
     // 5. Check that U = CM.Commit(ck, h_vec), where h_vec is the coefficient vector of the polynomial h.
-    let Gs = &consts::Gs[0..(d+1)];
-    let comm = pedersen::commit(None, Gs, &h.coeffs);
+    let Gs = &consts::GS[0..(d + 1)];
+    let comm = pedersen::commit(None, Gs, &h.get_poly().coeffs);
     ensure!(U == comm, "U ≠ CM.Commit(ck, h_vec)");
 
     Ok(())
@@ -297,7 +323,6 @@ pub fn check(
 
 #[cfg(test)]
 mod tests {
-    use ark_ec::CurveGroup;
     use ark_std::UniformRand;
     use rand::distributions::Uniform;
 
@@ -314,7 +339,8 @@ mod tests {
             .map(PallasScalar::from)
             .collect();
 
-        let gs = consts::Gs[0..n].to_vec();
+        let gs_affine = &consts::GS[0..n];
+        let gs: Vec<PallasPoint> = gs_affine.iter().map(|x| PallasPoint::from(*x)).collect();
         let mut gs_mut = gs.clone();
 
         for i in 0..lg_n {
@@ -346,15 +372,16 @@ mod tests {
         assert_eq!(gs_mut.len(), 1);
         assert_eq!(g0_expected, gs_mut[0]);
 
-        let h = construct_h(xis.clone(), lg_n);
-        let U = gs_mut[0].into_affine();
-        let U_prime = pedersen::commit(None, &gs, &h.coeffs).into_affine();
+        let h = HPoly::new(xis.clone());
+        let h_coeffs = h.get_poly().coeffs;
+        let U = gs_mut[0];
+        let U_prime = pedersen::commit(None, &gs_affine, &h_coeffs);
 
         let mut xs = Vec::with_capacity(gs.len());
         let mut acc = PallasPoint::ZERO;
         for i in 0..gs.len() {
-            acc = acc + gs[i] * h.coeffs[i];
-            xs.push(gs[i] * h.coeffs[i])
+            acc = acc + gs[i] * h_coeffs[i];
+            xs.push(gs[i] * h_coeffs[i])
         }
 
         assert_eq!(U, U_prime)
@@ -426,8 +453,8 @@ mod tests {
             xis[1] * xis[2],
             xis[1] * xis[2] * xis[3],
         ];
-        let h = construct_h(xis, lg_n);
+        let h = HPoly::new(xis);
 
-        assert_eq!(h.coeffs, coeffs);
+        assert_eq!(h.get_poly().coeffs, coeffs);
     }
 }

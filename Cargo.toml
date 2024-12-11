@@ -1,9 +1,16 @@
 [package]
-name = "accumulation-scheme"
+name = "halo-accumulation"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dev-dependencies]
+criterion = "0.3"
+
+[[bench]]
+name = "h"
+harness = false
 
 [dependencies]
 ark-pallas = "0.5"
@@ -14,3 +21,4 @@ ark-ff = "0.5"
 ark-poly = "0.5"
 sha3 = "0.10"
 rand = "0.8"
+anyhow = "1"

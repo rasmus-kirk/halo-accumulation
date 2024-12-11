@@ -1,43 +1,17 @@
 #![allow(non_snake_case)]
 
-use crate::{group::{point_dot}, PallasPoint, PallasScalar};
-use acc_consts::consts::S;
+use crate::consts::S;
+use crate::group::{point_dot_affine, PallasAffine, PallasPoint, PallasScalar};
 
-//#[derive(Clone)]
-//pub struct CommitKey {
-//    pub Gs: Vec<*const PallasPoint>,
-//}
-//
-//impl CommitKey {
-//    pub fn new(l: usize) -> CommitKey {
-//        let Gs: Vec<*const PallasPoint> = consts::G[0..l].iter().map(|x| x as *const PallasPoint).collect();
-//
-//        CommitKey { Gs }
-//    }
-//}
+pub fn commit(w: Option<&PallasScalar>, Gs: &[PallasAffine], ms: &[PallasScalar]) -> PallasPoint {
+    assert!(
+        Gs.len() == ms.len(),
+        "Length did not match for pedersen commitment: {}, {}",
+        Gs.len(),
+        ms.len()
+    );
 
-//#[derive(Clone)]
-//pub struct CommitKey<'a> {
-//    Gs: &'a [PallasPoint],
-//}
-//
-//impl<'a> CommitKey<'a> {
-//    pub fn new(l: usize) -> CommitKey<'a> {
-//        let Gs = &consts::G[0..l];
-//
-//        CommitKey { Gs }
-//    }
-//}
-//
-//
-//pub fn trim(l: usize) -> CommitKey<'a> {
-//    CommitKey::new(l)
-//}
-
-pub fn commit(w: Option<&PallasScalar>, Gs: &[PallasPoint], ms: &[PallasScalar]) -> PallasPoint {
-    assert!(Gs.len() == ms.len(), "Length did not match for pedersen commitment: {}, {}", Gs.len(), ms.len());
-
-    let acc = point_dot(ms, Gs);
+    let acc = point_dot_affine(ms, Gs);
     if let Some(w) = w {
         S * w + acc
     } else {
@@ -47,16 +21,15 @@ pub fn commit(w: Option<&PallasScalar>, Gs: &[PallasPoint], ms: &[PallasScalar])
 
 #[cfg(test)]
 mod tests {
+    use crate::consts;
     use ark_std::UniformRand;
     use rand::Rng;
-    use acc_consts::consts;
 
     use super::*;
 
     fn test_single_homomorphism<R: Rng>(rng: &mut R, l: usize) {
         // Generate random commit keys
-        //let ck = trim(l);
-        let Gs = &consts::Gs[0..l];
+        let Gs = &consts::GS[0..l];
 
         // Create random message vectors
         let ms1: Vec<PallasScalar> = (0..l).map(|_| PallasScalar::rand(rng)).collect();
@@ -69,8 +42,7 @@ mod tests {
         let w2 = PallasScalar::rand(rng);
 
         let inner_sum = commit(Some(&(w1 + w2)), Gs, &ms_sum);
-        let outer_sum =
-            commit(Some(&w1), Gs, &ms1) + commit(Some(&w2), Gs, &ms2);
+        let outer_sum = commit(Some(&w1), Gs, &ms1) + commit(Some(&w2), Gs, &ms2);
 
         // Check if homomorphism property holds
         assert!(
@@ -90,4 +62,3 @@ mod tests {
         }
     }
 }
-

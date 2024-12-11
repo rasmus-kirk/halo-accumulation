@@ -1,14 +1,11 @@
-#![allow(non_snake_case)]
+#![allow(non_snake_case, unused_macros, dead_code, unused_imports)]
 
-use ark_ec::{PrimeGroup, VariableBaseMSM, CurveGroup};
-use ark_ff::PrimeField;
-use ark_pallas::Affine;
+use ark_ec::{VariableBaseMSM, CurveGroup};
 use ark_poly::univariate::DensePolynomial;
-use ark_std::{UniformRand, Zero, One};
-use rand::Rng;
-use sha3::{Digest, Sha3_256};
+use ark_std::One;
 
 pub type PallasPoint = ark_pallas::Projective;
+pub type PallasAffine = ark_pallas::Affine;
 pub type PallasScalar = ark_pallas::Fr;
 pub type PallasPoly = DensePolynomial<PallasScalar>;
 
@@ -18,8 +15,13 @@ pub fn scalar_dot(xs: &[PallasScalar], ys: &[PallasScalar]) -> PallasScalar {
 }
 
 /// Dot product of points
-pub fn point_dot(xs: &[PallasScalar], Gs: &[PallasPoint]) -> PallasPoint {
-    let Gs: Vec<Affine> = Gs.iter().map(|G| G.into_affine()).collect();
+pub fn point_dot(xs: &[PallasScalar], Gs: Vec<PallasPoint>) -> PallasPoint {
+    let Gs: Vec<PallasAffine> = Gs.into_iter().map(|x| x.into_affine()).collect();
+    PallasPoint::msm_unchecked(&Gs, &xs)
+}
+
+/// Dot product of points
+pub fn point_dot_affine(xs: &[PallasScalar], Gs: &[PallasAffine]) -> PallasPoint {
     PallasPoint::msm_unchecked(&Gs, &xs)
 }
 
@@ -32,53 +34,6 @@ pub fn construct_powers(z: &PallasScalar, n: usize) -> Vec<PallasScalar> {
         current *= z;
     }
     zs
-}
-
-// Function to generate a random generator for the Pallas Curve.
-// Since the order of the curve is prime, any point that is not the identity point is a generator.
-pub fn get_generator<R: Rng>(rng: &mut R) -> PallasPoint {
-    loop {
-        // Generate a random projective point on the curve
-        let point = PallasPoint::rand(rng);
-        if point != PallasPoint::zero() {
-            return point;
-        }
-    }
-}
-
-// Function to generate a random generator for the Pallas Curve.
-// Since the order of the curve is prime, any point that is not the identity point is a generator.
-// Generated from hashes for security.
-pub fn get_generator_hash(i: usize) -> PallasPoint {
-    let genesis_string = "To understand recursion, one must first understand recursion";
-    let mut data = genesis_string.as_bytes().to_vec();
-    data.extend_from_slice(&i.to_le_bytes());
-
-    hash_bytes_to_point(&data)
-}
-
-// Takes in an arbitrary slice of data, hashes it, and produces a scalar.
-// This is probably secure...
-pub fn hash_bytes_to_scalar(data: &[u8]) -> PallasScalar {
-    let mut hasher = Sha3_256::new();
-    hasher.update(&data);
-    let hash_result = hasher.finalize();
-
-    // Interpret the hash as a scalar field element
-    let mut hash_bytes = [0u8; 32];
-    hash_bytes.copy_from_slice(&hash_result[..32]);
-    let scalar = PallasScalar::from_le_bytes_mod_order(&hash_bytes);
-
-    scalar
-}
-
-// Takes in an arbitrary slice of data, hashes it, and produces a curve point.
-// This is probably secure...
-pub fn hash_bytes_to_point(data: &[u8]) -> PallasPoint {
-    let scalar = hash_bytes_to_scalar(data);
-    let new_point = PallasPoint::generator() * scalar;
-
-    new_point
 }
 
 // These are ugly, but it really cleans up the implementation

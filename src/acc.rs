@@ -9,13 +9,13 @@ use ark_std::{UniformRand, Zero};
 use rand::Rng;
 use sha3::{Digest, Sha3_256};
 
-use acc_consts::consts::S;
-
 use crate::{
+    consts::S,
     group::{construct_powers, point_dot, rho_1, PallasPoint, PallasPoly, PallasScalar},
     pcdl::{self},
 };
 
+/// q in the paper
 #[derive(Clone)]
 pub struct Instance {
     C: PallasPoint,      // Commitment to the coefficints of a polynomial p
@@ -25,10 +25,8 @@ pub struct Instance {
     pi: pcdl::EvalProof, // The proof that p(z) = v
 }
 
-/// q in the paper
-impl Instance {}
-
 /// acc in the paper
+#[derive(Clone)]
 pub struct Accumulator {
     C_bar: PallasPoint,
     d: usize,
@@ -37,20 +35,77 @@ pub struct Accumulator {
     pi: pcdl::EvalProof,
 }
 
-/// pi_v in the paper
-pub struct AccumulationProof {
+/// pi_V in the paper, used for hiding only
+#[derive(Clone)]
+pub struct AccumulatorHiding {
     h: PallasPoly,
     U: PallasPoint,
     w: PallasScalar,
 }
 
+#[derive(Clone)]
+pub struct AccumulatedHPolys {
+    hs: Vec<pcdl::HPoly>,
+    a: PallasScalar,
+}
+
+impl AccumulatedHPolys {
+    fn new(a: PallasScalar) -> Self {
+        Self { hs: Vec::new(), a }
+    }
+
+    fn get_poly(&self) -> PallasPoly {
+        let mut h = PallasPoly::zero(); // Start with 1
+        for i in 0..self.hs.len() {
+            h = h + (&self.hs[i].get_poly() * self.a.pow([i as u64]));
+        }
+        h
+    }
+
+    fn eval(&self, z: &PallasScalar) -> PallasScalar {
+        let mut v = PallasScalar::zero(); // Start with 1
+        for i in 0..self.hs.len() {
+            v += self.hs[i].eval(z) * self.a.pow([i as u64]);
+        }
+        v
+    }
+}
+
+impl From<Instance> for Accumulator {
+    fn from(instance: Instance) -> Accumulator {
+        Accumulator {
+            C_bar: instance.C,
+            d: instance.d,
+            z: instance.z,
+            v: instance.v,
+            pi: instance.pi,
+        }
+    }
+}
+
+impl From<Accumulator> for Instance {
+    fn from(acc: Accumulator) -> Instance {
+        Instance {
+            C: acc.C_bar,
+            d: acc.d,
+            z: acc.z,
+            v: acc.v,
+            pi: acc.pi,
+        }
+    }
+}
+
+// TODO: What do you do?
+/// D: Degree of the underlying polynomials
+/// pi_V: Used for hiding
 fn common_subroutine(
     D: usize,
     qs: &[Instance],
-    pi_V: &AccumulationProof,
+    pi_V: &AccumulatorHiding,
 ) -> Result<(PallasPoint, usize, PallasScalar, PallasPoly)> {
-    // 1. Parse avk as (rk, ck^(1)_(PC)), and rk as (⟨group⟩ = (G, q, G), S, H, D).
     let m = qs.len();
+
+    // 1. Parse avk as (rk, ck^(1)_(PC)), and rk as (⟨group⟩ = (G, q, G), S, H, D).
     let mut hs = Vec::with_capacity(m);
     let mut Us = Vec::with_capacity(m);
 
@@ -65,43 +120,47 @@ fn common_subroutine(
         Us.push(U_i);
 
         // 3. For each i in [n], check that d_i = D. (We accumulate only the degree bound D.)
-        ensure!(*d == D, "d_i ≠ D")
+        ensure!(*d == D, "d_i ≠ D");
     }
 
-    // (4). Parse π_V as (h_0, U_0, ω), where h_0(X) = aX + b ∈ F_q[X], U_0 ∈ G, and ω ∈ F_q.
-    let AccumulationProof { h: h_0, U: U_0, w } = pi_V;
+    // // (4). Parse π_V as (h_0, U_0, ω), where h_0(X) = aX + b ∈ F_q[X], U_0 ∈ G, and ω ∈ F_q.
+    let AccumulatorHiding { h: h_0, U: U_0, w } = pi_V;
     assert_eq!(h_0.degree(), 1);
 
-    // (5). Check that U_0 is a deterministic commitment to h_0: U_0 = PCDL.Commit_ρ0(ck^(1)_PC, h; ω = ⊥).
-    ensure!(*U_0 == pcdl::commit(&h_0, None), "U_0 ≠ PCDL.Commit_ρ0(ck^(1)_PC, h_0; ω = ⊥)");
+    // // (5). Check that U_0 is a deterministic commitment to h_0: U_0 = PCDL.Commit_ρ0(ck^(1)_PC, h; ω = ⊥).
+    ensure!(
+        *U_0 == pcdl::commit(&h_0, None),
+        "U_0 ≠ PCDL.Commit_ρ0(ck^(1)_PC, h_0; ω = ⊥)"
+    );
 
     // 6. Compute the challenge α := ρ1([h_i, U_i]^n_(i=0)) ∈ F_q.
-    let a = rho_1![hs, Us];
+    let hi_hash: Vec<Vec<PallasScalar>> = hs.iter().map(|x| x.xis.clone()).collect();
+    let a = rho_1![hi_hash, Us];
 
     // 7. Set the polynomial h(X) := Σ^n_(i=0) α^i · h_i(X) ∈ Fq[X].
     let mut h = PallasPoly::zero(); // Start with 1
     for i in 0..hs.len() {
-        h = h + (&hs[i] * a.pow([i as u64]));
+        h = h + (&hs[i].get_poly() * a.pow([i as u64]));
     }
 
     // 8. Compute the accumulated commitment C := Σ^n_(i=0) α^i · U_i.
-    let C = point_dot(&construct_powers(&a, m), &Us);
+    let C = point_dot(&construct_powers(&a, m), Us);
 
     // 9. Compute the challenge z := ρ1(C, h) ∈ F_q.
     let z = rho_1![C, h];
 
-    // 10. Randomize C: C_bar := C + ω · S ∈ G.
+    // 10. Randomize C : C_bar := C + ω · S ∈ G.
     let C_bar = C + S * w;
 
     // 11. Output (C_bar, d, z, h(X)).
     Ok((C_bar, D, z, h))
 }
 
-pub fn prove<R: Rng>(
+pub fn prover<R: Rng>(
     rng: &mut R,
     d: usize,
     qs: &[Instance],
-) -> Result<(Accumulator, AccumulationProof)> {
+) -> Result<(Accumulator, AccumulatorHiding)> {
     // 1. Sample a random linear polynomial h_0 ∈ F_q[X],
     let h_0 = PallasPoly::rand(1, rng);
 
@@ -110,7 +169,7 @@ pub fn prove<R: Rng>(
 
     // 3. Sample commitment randomness ω ∈ Fq, and set π_V := (h_0, U_0, ω).
     let w = PallasScalar::rand(rng);
-    let pi_V = AccumulationProof { h: h_0, U: U_0, w };
+    let pi_V = AccumulatorHiding { h: h_0, U: U_0, w };
 
     // 4. Then, compute the tuple (C_bar, d, z, h(X)) := T^ρ(avk, [qi]^n_(i=1), π_V).
     let (C_bar, d, z, h) = common_subroutine(d, qs, &pi_V)?;
@@ -119,6 +178,7 @@ pub fn prove<R: Rng>(
     let v = h.evaluate(&z);
 
     // 6. Generate the hiding evaluation proof π := PCDL.Open_ρ0(ck_PC, h(X), C_bar, d, z; ω).
+    //let pi = pcdl::open(rng, h, C_bar, d, &z, Some(&w));
     let pi = pcdl::open(rng, h, C_bar, d, &z, Some(&w));
 
     // 7. Finally, output the accumulator acc = ((C_bar, d, z, v), π) and the accumulation proof π_V.
@@ -126,11 +186,11 @@ pub fn prove<R: Rng>(
 }
 
 // WARNING: No pi_V argument is mentioned in the protocol!
-pub fn verify(
+pub fn verifier(
     D: usize,
     qs: &[Instance],
-    acc: &Accumulator,
-    pi_V: &AccumulationProof,
+    acc: Accumulator,
+    pi_V: &AccumulatorHiding,
 ) -> anyhow::Result<()> {
     let Accumulator {
         C_bar,
@@ -141,13 +201,13 @@ pub fn verify(
     } = acc;
 
     // 1. The accumulation verifier V computes (C_bar', d', z', h(X)) := T^ρ(avk, [qi]^n_(i=1), π_V)
-    let (C_bar_prime, d_prime, z_prime, h) = common_subroutine(D, &qs, pi_V)?;
+    let (C_bar_prime, d_prime, z_prime, h) = common_subroutine(D, qs, pi_V)?;
 
     // 2. Then checks that C_bar' = C_bar, d' = d, z' = z, and h(z) = v.
-    ensure!(C_bar_prime == *C_bar, "C_bar' ≠ C_bar");
-    ensure!(z_prime == *z, "z' = z");
-    ensure!(d_prime == *d, "d' = d");
-    ensure!(h.evaluate(&z) == *v, "h(z) = v");
+    ensure!(C_bar_prime == C_bar, "C_bar' ≠ C_bar");
+    ensure!(z_prime == z, "z' = z");
+    ensure!(d_prime == d, "d' = d");
+    ensure!(h.evaluate(&z) == v, "h(z) = v");
 
     Ok(())
 }
@@ -177,22 +237,38 @@ mod tests {
         Instance { C, d, z, v, pi }
     }
 
+    fn accumulate_random_instance<R: Rng>(
+        rng: &mut R,
+        d: usize,
+        acc: Option<Accumulator>,
+    ) -> Result<Accumulator> {
+        let q = random_instance(rng, d);
+        let qs = if acc.is_some() {
+            vec![acc.unwrap().into(), q]
+        } else {
+            vec![q]
+        };
+
+        let (acc, pi_V) = prover(rng, d, &qs)?;
+        verifier(d, &qs, acc.clone(), &pi_V)?;
+
+        Ok(acc)
+    }
+
     #[test]
     fn test_acc_scheme() -> Result<()> {
         let mut rng = rand::thread_rng();
         let n_range = Uniform::new(2, 10);
         let n = (2 as usize).pow(rng.sample(&n_range));
         let d = n - 1;
-        let D = d;
 
-        let q = random_instance(&mut rng, d);
-        let qs = [q];
+        let m = rng.sample(&n_range);
+        let mut acc = None;
+        for _ in 0..m {
+            acc = Some(accumulate_random_instance(&mut rng, d, acc)?);
+        }
 
-        let (acc, pi_V) = prove(&mut rng, D, &qs)?;
-
-        verify(D, &qs, &acc, &pi_V)?;
-
-        decider(acc)?;
+        decider(acc.unwrap())?;
 
         Ok(())
     }
