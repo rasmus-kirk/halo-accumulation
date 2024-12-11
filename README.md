@@ -1,4 +1,4 @@
-# Halo Accumulation Scheme Implementation
+# Halo Accumulation Scheme Rust Implementation
 
 This repository contains a Rust implementation of the accumulation scheme
 from the described in the 2020 paper _"Proof-Carrying Data from Accumulation
@@ -55,10 +55,11 @@ and IVC (Incrementally Verifiable Computation).
 #### Nix
 
 This project has integration with [Nix](https://nixos.org/), if nix is
-installed with flake support, type `nix develop` to get a reproducible dev
-shell for this project.
+installed with flake support, type `nix develop` to get a reproducible
+developement shell for this project.
 
 ### Usage
+
 Although not recommended, you can import this module and work with it:
 
 #### Polynomial Commitment Scheme in the Discrete Log setting
