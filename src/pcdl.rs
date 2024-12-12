@@ -19,7 +19,7 @@ use crate::{
     pedersen
 };
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct EvalProof {
     Ls: Vec<PallasPoint>,
     Rs: Vec<PallasPoint>,
@@ -30,7 +30,7 @@ pub struct EvalProof {
 }
 
 // Helper trait
-trait VecPushOwn<T> {
+pub(crate) trait VecPushOwn<T> {
     fn push_own(self, value: T) -> Self;
 }
 
