@@ -108,13 +108,24 @@ impl From<Accumulator> for Instance {
 fn common_subroutine(
     D: usize,
     qs: &[Instance],
+    acc_old: Option<Accumulator>,
     pi_V: &AccumulatorHiding,
 ) -> Result<(PallasPoint, usize, PallasScalar, AccumulatedHPolys)> {
-    let m = qs.len();
-
     // 1. Parse avk as (rk, ck^(1)_(PC)), and rk as (⟨group⟩ = (G, q, G), S, H, D).
     let mut hs = AccumulatedHPolys::new();
-    let mut Us = Vec::with_capacity(m);
+    let mut Us = Vec::new();
+
+    if let Some(acc) = acc_old {
+        let Accumulator { C_bar, d, z, v, pi, pi_V: _ } = acc;
+
+        // 2.b Compute (h_i(X), U_i) := PCDL.SuccinctCheckρ0(rk, C_i, z_i, v_i, π_i) (see Figure 2).
+        let (h_i, U_i) = pcdl::succinct_check(C_bar.clone(), d.clone(), &z, &v, pi.clone())?;
+        hs.hs.push(h_i);
+        Us.push(U_i);
+
+        // 3. For each i in [n], check that d_i = D. (We accumulate only the degree bound D.)
+        ensure!(d == D, "d_i ≠ D");
+    }
 
     // 2. For each i ∈ [m]:
     for q in qs {
@@ -146,7 +157,7 @@ fn common_subroutine(
     // 7. Set the polynomial h(X) := Σ^n_(i=0) α^i · h_i(X) ∈ Fq[X].
 
     // 8. Compute the accumulated commitment C := Σ^n_(i=0) α^i · U_i.
-    let C = point_dot(&construct_powers(&hs.a.unwrap(), m), Us);
+    let C = point_dot(&construct_powers(&hs.a.unwrap(), hs.hs.len()), Us);
 
     // 9. Compute the challenge z := ρ1(C, h) ∈ F_q.
     let z = rho_1![C, hs.a];
@@ -170,10 +181,7 @@ pub fn prover<R: Rng>(rng: &mut R, d: usize, qs: &[Instance], acc_old: Option<Ac
     let pi_V = AccumulatorHiding { h: h_0, U: U_0, w };
 
     // 4. Then, compute the tuple (C_bar, d, z, h(X)) := T^ρ(avk, [qi]^n_(i=1), π_V).
-    let mut qs_new = if let Some(acc) = acc_old { vec![acc.into()] } else { vec![] };
-    qs_new.extend_from_slice(qs);
-    let qs = qs_new;
-    let (C_bar, d, z, h) = common_subroutine(d, &qs, &pi_V)?;
+    let (C_bar, d, z, h) = common_subroutine(d, &qs, acc_old, &pi_V)?;
 
     // 5. Compute the evaluation v := h(z)
     let v = h.eval(&z)?;
@@ -204,12 +212,8 @@ pub fn verifier(D: usize, qs: &[Instance], acc_old: Option<Accumulator>, acc: Ac
         pi_V,
     } = acc;
 
-    let mut qs_new = if let Some(acc) = acc_old { vec![acc.into()] } else { vec![] };
-    qs_new.extend_from_slice(qs);
-    let qs = qs_new;
-
     // 1. The accumulation verifier V computes (C_bar', d', z', h(X)) := T^ρ(avk, [qi]^n_(i=1), π_V)
-    let (C_bar_prime, d_prime, z_prime, h) = common_subroutine(D, &qs, &pi_V)?;
+    let (C_bar_prime, d_prime, z_prime, h) = common_subroutine(D, &qs, acc_old, &pi_V)?;
 
     // 2. Then checks that C_bar' = C_bar, d' = d, z' = z, and h(z) = v.
     ensure!(C_bar_prime == C_bar, "C_bar' ≠ C_bar");

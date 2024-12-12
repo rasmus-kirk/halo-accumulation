@@ -31,7 +31,7 @@ pub fn acc_prover(c: &mut Criterion) {
 
     let qs = [random_instance(&mut rng, d)];
 
-    c.bench_function("acc_prover", |b| b.iter(|| acc::prover(&mut rng, d, &qs)));
+    c.bench_function("acc_prover", |b| b.iter(|| acc::prover(&mut rng, d, &qs, None)));
 }
 
 pub fn acc_verifier(c: &mut Criterion) {
@@ -39,9 +39,9 @@ pub fn acc_verifier(c: &mut Criterion) {
     let d = N - 1;
 
     let qs = [random_instance(&mut rng, d)];
-    let (acc, pi_v) = acc::prover(&mut rng, d, &qs).unwrap();
+    let acc_new = acc::prover(&mut rng, d, &qs, None).unwrap();
 
-    c.bench_function("acc_verifier", |b| b.iter(|| acc::verifier(d, &qs, acc.clone(), &pi_v)));
+    c.bench_function("acc_verifier", |b| b.iter(|| acc::verifier(d, &qs, None, acc_new.clone())));
 }
 
 pub fn acc_decider(c: &mut Criterion) {
@@ -49,7 +49,7 @@ pub fn acc_decider(c: &mut Criterion) {
     let d = N - 1;
 
     let qs = [random_instance(&mut rng, d)];
-    let (acc, _) = acc::prover(&mut rng, d, &qs).unwrap();
+    let acc_new = acc::prover(&mut rng, d, &qs, None).unwrap();
 
-    c.bench_function("acc_decider", |b| b.iter(|| acc::decider(acc.clone())));
+    c.bench_function("acc_decider", |b| b.iter(|| acc::decider(acc_new.clone())));
 }
