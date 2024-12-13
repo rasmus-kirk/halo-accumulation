@@ -49,11 +49,20 @@ fn get_pp(n: usize) -> (PallasPoint, PallasPoint, Vec<PallasPoint>) {
 }
 
 fn format_affine(name: &str, P: Affine) -> String {
-    format!("{name}: ({:?}, {:?})\n", P.x.into_bigint().0, P.y.into_bigint().0)
+    format!(
+        "{name}: ({:?}, {:?})\n",
+        P.x.into_bigint().0,
+        P.y.into_bigint().0
+    )
 }
 
 fn format_projective(name: &str, P: PallasPoint) -> String {
-    format!("{name}: ({:?}, {:?}, {:?})\n", P.x.into_bigint().0, P.y.into_bigint().0, P.z.into_bigint().0)
+    format!(
+        "{name}: ({:?}, {:?}, {:?})\n",
+        P.x.into_bigint().0,
+        P.y.into_bigint().0,
+        P.z.into_bigint().0
+    )
 }
 
 fn log_pp(filepath: &Path, n: usize) -> Result<()> {

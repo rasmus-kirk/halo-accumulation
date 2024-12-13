@@ -2,12 +2,13 @@ use ark_poly::{DenseUVPolynomial, Polynomial};
 use ark_std::{test_rng, UniformRand};
 use criterion::Criterion;
 
+use anyhow::Result;
 use halo_accumulation::{
+    acc::{self, Accumulator, Instance},
     group::{PallasPoly, PallasScalar},
-    pcdl::{self}, acc::{self, Accumulator, Instance},
+    pcdl::{self},
 };
 use rand::Rng;
-use anyhow::Result;
 
 const N: usize = 8192;
 //const N: usize = 1024;
@@ -43,7 +44,9 @@ pub fn acc_verifier(c: &mut Criterion) {
     let qs = [random_instance(&mut rng, d)];
     let acc = acc::prover(&mut rng, d, &qs).unwrap();
 
-    c.bench_function("acc_verifier", |b| b.iter(|| acc::verifier(d, &qs, acc.clone())));
+    c.bench_function("acc_verifier", |b| {
+        b.iter(|| acc::verifier(d, &qs, acc.clone()))
+    });
 }
 
 pub fn acc_decider(c: &mut Criterion) {
@@ -55,7 +58,6 @@ pub fn acc_decider(c: &mut Criterion) {
 
     c.bench_function("acc_decider", |b| b.iter(|| acc::decider(acc.clone())));
 }
-
 
 pub fn acc_hamid_fast(c: &mut Criterion) {
     let mut rng = test_rng();
@@ -91,7 +93,9 @@ pub fn acc_hamid_fast(c: &mut Criterion) {
         Ok(())
     }
 
-    c.bench_function("acc_hamid_fast", |b| b.iter(|| helper(d, &qss, accs.clone()).unwrap()));
+    c.bench_function("acc_hamid_fast", |b| {
+        b.iter(|| helper(d, &qss, accs.clone()).unwrap())
+    });
 }
 
 pub fn acc_hamid_slow(c: &mut Criterion) {
@@ -122,6 +126,7 @@ pub fn acc_hamid_slow(c: &mut Criterion) {
         Ok(())
     }
 
-    c.bench_function("acc_hamid_slow", |b| b.iter(|| helper(accs.clone()).unwrap()));
+    c.bench_function("acc_hamid_slow", |b| {
+        b.iter(|| helper(accs.clone()).unwrap())
+    });
 }
-

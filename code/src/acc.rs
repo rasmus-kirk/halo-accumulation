@@ -1,7 +1,6 @@
 #![allow(non_snake_case)]
 
 /// Accumulation scheme based on the Discrete Log assumption, using bulletproofs-style IPP
-
 use anyhow::ensure;
 use anyhow::Context;
 use anyhow::Result;
@@ -37,22 +36,6 @@ impl PartialOrd for Instance {
 impl Ord for Instance {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         self.z.cmp(&other.z)
-    }
-
-    fn max(self, other: Self) -> Self where Self: Sized, {
-        if self.z > other.z {
-            self
-        } else {
-            other
-        }
-    }
-
-    fn min(self, other: Self) -> Self where Self: Sized, {
-        if self.z < other.z {
-            self
-        } else {
-            other
-        }
     }
 }
 

@@ -1,6 +1,6 @@
 #![allow(non_snake_case, unused_macros, dead_code, unused_imports)]
 
-use ark_ec::{VariableBaseMSM, CurveGroup};
+use ark_ec::{CurveGroup, VariableBaseMSM};
 use ark_poly::univariate::DensePolynomial;
 use ark_std::One;
 

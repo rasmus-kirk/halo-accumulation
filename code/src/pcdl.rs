@@ -1,14 +1,13 @@
 #![allow(non_snake_case)]
 
 /// Bulletproofs-style polynomial commitments based on the Discrete Log assumption
-
 use anyhow::{ensure, Result};
 use ark_ff::{AdditiveGroup, Field, PrimeField};
 use ark_poly::DenseUVPolynomial;
 use ark_poly::{univariate::DensePolynomial, Polynomial};
 use ark_serialize::CanonicalSerialize;
-use ark_std::UniformRand;
 use ark_std::One;
+use ark_std::UniformRand;
 use rand::Rng;
 use sha3::{Digest, Sha3_256};
 
@@ -17,7 +16,7 @@ use crate::{
     group::{
         construct_powers, point_dot, rho_0, scalar_dot, PallasPoint, PallasPoly, PallasScalar,
     },
-    pedersen
+    pedersen,
 };
 
 #[derive(Clone, PartialEq, Eq)]
