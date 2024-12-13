@@ -1,5 +1,7 @@
 #![allow(non_snake_case)]
 
+/// Accumulation scheme based on the Discrete Log assumption, using bulletproofs-style IPP
+
 use anyhow::ensure;
 use anyhow::Context;
 use anyhow::Result;

@@ -7,7 +7,7 @@ use h::*;
 
 criterion_group!{
     name = h;
-    config = Criterion::default().sample_size(100).measurement_time(Duration::from_secs(10));
+    config = Criterion::default().sample_size(50).measurement_time(Duration::from_secs(10));
     targets = 
         h_get_poly,
         h_eval,
@@ -22,9 +22,13 @@ use acc::*;
 
 criterion_group!{
     name = acc;
-    config = Criterion::default().sample_size(100).measurement_time(Duration::from_secs(10));
-    targets = acc_prover, acc_verifier,
-    acc_decider
+    config = Criterion::default().sample_size(50).measurement_time(Duration::from_secs(10));
+    targets = 
+        acc_prover,
+        acc_verifier,
+        acc_decider,
+        acc_hamid_slow,
+        acc_hamid_fast,
 }
 
 criterion_main!(acc, h);

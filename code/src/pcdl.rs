@@ -1,6 +1,7 @@
 #![allow(non_snake_case)]
 
-// Bulletproofs-style polynomial commitments based on the Discrete Log assumption
+/// Bulletproofs-style polynomial commitments based on the Discrete Log assumption
+
 use anyhow::{ensure, Result};
 use ark_ff::{AdditiveGroup, Field, PrimeField};
 use ark_poly::DenseUVPolynomial;

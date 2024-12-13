@@ -1,0 +1,15 @@
+\usepackage{hyperref}
+
+\hypersetup{colorlinks=true,linkcolor=blue,linktocpage}
+
+% Float figures
+\usepackage{float}
+\let\origfigure\figure
+\let\endorigfigure\endfigure
+\renewenvironment{figure}[1][2] {
+    \expandafter\origfigure\expandafter[H]
+} {
+    \endorigfigure
+}
+
+
