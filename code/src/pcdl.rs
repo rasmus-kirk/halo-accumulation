@@ -1,4 +1,4 @@
-#![allow(non_snake_case)]
+#![allow(non_snake_case, clippy::let_and_return)]
 
 /// Bulletproofs-style polynomial commitments based on the Discrete Log assumption
 use anyhow::{ensure, Result};
@@ -278,7 +278,7 @@ pub fn succinct_check(
     let h = HPoly::new(xis);
 
     // 9. Compute the evaluation v' := c · h(z) ∈ F_q.
-    let v_prime = c * h.eval(&z);
+    let v_prime = c * h.eval(z);
 
     // 10. Check that C_(log_n) = CM.Commit_Σ(c || v'), where Σ = (U || H').
     ensure!(
@@ -287,7 +287,7 @@ pub fn succinct_check(
     );
 
     // 11. Output (h, U).
-    return Ok((h, U));
+    Ok((h, U))
 }
 
 pub fn check(

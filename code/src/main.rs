@@ -30,9 +30,7 @@ fn get_generator_hash(i: usize) -> PallasPoint {
     hash_bytes.copy_from_slice(&hash_result[..32]);
     let scalar = PallasScalar::from_le_bytes_mod_order(&hash_bytes);
 
-    let new_point = PallasPoint::generator() * scalar;
-
-    new_point
+    PallasPoint::generator() * scalar
 }
 
 /// Get public parameters
@@ -71,8 +69,8 @@ fn log_pp(filepath: &Path, n: usize) -> Result<()> {
     let mut output = File::create(filepath)?;
     write!(output, "{}", format_projective("S", S))?;
     write!(output, "{}", format_projective("H", H))?;
-    for i in 0..Gs.len() {
-        let s = format_affine(format!("G_{}", i).as_str(), Gs[i].into_affine());
+    for (i, G) in Gs.iter().enumerate() {
+        let s = format_affine(format!("G_{}", i).as_str(), G.into_affine());
         write!(output, "{}", s)?;
     }
 

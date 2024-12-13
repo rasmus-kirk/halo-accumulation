@@ -135,7 +135,7 @@ fn common_subroutine(
         let Instance { C, d, z, v, pi } = q;
 
         // 2.b Compute (h_i(X), U_i) := PCDL.SuccinctCheckρ0(rk, C_i, z_i, v_i, π_i) (see Figure 2).
-        let (h_i, U_i) = pcdl::succinct_check(C.clone(), d.clone(), &z, &v, pi.clone())?;
+        let (h_i, U_i) = pcdl::succinct_check(*C, *d, z, v, pi.clone())?;
         hs.hs.push(h_i);
         Us.push(U_i);
 
@@ -149,7 +149,7 @@ fn common_subroutine(
 
     // // (5). Check that U_0 is a deterministic commitment to h_0: U_0 = PCDL.Commit_ρ0(ck^(1)_PC, h; ω = ⊥).
     ensure!(
-        *U_0 == pcdl::commit(&h_0, None),
+        *U_0 == pcdl::commit(h_0, None),
         "U_0 ≠ PCDL.Commit_ρ0(ck^(1)_PC, h_0; ω = ⊥)"
     );
 

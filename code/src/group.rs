@@ -17,12 +17,12 @@ pub(crate) fn scalar_dot(xs: &[PallasScalar], ys: &[PallasScalar]) -> PallasScal
 /// Dot product of points
 pub(crate) fn point_dot(xs: &[PallasScalar], Gs: Vec<PallasPoint>) -> PallasPoint {
     let Gs: Vec<PallasAffine> = Gs.into_iter().map(|x| x.into_affine()).collect();
-    PallasPoint::msm_unchecked(&Gs, &xs)
+    PallasPoint::msm_unchecked(&Gs, xs)
 }
 
 /// Dot product of points
 pub(crate) fn point_dot_affine(xs: &[PallasScalar], Gs: &[PallasAffine]) -> PallasPoint {
-    PallasPoint::msm_unchecked(&Gs, &xs)
+    PallasPoint::msm_unchecked(Gs, xs)
 }
 
 /// Given scalar z and length n, computes vector [1, z^1, ..., z^(n-1)]
