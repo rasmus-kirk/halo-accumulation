@@ -8,8 +8,8 @@
 
   outputs = { self, nixpkgs, rust-overlay }:
     let
-      rustVersion = "1.75.0";
-      rustFmtVersion = "2023-04-01";
+      rustVersion = "1.83.0";
+      rustFmtVersion = "2024-12-01";
 
       # Systems supported
       allSystems = [
@@ -43,7 +43,7 @@
       devShells = forAllSystems ({ pkgs } : {
         default = pkgs.mkShell {
           buildInputs = [
-            # rustfmt must be kept above rustToolchain!
+            # rustfmt must be kept above rustToolchain in this list!
             pkgs.rust-bin.nightly."${rustFmtVersion}".rustfmt
             pkgs.rustToolchain
             (pkgs.writeShellScriptBin "check-all" ''
@@ -55,17 +55,6 @@
             (pkgs.writeShellScriptBin "check-lint" ''
               cargo clippy -- -D warnings
             '')
-            (pkgs.writeShellApplication {
-              name = "concordium-test-smart-contracts";
-              text = ''
-                CONCORDIUM_STD_PATH="$HOME/desktop/concordium/concordium-rust-smart-contracts/concordium-std"
-                CARGO_CONCORDIUM_PATH="$HOME/desktop/concordium/concordium-smart-contract-tools/cargo-concordium/Cargo.toml"
-
-                pushd "$CONCORDIUM_STD_PATH"
-                cargo run --manifest-path "$CARGO_CONCORDIUM_PATH" -- concordium test --only-unit-tests -- --features internal-wasm-test
-                popd
-              '';
-            })
           ];
         };
       });
