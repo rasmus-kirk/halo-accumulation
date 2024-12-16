@@ -15,8 +15,6 @@ jobs:
         with:
           submodules: recursive
 
-      - run: cd report
-
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@main
 
