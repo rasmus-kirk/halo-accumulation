@@ -1,8 +1,5 @@
 use ark_ff::BigInt;
 use ark_pallas::{Affine, Fq, Projective};
-//use sha3::{Digest, Sha3_256};
-//use ark_ff::PrimeField;
-//use ark_ec::PrimeGroup;
 
 macro_rules! mk_aff {
     ($x:tt, $y:tt) => {
@@ -21,7 +18,7 @@ macro_rules! mk_proj {
 }
 
 pub const N: usize = 8192;
-pub const L: usize = N - 1;
+pub const D: usize = N - 1;
 
 pub const S: Projective = mk_proj!(
     [

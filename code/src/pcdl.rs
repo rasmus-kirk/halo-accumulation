@@ -12,7 +12,7 @@ use rand::Rng;
 use sha3::{Digest, Sha3_256};
 
 use crate::{
-    consts::{self, GS, H, S},
+    consts::{GS, H, S, D},
     group::{
         construct_powers, point_dot, rho_0, scalar_dot, PallasPoint, PallasPoly, PallasScalar,
     },
@@ -42,11 +42,11 @@ impl<T> VecPushOwn<T> for Vec<T> {
 }
 
 pub fn commit(p: &PallasPoly, w: Option<&PallasScalar>) -> PallasPoint {
-    let l = p.degree();
-    let n = l + 1;
+    let d = p.degree();
+    let n = d + 1;
 
     assert!(n.is_power_of_two());
-    assert!(l <= consts::L);
+    assert!(d <= D);
 
     pedersen::commit(w, &GS[0..n], &p.coeffs)
 }
@@ -90,32 +90,34 @@ impl HPoly {
         let lg_n = self.xis.len() - 1;
         let one = PallasScalar::one();
 
-        let mut v = one;
-        for i in 0..lg_n {
-            let power: u64 = 1 << i;
-            v *= one + self.xis[lg_n - i] * z.pow([power]);
+        let mut v = one + self.xis[lg_n] * z;
+        let mut z_i = z.clone();
+
+        for i in 1..lg_n {
+            z_i.square_in_place();
+            v *= one + self.xis[lg_n - i] * z_i;
         }
         v
     }
 }
 
-/// ck: The commitment key ck_PC = (ck, H)
+/// rng: Required since the function uses randomness
 /// p: A univariate polynomial p(X)
-/// c: A commitment to p,
-/// d: A degree bound
+/// C: A commitment to p,
 /// z: An evaluation point z
 /// w: Commitment randomness ω
 pub fn open<R: Rng>(
     rng: &mut R,
     p: PallasPoly,
     C: PallasPoint,
-    d: usize,
     z: &PallasScalar,
     w: Option<&PallasScalar>,
 ) -> EvalProof {
+    let d = p.degree();
     let n = d + 1;
     let lg_n = n.ilog2() as usize;
     assert!(n.is_power_of_two());
+    assert!(d <= D);
 
     // 1. Compute the evaluation v := p(z) ∈ Fq.
     let v = p.evaluate(z);
@@ -235,8 +237,8 @@ pub fn succinct_check(
 ) -> Result<(HPoly, PallasPoint)> {
     let n = d + 1;
     let lg_n = n.ilog2() as usize;
-    assert!(n.is_power_of_two());
-    assert!(d <= consts::L);
+    ensure!(n.is_power_of_two(), "d+1 is not a power of 2!");
+    ensure!(d <= D, "d was larger than D!");
 
     // 1. Parse rk as (⟨group⟩, S, H, d'), and π as (L, R, U, c, C_bar, ω').
     #[rustfmt::skip]
@@ -319,6 +321,36 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_test() {
+        let mut rng = rand::thread_rng();
+        let n_range = Uniform::new(2, 10);
+        let n = (2 as usize).pow(rng.sample(&n_range));
+        let lg_n = n.ilog2() as usize;
+        let one = PallasScalar::one();
+
+        let z = PallasScalar::rand(&mut rng);
+        let mut xis = Vec::with_capacity(lg_n + 1);
+        for _ in 0..(lg_n + 1) {
+            xis.push(PallasScalar::rand(&mut rng));
+        }
+        
+        let mut v_1 = one + xis[lg_n] * z;
+        let mut z_i = z.clone();
+        for i in 1..lg_n {
+            z_i.square_in_place();
+            v_1 *= one + xis[lg_n - i] * z_i;
+        }
+
+        let mut v_2 = one;
+        for i in 0..lg_n {
+            let power: u64 = 1 << i;
+            v_2 *= one + xis[lg_n - i] * z.pow([power]);
+        }
+
+        assert_eq!(v_1, v_2);
+    }
+    
+    #[test]
     fn test_u_check() {
         let n = (2 as usize).pow(3);
         let lg_n = n.ilog2() as usize;
@@ -392,7 +424,7 @@ mod tests {
         // Generate an evaluation proof
         let z = PallasScalar::rand(&mut rng);
         let v = p.evaluate(&z);
-        let pi = open(&mut rng, p, C, d, &z, Some(&w));
+        let pi = open(&mut rng, p, C, &z, Some(&w));
 
         // Verify that check works
         check(&C, d, &z, &v, pi)?;
@@ -414,7 +446,7 @@ mod tests {
         // Generate an evaluation proof
         let z = PallasScalar::rand(&mut rng);
         let v = p.evaluate(&z);
-        let pi = open(&mut rng, p, C, d, &z, None);
+        let pi = open(&mut rng, p, C, &z, None);
 
         // Verify that check works
         check(&C, d, &z, &v, pi)?;

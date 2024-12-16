@@ -10,9 +10,9 @@ use halo_accumulation::{
 };
 use rand::Rng;
 
-const N: usize = 8192;
-//const N: usize = 1024;
-const K: usize = 1000;
+//const N: usize = 8192;
+const N: usize = 512;
+const K: usize = 1;
 
 fn random_instance<R: Rng>(rng: &mut R, d: usize) -> acc::Instance {
     // Commit to a random polynomial
@@ -23,7 +23,7 @@ fn random_instance<R: Rng>(rng: &mut R, d: usize) -> acc::Instance {
     // Generate an evaluation proof
     let z = PallasScalar::rand(rng);
     let v = p.evaluate(&z);
-    let pi = pcdl::open(rng, p, c, d, &z, Some(&w));
+    let pi = pcdl::open(rng, p, c, &z, Some(&w));
 
     acc::Instance::new(c, d, z, v, pi)
 }

@@ -2,10 +2,10 @@
 
 /// Accumulation scheme based on the Discrete Log assumption, using bulletproofs-style IPP
 use anyhow::ensure;
-use anyhow::Context;
 use anyhow::Result;
-use ark_ff::{Field, PrimeField};
-use ark_poly::{DenseUVPolynomial, Polynomial};
+use ark_ff::PrimeField;
+use ark_poly::DenseUVPolynomial;
+use ark_poly::Polynomial;
 use ark_serialize::CanonicalSerialize;
 use ark_std::{UniformRand, Zero};
 use rand::Rng;
@@ -60,34 +60,49 @@ pub struct AccumulatorHiding {
 
 #[derive(Clone, CanonicalSerialize)]
 pub struct AccumulatedHPolys {
+    pub(crate) h_0: Option<PallasPoly>,
     pub(crate) hs: Vec<pcdl::HPoly>,
-    pub(crate) a: Option<PallasScalar>,
+    pub(crate) alpha: Option<PallasScalar>,
+    pub(crate) alphas: Vec<PallasScalar>,
 }
 
 impl AccumulatedHPolys {
     fn with_capacity(capacity: usize) -> Self {
         Self {
+            h_0: None,
             hs: Vec::with_capacity(capacity),
-            a: None,
+            alphas: Vec::with_capacity(capacity),
+            alpha: None,
         }
     }
 
-    fn get_poly(&self) -> Result<PallasPoly> {
-        let a = self.a.context("TODO")?;
+    fn set_alpha(&mut self, alpha: PallasScalar) {
+        self.alphas = construct_powers(&alpha, self.alphas.capacity());
+        self.alpha = Some(alpha)
+    }
+
+    // WARNING: This will panic if alphas has not been initialized, but should be fine since this is private
+    fn get_poly(&self) -> PallasPoly {
         let mut h = PallasPoly::zero();
+        //if let Some(h_0) = &self.h_0 {
+        //    h = h + h_0;
+        //}
         for i in 0..self.hs.len() {
-            h = h + (&self.hs[i].get_poly() * a.pow([i as u64]));
+            h = h + (&self.hs[i].get_poly() * self.alphas[i]);
         }
-        Ok(h)
+        h
     }
 
-    fn eval(&self, z: &PallasScalar) -> Result<PallasScalar> {
-        let a = self.a.context("TODO")?;
+    // WARNING: This will panic if alphas has not been initialized, but should be fine since this is private
+    fn eval(&self, z: &PallasScalar) -> PallasScalar {
         let mut v = PallasScalar::zero();
+        //if let Some(h_0) = &self.h_0 {
+        //    v += h_0.evaluate(&z);
+        //}
         for i in 0..self.hs.len() {
-            v += self.hs[i].eval(z) * a.pow([i as u64]);
+            v += self.hs[i].eval(z) * self.alphas[i];
         }
-        Ok(v)
+        v
     }
 }
 
@@ -115,11 +130,10 @@ impl From<Accumulator> for Instance {
     }
 }
 
-// TODO: What do you do?
 /// D: Degree of the underlying polynomials
 /// pi_V: Used for hiding
 fn common_subroutine(
-    D: usize,
+    d: usize,
     qs: &[Instance],
     pi_V: &AccumulatorHiding,
 ) -> Result<(PallasPoint, usize, PallasScalar, AccumulatedHPolys)> {
@@ -129,46 +143,48 @@ fn common_subroutine(
     let mut hs = AccumulatedHPolys::with_capacity(m);
     let mut Us = Vec::with_capacity(m);
 
-    // 2. For each i ∈ [m]:
-    for q in qs {
-        // 2.a Parse q_i as a tuple ((C_i, d_i, z_i, v_i), π_i).
-        let Instance { C, d, z, v, pi } = q;
-
-        // 2.b Compute (h_i(X), U_i) := PCDL.SuccinctCheckρ0(rk, C_i, z_i, v_i, π_i) (see Figure 2).
-        let (h_i, U_i) = pcdl::succinct_check(*C, *d, z, v, pi.clone())?;
-        hs.hs.push(h_i);
-        Us.push(U_i);
-
-        // 3. For each i in [n], check that d_i = D. (We accumulate only the degree bound D.)
-        ensure!(*d == D, "d_i ≠ D");
-    }
-
-    // // (4). Parse π_V as (h_0, U_0, ω), where h_0(X) = aX + b ∈ F_q[X], U_0 ∈ G, and ω ∈ F_q.
+    // (2). Parse π_V as (h_0, U_0, ω), where h_0(X) = aX + b ∈ F_q[X], U_0 ∈ G, and ω ∈ F_q.
     let AccumulatorHiding { h: h_0, U: U_0, w } = pi_V;
-    assert_eq!(h_0.degree(), 1);
+    //hs.h_0 = Some(h_0.clone());
+    //hs.h_0 = None;
+    //Us.push(U_0.clone());
 
-    // // (5). Check that U_0 is a deterministic commitment to h_0: U_0 = PCDL.Commit_ρ0(ck^(1)_PC, h; ω = ⊥).
+    // (3). Check that U_0 is a deterministic commitment to h_0: U_0 = PCDL.Commit_ρ0(ck^(1)_PC, h; ω = ⊥).
     ensure!(
         *U_0 == pcdl::commit(h_0, None),
         "U_0 ≠ PCDL.Commit_ρ0(ck^(1)_PC, h_0; ω = ⊥)"
     );
 
+    // 4. For each i ∈ [m]:
+    for q in qs {
+        // 4.a Parse q_i as a tuple ((C_i, d_i, z_i, v_i), π_i).
+        let Instance { C, d: d_i, z, v, pi } = q;
+
+        // 4.b Compute (h_i(X), U_i) := PCDL.SuccinctCheckρ0(rk, C_i, z_i, v_i, π_i) (see Figure 2).
+        let (h_i, U_i) = pcdl::succinct_check(*C, *d_i, z, v, pi.clone())?;
+        hs.hs.push(h_i);
+        Us.push(U_i);
+
+        // 5. For each i in [n], check that d_i = D. (We accumulate only the degree bound D.)
+        ensure!(*d_i == d, "d_i ≠ d");
+    }
+
     // 6. Compute the challenge α := ρ1([h_i, U_i]^n_(i=0)) ∈ F_q.
-    hs.a = Some(rho_1!(hs));
+    hs.set_alpha(rho_1!(hs));
 
     // 7. Set the polynomial h(X) := Σ^n_(i=0) α^i · h_i(X) ∈ Fq[X].
 
     // 8. Compute the accumulated commitment C := Σ^n_(i=0) α^i · U_i.
-    let C = point_dot(&construct_powers(&hs.a.unwrap(), m), Us);
+    let C = point_dot(&hs.alphas, Us);
 
     // 9. Compute the challenge z := ρ1(C, h) ∈ F_q.
-    let z = rho_1![C, hs.a];
+    let z = rho_1![C, hs.alpha.unwrap()];
 
     // 10. Randomize C : C_bar := C + ω · S ∈ G.
     let C_bar = C + S * w;
 
     // 11. Output (C_bar, d, z, h(X)).
-    Ok((C_bar, D, z, hs))
+    Ok((C_bar, d, z, hs))
 }
 
 pub fn prover<R: Rng>(rng: &mut R, d: usize, qs: &[Instance]) -> Result<Accumulator> {
@@ -186,11 +202,11 @@ pub fn prover<R: Rng>(rng: &mut R, d: usize, qs: &[Instance]) -> Result<Accumula
     let (C_bar, d, z, h) = common_subroutine(d, qs, &pi_V)?;
 
     // 5. Compute the evaluation v := h(z)
-    let v = h.eval(&z)?;
+    let v = h.eval(&z);
 
     // 6. Generate the hiding evaluation proof π := PCDL.Open_ρ0(ck_PC, h(X), C_bar, d, z; ω).
     //let pi = pcdl::open(rng, h, C_bar, d, &z, Some(&w));
-    let pi = pcdl::open(rng, h.get_poly()?, C_bar, d, &z, Some(&w));
+    let pi = pcdl::open(rng, h.get_poly(), C_bar, &z, Some(&w));
 
     // 7. Finally, output the accumulator acc = ((C_bar, d, z, v), π) and the accumulation proof π_V.
     Ok(Accumulator {
@@ -221,7 +237,7 @@ pub fn verifier(D: usize, qs: &[Instance], acc: Accumulator) -> Result<()> {
     ensure!(C_bar_prime == C_bar, "C_bar' ≠ C_bar");
     ensure!(z_prime == z, "z' = z");
     ensure!(d_prime == d, "d' = d");
-    ensure!(h.eval(&z)? == v, "h(z) = v");
+    ensure!(h.eval(&z) == v, "h(z) = v");
 
     Ok(())
 }
@@ -240,6 +256,7 @@ pub fn decider(acc: Accumulator) -> Result<()> {
 
 #[cfg(test)]
 mod tests {
+    use ark_poly::Polynomial;
     use rand::distributions::Uniform;
 
     use super::*;
@@ -253,7 +270,7 @@ mod tests {
         // Generate an evaluation proof
         let z = PallasScalar::rand(rng);
         let v = p.evaluate(&z);
-        let pi = pcdl::open(rng, p, C, d, &z, Some(&w));
+        let pi = pcdl::open(rng, p, C, &z, Some(&w));
 
         Instance { C, d, z, v, pi }
     }
@@ -285,7 +302,8 @@ mod tests {
 
         let m = rng.sample(&n_range);
         let mut acc = None;
-        for _ in 0..m {
+        for i in 0..m {
+            println!("{}", i);
             acc = Some(accumulate_random_instance(&mut rng, d, acc)?);
         }
 
