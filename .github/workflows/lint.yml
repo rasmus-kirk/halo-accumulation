@@ -22,7 +22,8 @@ jobs:
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@main
 
-      - run: nix develop ./code -c check-fmt
+      - run: nix develop -c check-fmt
+        working-directory: ./code
 
   clippy:
     needs: fmt
@@ -35,4 +36,5 @@ jobs:
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@main
 
-      - run: nix develop ./code -c check-lint
+      - run: nix develop -c check-lint
+        working-directory: ./code
