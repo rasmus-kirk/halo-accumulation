@@ -27,8 +27,9 @@
                   -H header.tex \
                   -V colorlinks=true \
                   -V linkcolor=black \
-                  -V urlcolor=blue \
+                  -V urlcolor=GbBlueDk \
                   -V toccolor=gray \
+                  --metadata date="$(date -u '+%Y-%m-%d - %H:%M:%S %Z')" \
                   --highlight-style gruvbox.theme \
                   -o "$1/''${filename%.md}.pdf"
             done

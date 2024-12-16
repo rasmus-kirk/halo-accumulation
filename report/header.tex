@@ -1,6 +1,24 @@
-\usepackage{hyperref}
+\usepackage{xcolor}
+\definecolor{GbGreenNt}{HTML}{98971a}
+\definecolor{GbBlueNt}{HTML}{458588}
+\definecolor{GbBlueDk}{HTML}{076678}
+\usepackage{mathtools}
 
-\hypersetup{colorlinks=true,linkcolor=blue,linktocpage}
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true, %set true if you want colored links
+    linktoc=all,     %set to all if you want both sections and subsections linked
+    linkcolor=GbBlueNt,    % Internal links (e.g., section links)
+    citecolor=GbGreenNt,   % Citation links
+    urlcolor=GbBlueDk      % External URL links
+}
+
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+\newcommand{\Desc}[2]{\hspace*{\algorithmicindent} \makebox[14.5em][l]{#1}\parbox[t]{32em}{#2}}
+
+\usepackage[style=iso]{datetime2}
 
 % Float figures
 \usepackage{float}
@@ -11,5 +29,51 @@
 } {
     \endorigfigure
 }
+
+\renewcommand*\mod{\bmod}
+\newcommand*\cat{\mathbin{+\mkern-10mu+}}
+\newcommand*\bor{\mathbin{\&\mkern-7mu\&}}
+\newcommand*\xor{\oplus}
+\newcommand*\Bb{\mathbb{B}}
+\newcommand*\Zb{\mathbb{Z}}
+\newcommand*\Fb{\mathbb{F}}
+\newcommand*\Nb{\mathbb{N}}
+\newcommand*\Rb{\mathbb{R}}
+\newcommand*\Eb{\mathbb{E}}
+\newcommand*\Gb{\mathbb{G}}
+\newcommand*\Ac{\mathcal{A}}
+\newcommand*\Rc{\mathcal{R}}
+\newcommand*\Oc{\mathcal{O}}
+\newcommand*\Pc{\mathcal{P}}
+\newcommand*\Vc{\mathcal{V}}
+\newcommand*\Sc{\mathcal{S}}
+\newcommand*\Hc{\mathcal{H}}
+\newcommand*\algind{\hspace*{\algorithmicindent}}
+\newcommand*\algindd{\algind \algind}
+\renewcommand*\a{\alpha}
+\renewcommand*\b{\beta}
+\renewcommand*\d{\delta}
+\newcommand*\e{\epsilon}
+\renewcommand*\l{\lambda}
+\newcommand*\p{\phi}
+\renewcommand*\o{\omega}
+\newcommand*\ps{\psi}
+\renewcommand*\S{\Sigma}
+\newcommand*\meq{\stackrel{?}{=}}
+\newcommand*\PCDL{\text{PC}_{\text{DL}}}
+\newcommand*\ASDL{\text{AS}_{\text{DL}}}
+\newcommand{\qed}{\hfill \ensuremath{\Box}}
+\newcommand{\defend}{\hfill \ensuremath{\triangle}}
+\newcommand{\floor}[1]{\left \lfloor #1 \right \rfloor }
+\newcommand{\ceil}[1]{\left \lceil #1 \right \rceil }
+\renewcommand{\vec}[1]{ \boldsymbol{#1} }
+\newcommand{\ran}[1]{ \mathrm{#1} }
+\newcommand{\ranvec}[1]{ \boldsymbol{\ran{#1}} }
+\newcommand{\dotp}[2]{ \langle #1, #2 \rangle }
+\newcommand{\ip}[2]{ \langle #1, #2 \rangle }
+\newcommand{\PCDLdot}[1]{\textsc{PC}_{\textsc{DL}}\textsc{.#1}}
+\newcommand{\ASDLdot}[1]{\textsc{AS}_{\textsc{DL}}\textsc{.#1}}
+\newcommand*\Result{\mathbf{Result}}
+\newcommand*\Option{\mathbf{Option}}
 
 
