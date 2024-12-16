@@ -36,6 +36,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: result/report.pdf
+          tag_name: ${{ steps.tag.outputs.tag }}
 
       #- run: mkdir -p ./report/pdfs
 
