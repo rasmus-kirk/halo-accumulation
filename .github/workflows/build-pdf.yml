@@ -22,7 +22,7 @@ jobs:
 
       - run: mkdir pdf
 
-      - run: nix build
+      - run: nix build ./report
 
       - run: cp result/* pdf
 
