@@ -12,7 +12,7 @@ use rand::Rng;
 use sha3::{Digest, Sha3_256};
 
 use crate::{
-    consts::{GS, H, S, D},
+    consts::{D, GS, H, S},
     group::{
         construct_powers, point_dot, rho_0, scalar_dot, PallasPoint, PallasPoly, PallasScalar,
     },
@@ -91,7 +91,7 @@ impl HPoly {
         let one = PallasScalar::one();
 
         let mut v = one + self.xis[lg_n] * z;
-        let mut z_i = z.clone();
+        let mut z_i = *z;
 
         for i in 1..lg_n {
             z_i.square_in_place();
@@ -333,7 +333,7 @@ mod tests {
         for _ in 0..(lg_n + 1) {
             xis.push(PallasScalar::rand(&mut rng));
         }
-        
+
         let mut v_1 = one + xis[lg_n] * z;
         let mut z_i = z.clone();
         for i in 1..lg_n {
@@ -349,7 +349,7 @@ mod tests {
 
         assert_eq!(v_1, v_2);
     }
-    
+
     #[test]
     fn test_u_check() {
         let n = (2 as usize).pow(3);

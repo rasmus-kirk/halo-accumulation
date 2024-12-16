@@ -14,7 +14,7 @@ use sha3::{Digest, Sha3_256};
 use crate::{
     consts::S,
     group::{construct_powers, point_dot, rho_1, PallasPoint, PallasPoly, PallasScalar},
-    pcdl::{self},
+    pcdl,
 };
 
 /// q in the paper
@@ -71,7 +71,7 @@ impl AccumulatedHPolys {
         Self {
             h_0: None,
             hs: Vec::with_capacity(capacity),
-            alphas: Vec::with_capacity(capacity),
+            alphas: Vec::with_capacity(capacity + 1),
             alpha: None,
         }
     }
@@ -84,11 +84,11 @@ impl AccumulatedHPolys {
     // WARNING: This will panic if alphas has not been initialized, but should be fine since this is private
     fn get_poly(&self) -> PallasPoly {
         let mut h = PallasPoly::zero();
-        //if let Some(h_0) = &self.h_0 {
-        //    h = h + h_0;
-        //}
+        if let Some(h_0) = &self.h_0 {
+            h += h_0;
+        }
         for i in 0..self.hs.len() {
-            h = h + (&self.hs[i].get_poly() * self.alphas[i]);
+            h += &(self.hs[i].get_poly() * self.alphas[i + 1]);
         }
         h
     }
@@ -96,11 +96,11 @@ impl AccumulatedHPolys {
     // WARNING: This will panic if alphas has not been initialized, but should be fine since this is private
     fn eval(&self, z: &PallasScalar) -> PallasScalar {
         let mut v = PallasScalar::zero();
-        //if let Some(h_0) = &self.h_0 {
-        //    v += h_0.evaluate(&z);
-        //}
+        if let Some(h_0) = &self.h_0 {
+            v += h_0.evaluate(z);
+        }
         for i in 0..self.hs.len() {
-            v += self.hs[i].eval(z) * self.alphas[i];
+            v += self.hs[i].eval(z) * self.alphas[i + 1];
         }
         v
     }
@@ -145,9 +145,8 @@ fn common_subroutine(
 
     // (2). Parse π_V as (h_0, U_0, ω), where h_0(X) = aX + b ∈ F_q[X], U_0 ∈ G, and ω ∈ F_q.
     let AccumulatorHiding { h: h_0, U: U_0, w } = pi_V;
-    //hs.h_0 = Some(h_0.clone());
-    //hs.h_0 = None;
-    //Us.push(U_0.clone());
+    hs.h_0 = Some(h_0.clone());
+    Us.push(*U_0);
 
     // (3). Check that U_0 is a deterministic commitment to h_0: U_0 = PCDL.Commit_ρ0(ck^(1)_PC, h; ω = ⊥).
     ensure!(
@@ -158,6 +157,7 @@ fn common_subroutine(
     // 4. For each i ∈ [m]:
     for q in qs {
         // 4.a Parse q_i as a tuple ((C_i, d_i, z_i, v_i), π_i).
+        #[rustfmt::skip]
         let Instance { C, d: d_i, z, v, pi } = q;
 
         // 4.b Compute (h_i(X), U_i) := PCDL.SuccinctCheckρ0(rk, C_i, z_i, v_i, π_i) (see Figure 2).
