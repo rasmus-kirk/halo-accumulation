@@ -43,13 +43,100 @@ on bulletproofs if need be:
 
 ## Background and Motivation
 
-### Proof systems 
+### Proof systems - Interactive Arguments 
 
-### IVC
+In a proof system you have a prover and a verifier:
+
+- Soundness
+- Completeness
+- Zero knowledge
+- Fiat-Shamir
+
+### Incrementally Verifiable Computation
+
+The way Valiant originally described IVC in his [2008 paper](https://iacr.org/archive/tcc2008/49480001/49480001.pdf) in the following way:
+
+> _Suppose humanity needs to conduct a very long computation which will span
+> super- polynomially many generations. Each generation runs the computation
+> until their deaths when they pass on the computational configuration to the
+> next generation. This computation is so important that they also pass on a
+> proof that the current configuration is correct, for fear that the following
+> generations, without such a guarantee, might abandon the project. Can this
+> be done?_
+
+That is, if we run a computation for 100's of years only for it to output 42,
+is there a way for us to know that the ouput of said computation is correct,
+without taking the time to redo all that computation?
+
+Recently the concept of IVC has seen renewed interest with cryptocurrencies,
+as this concept lends itself well to the structure of blockchains. This allows
+a blockchain to omit previous transaction history in favour of only a single
+state, making it a so-called _succinct blockchain_. One such blockchain is
+[Mina](https://minaprotocol.com/).
+
+TODO: Graph
+
+...
 
 ### Bulletproofs
 
+In 2016, [the Bulletproofs paper](https://eprint.iacr.org/2017/1066.pdf)
+was released. Bulletproofs relies on the hardness of the Discrete Logarithm
+problem, and allows for an untrusted setup to generate the Common Reference
+String. It has logarithmic proof size, TODO, TODO, yeilding itself especially
+to efficient range proofs. It's also possible to generate proofs for arbitrary
+circuits, but with less effeciency.  Unfortunately, Bulletproofs suffer from
+linear verification time, making them unsuitible for IVC.
+
+### Accumulation Schemes
+
+The authors of [a 2019 paper](https://eprint.iacr.org/2019/1021.pdf) presented
+_halo_ the so-called first practical example of recursive proof composition
+without a trusted setup. Using a modified version of the Bulletproofs-style
+Inner Product Argument (IPA), they present a polynomial commitment
+scheme. Computing the evaluation of a point $z \in \Fb_q$ on polynomial $p(X)
+\in \Fb^d_q[X]$ as $v = \ip{\vec{p}}{\vec{z}}$ where $\vec{z} = (z^0, z^1,
+\dots, z^{d+1})$ and $\vec{p} \in \Fb^d$ is the coefficient vector of $p(X)$,
+using the IPA. However, since the the vector $\vec{z}$ is not private, and
+has a certain structure, we can split the verification algorithm in two:
+\textsc{SuccinctCheck} and \textsc{Check}. Using the \textsc{SuccinctCheck}
+we can accumulate $n$ instances, and only perform the expensive linear check at
+the end of accumulation.
+
+Embedding the succinct verifier in the IVC proof claim instead of the regular
+verifier means that we can achieve IVC, this time with an untrusted setup.
+
 ### IVC from Accumulation Schemes
+
+\begin{figure}[!H]
+\centering
+\begin{tikzpicture}[node distance=2cm]
+
+    % Nodes
+    \node (IVC_V) [process, minimum height=4cm, minimum width=4cm] {}; % IVC.V box below the label
+    \node (IVC_V_label) [above=0.2cm of IVC_V] {IVC.V}; % Label above IVC.V
+    \node (SNARK_V) [process, minimum width=2cm, below=0.7cm of IVC_V.north] {SNARK.V};
+    \node (ACC_D) [process, below=0.5cm of SNARK_V.south] {ACC.D};
+
+    % Annotations
+    \node at (-2.75, 1.5) {$z_i$};
+    \node at (-2.75, 0.5) {$\pi_i$};
+    \node at (-2.85, -0.5) {$acc$};
+
+    % Arrows: IVC.V box
+    \draw [arrow] (-2.5,  1.5) -- (SNARK_V.west);
+    \draw [arrow] (-2.5,  0.5) -- (SNARK_V.west);
+    \draw [arrow] (-2.5, -0.5) -- (SNARK_V.west);
+    \draw [arrow] (-2.5, -0.5) -- (ACC_D.west);
+
+    \draw [arrow] (SNARK_V.east) -- (IVC_V.east) node[anchor=south] {$b_1$};
+    \draw [arrow] (ACC_D.east) -- (IVC_V.east) node[anchor=south] {$b_2$};
+    \draw [arrow] (IVC_V.east) -- +(1.2,0) node[anchor=south] {$b_1 \land b_2$};
+
+\end{tikzpicture}
+\end{figure}
+
+TODO
 
 # $\PCDL$: The Polynomial Commitment Scheme
 
@@ -433,7 +520,7 @@ this check too will always pass.
 | $r(\vec{a})$                                                                    | Gets the right half of $\vec{a}$.                                                                         |
 | $\vec{a} \cat \vec{b}$ where $\vec{a} \in \Fb^n_q, \vec{b} \in \Fb^m_q$         | Concatinate vectors to create $\vec{c} \in \Fb^{n+m}_q$.                                                  |
 | $a \cat b$ where $a \in \Fb_q$                                                  | Create vector $\vec{c} = (a, b)$.                                                                         |
-| $\textbf{OPtion}(T)$                                                            | $\{ T, \bot \}$                                                                                           |
+| $\textbf{Option}(T)$                                                            | $\{ T, \bot \}$                                                                                           |
 | $\textbf{Result}(T, E)$                                                         | $\{ T, E \}$                                                                                              |
 | $\textbf{EvalProof}$                                                            | $(\Eb^{lg(n)}(\Fb_q), \Eb^{lg(n)}(\Fb_q), \Eb(\Fb_q), \Fb_q\mathcolor{GbBlueDk}{, \Eb(\Fb_q), \Fb_q})$    |
 | $\textbf{AccHiding}$                                                            | $(\Eb(\Fb_q), \Nb, \Fb_q, \Fb^d_q)$                                                                       |
@@ -473,4 +560,3 @@ pub fn commit(w: Option<&PallasScalar>, Gs: &[PallasAffine], ms: &[PallasScalar]
     }
 }
 ```
-
