@@ -543,7 +543,7 @@ As a reference, we include the Pedersen Commitment algorithm we use:
 \end{algorithmic}
 \end{algorithm}
 
-```rust
+```rust {.numberLines}
 pub fn commit(w: Option<&PallasScalar>, Gs: &[PallasAffine], ms: &[PallasScalar]) -> PallasPoint {
     assert!(
         Gs.len() == ms.len(),
