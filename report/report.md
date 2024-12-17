@@ -7,6 +7,7 @@ geometry: margin=1.75cm
 ---
 
 \tableofcontents
+\newpage
 
 # Introduction
 
@@ -28,7 +29,7 @@ verifier keys, getting the public parameters and trimming input to fit the
 public parameters. I have chosen to omit these from the discussion below as
 these are fixed per-implementation.
 
-# Prerequisites
+## Prerequisites
 
 Basic knowledge on elliptic curves, groups, interactive arguments are
 assumed in the following text. There is also a heavy reliance on the Inner
@@ -40,91 +41,49 @@ on bulletproofs if need be:
 - [Rust Dalek Bulletproofs implementation notes](https://doc-internal.dalek.rs/develop/bulletproofs/notes/inner_product_proof/)
 - [Section 4.1 of my bachelors thesis](https://rasmuskirk.com/documents/high-assurance-cryptography-implementing-bulletproofs-in-hacspec.pdf#subsection.4.1)
 
+## Background and Motivation
+
+### Proof systems 
+
+### IVC
+
+### Bulletproofs
+
+### IVC from Accumulation Schemes
+
 # $\PCDL$: The Polynomial Commitment Scheme
-
-$$
-\begin{alignedat}[b]{1}
-  C_{i+1} &= \ip{\vec{c}_{i+1}}{\vec{G}_{i+1}} + \ip{\vec{c}_{i+1}}{\vec{z}_{i+1}} H'\\ 
-          &= \ip{l(\vec{c}_i) + \xi^{-1}_{i+1} r(\vec{c}_i)}{l(\vec{G}_i) + \xi_{i+1} r(\vec{G}_i)} 
-            + \ip{l(\vec{c}_i) + \xi^{-1}_{i+1} r(\vec{c}_i)}{l(\vec{z}_i) + \xi_{i+1} r(\vec{z}_i)} H'\\
-          &= \ip{l(\vec{c}_i)}{l(\vec{G}_i)} + \xi_{i+1} \ip{l(\vec{c}_i))}{r(\vec{G}_i}
-            + \xi^{-1}_{i+1} \ip{r(\vec{c}_i)}{l(\vec{G}_i)} + \ip{r(\vec{c}_i)}{r(\vec{G}_i)}\\
-          &+ (\ip{l(\vec{c}_i)}{l(\vec{z}_i)} + \xi_{i+1} \ip{l(\vec{c}_i)}{r(\vec{z}_i)} 
-            + \xi^{-1}_{i+1} \ip{r(\vec{c}_i)}{l(\vec{z}_i)} + \ip{r(\vec{c}_i)}{l(\vec{z}_i)}) H'
-\end{alignedat}
-$$
-
-We can further group these terms:
-
-$$
-\begin{alignedat}[b]{4}
-  C_{i+1} &= \ip{l(\vec{c}_i)}{l(\vec{z}_i)}  &&+ \ip{r(\vec{c}_i)}{r(\vec{G}_i)}     &&+ \xi_{i+1} \ip{l(\vec{c}_i)}{r(\vec{G}_i)}    &&+ \xi^{-1}_{i+1} \ip{r(\vec{c}_i)}{l(\vec{G}_i)} \\
-          &+ (\ip{l(\vec{c}_i)}{l(\vec{z}_i)} &&+ \ip{r(\vec{c}_i)}{r(\vec{z}_i)}) H' &&+ \xi_{i+1} \ip{l(\vec{c}_i)}{r(\vec{z}_i)} H' &&+ \xi^{-1}_{i+1} \ip{r(\vec{c}_i)}{l(\vec{z}_i)} H' \\
-          &= C_i                              &&                                      &&+ \xi_{i+1} R_i                                &&+ \xi^{-1}_{i+1} L_i \\
-          &\mkern-18mu\mkern-18mu \textbf{Where:} && && && \\
-  L_i     &= \ip{r(\vec{c}_i)}{l(\vec{G}_i)} &&+ \ip{r(\vec{c}_i)}{l(\vec{z}_i)} H' && && \\
-  R_i     &= \ip{l(\vec{c}_i)}{r(\vec{G}_i)} &&+ \ip{l(\vec{c}_i)}{r(\vec{z}_i)} H' && && 
-\end{alignedat}
-$$
-
-And then simplify further:
-
-$$
-\begin{alignedat}[b]{1}
-  \vec{L}    &= (L_0, \dots, L_{\lg(n)-1}) \\
-  \vec{R}    &= (R_0, \dots, R_{\lg(n)-1}) \\
-  \vec{C}    &= (C_0, \dots, C_{\lg(n)}) \\
-  \vec{\xi}  &= (\xi_0, \dots, \xi_{\lg(n)}) \\
-\end{alignedat}
-$$
-
-Now we are ready to look at the check that the verifier makes:
-
-\begin{align*}
-  C_0        &= \bar{C} + vH' = C + vH' && \\
-  C_{\lg(n)} &= C_0 + \sum^{\lg(n)-1}_{i=0} \xi^{-1}_{i+1} L_i + \xi_{i+1} R_i && \\
-             \intertext{The original definition of $C_i$:}
-             &= \ip{\vec{c}_{\lg(n)}}{\vec{G}_{\lg(n)}} + \ip{\vec{c}_{\lg(n)}}{\vec{z}_{\lg(n)}} H' \\
-             \intertext{Vectors have length one, use the single elements $c^{(0)}, G^{(0)}, c^{(0)}, z^{(0)}$:}
-             &= c^{(0)}G^{(0)} + c^{(0)}z^{(0)} H'                                                   \\
-             \intertext{The verifier has $c^{(0)} = c, G^{(0)} = U$ from $\pi \in \textbf{EvalProof}$:}
-             &= cU + cz^{(0)} H'                                                                     \\
-             \intertext{And finally, by construction of $h(X) \in \Fb^d_q[X]$}
-             &= cU + ch(z) H'                                                                        \\
-\end{align*}
-Which corresponds exactly to the check that the verifier makes.
 
 ## Outline
 
 We have four main functions:
 
-- $\PCDLdot{Commit}(p: \Fb^d_q[X], \o: \textbf{Option}(\Fb_q)) \to \Eb(\Fb_q)$:
+- $\PCDLCommit(p: \Fb^d_q[X], \o: \textbf{Option}(\Fb_q)) \to \Eb(\Fb_q)$:
 
   Creates a commitment to the coefficients of the polynomial $q$ of degree
   $d$ with optional hiding $\o$, using pedersen commitments.
 
-- $\PCDLdot{Open}(p: \Fb^d_q[X], C: \Eb(\Fb_q), z: \Fb_q, \o: \textbf{Option}(\Fb_q)) \to \pi_{\textsc{eval}}$:
+- $\PCDLOpen(p: \Fb^d_q[X], C: \Eb(\Fb_q), z: \Fb_q, \o: \textbf{Option}(\Fb_q)) \to \pi_{\textsc{eval}}$:
 
   Creates a proof $\pi$ that states: "I know $p \in \Fb^d_q[X]$ with
   commitment $C \in \Eb(\Fb_q)$ s.t. $p(z) = v$" where $p$ is private
   and $d, z, v$ are public.
 
-- $\PCDLdot{SuccinctCheck}(C: \Eb(\Fb_q), d: \Nb, z: \Fb_q, v: \Fb_q, \pi: \pi_{\textsc{eval}}) \to \textbf{Result}(\Fb^d_q[X], \Gb)$:
+- $\PCDLSuccinctCheck(C: \Eb(\Fb_q), d: \Nb, z: \Fb_q, v: \Fb_q, \pi: \pi_{\textsc{eval}}) \to \textbf{Result}(\Fb^d_q[X], \Gb)$:
 
   Cheaply checks that a proof $\pi$ is correct. It is not a full check however,
   since an expensive part of the check is deferred until a later point.
 
-- $\PCDLdot{Check}(C: \Eb(\Fb_q), d: \Nb, z: \Fb_q, v: \Fb_q, \pi: \pi_{\textsc{eval}}) \to \textbf{Result}(\top, \bot)$:
+- $\PCDLCheck(C: \Eb(\Fb_q), d: \Nb, z: \Fb_q, v: \Fb_q, \pi: \pi_{\textsc{eval}}) \to \textbf{Result}(\top, \bot)$:
 
   The full check on $\pi$.
 
-### $\PCDLdot{Commit}$
+### $\PCDLCommit$
 
-$\PCDLdot{Commit}$ is rather simple, we just take the coefficients of the polynomial and
+$\PCDLCommit$ is rather simple, we just take the coefficients of the polynomial and
 commit to them using a pedersen commitment:
 
 \begin{algorithm}[H]
-\caption{$\PCDLdot{Commit}$}\label{alg:cap}
+\caption{$\PCDLCommit$}\label{alg:cap}
 \textbf{Inputs} \\
   \Desc{$p: \Fb^d_q[X]$}{The univariate polynomial that we wish to commit to.} \\
   \Desc{$\mathcolor{GbBlueDk}{\o}: \textbf{Option}(\Fb_q)$}{Optional hiding factor for the commitment.} \\
@@ -134,14 +93,14 @@ commit to them using a pedersen commitment:
   \Require $d \leq D$
   \Require $(d+1) = 2^k$, where $k \in \Nb$
   \State Let $\vec{p}$ be the coefficient vector for $p$
-  \State Output $C := \textsc{CM.Commit}(\vec{G}, \vec{p}, \mathcolor{GbBlueDk}{\o})$.
+  \State Output $C := \CMCommit(\vec{G}, \vec{p}, \mathcolor{GbBlueDk}{\o})$.
 \end{algorithmic}
 \end{algorithm}
 
-### $\PCDLdot{Open}$
+### $\PCDLOpen$
 
 \begin{algorithm}[H]
-\caption{$\PCDLdot{Open}$}\label{alg:cap}
+\caption{$\PCDLOpen$}\label{alg:cap}
 \textbf{Inputs} \\
   \Desc{$p: \Fb^d_q[X]$}{The univariate polynomial that we wish to open for.} \\
   \Desc{$C: \Eb(\Fb_q$)}{A commitment to the coefficients of $p$.} \\
@@ -155,7 +114,7 @@ commit to them using a pedersen commitment:
   \State Compute $v = p(z)$ and let $n = d+1$.
   \State \textcolor{GbBlueDk}{Sample a random polynomial $\bar{p} \in \Fb^{\leq d}_q[X]$ such that $\bar{p}(z) = 0$}.
   \State \textcolor{GbBlueDk}{Sample corresponding commitment randomness $\bar{\o} \in \Fb_q$.}
-  \State \textcolor{GbBlueDk}{Compute a hiding commitment to $\bar{p}$: $\bar{C} \gets \textsc{CM.Commit}(\vec{G}, \bar{p}, \bar{\o}) \in \Gb$.}
+  \State \textcolor{GbBlueDk}{Compute a hiding commitment to $\bar{p}$: $\bar{C} \gets \CMCommit(\vec{G}, \bar{p}, \bar{\o}) \in \Gb$.}
   \State \textcolor{GbBlueDk}{Compute the challenge $\a := \rho_0(C, z, v, \bar{C}) \in \Fb^{*}_q$.}
   \State Compute the polynomial $p' := p \mathcolor{GbBlueDk}{+ \a \bar{p}} = \sum_{i=0} c_i X_i \in \Fb_q[X]$.
   \State Compute commitment randomness $\o' := \o + \a \bar{\o} \in \Fb_q$.
@@ -170,8 +129,8 @@ commit to them using a pedersen commitment:
       \end{alignedat}
     $
   \For{$i \in [\lg(n)]$}
-    \State Compute $L_i := \textsc{CM.Commit}(l(\vec{G_{i-1}}) \cat H', \; \;  r(\vec{c_{i-1}}) \cat \langle r(\vec{c_{i-1}}), l(\vec{z_{i-1}}) \rangle, \; \; \bot)$
-    \State Compute $R_i := \textsc{CM.Commit}(r(\vec{G_{i-1}}) \cat H', \; \; l(\vec{c_{i-1}}) \cat \langle l(\vec{c_{i-1}}), r(\vec{z_{i-1}}) \rangle, \; \; \bot)$
+    \State Compute $L_i := \CMCommit(l(\vec{G_{i-1}}) \cat H', \; \;  r(\vec{c_{i-1}}) \cat \langle r(\vec{c_{i-1}}), l(\vec{z_{i-1}}) \rangle, \; \; \bot)$
+    \State Compute $R_i := \CMCommit(r(\vec{G_{i-1}}) \cat H', \; \; l(\vec{c_{i-1}}) \cat \langle l(\vec{c_{i-1}}), r(\vec{z_{i-1}}) \rangle, \; \; \bot)$
     \State Generate the i-th challenge $\xi_i := \rho_0(\xi_{i-1}, L_i, R_i) \in \Fb_q$.
     \State Construct commitment inputs for the next round: 
       \Statex \algindd $
@@ -186,21 +145,21 @@ commit to them using a pedersen commitment:
 \end{algorithmic}
 \end{algorithm}
 
-The $\PCDLdot{Open}$ algorithm simply follows the proving algorithm from
+The $\PCDLOpen$ algorithm simply follows the proving algorithm from
 bulletproofs. Except,in this case we are trying to prove we know polynomial
 $p$ s.t. $v = \dotp{\vec{c_0}}{\vec{z_0}}$. So because $z$ is public, we
 can get away with omitting the generators for $\vec{b}$ in the original protocol $(\vec{H})$.
 
-### $\PCDLdot{SuccinctCheck}$
+### $\PCDLSuccinctCheck$
 
 \begin{algorithm}[H]
-\caption{$\PCDLdot{SuccinctCheck}$}\label{alg:cap}
+\caption{$\PCDLSuccinctCheck$}\label{alg:cap}
 \textbf{Inputs} \\
   \Desc{$C: \Eb(\Fb_q)$}{A commitment to the coefficients of $p$.} \\
   \Desc{$d: \Nb$}{The degree of $p$} \\
   \Desc{$z: \Fb_q$}{The element that $p$ is evaluated on.} \\
   \Desc{$v: \Fb_q$}{The claimed element $v = p(z)$.} \\
-  \Desc{$\pi: \textbf{EvalProof}$}{The evaluation proof produced by $\PCDLdot{Open}$} \\
+  \Desc{$\pi: \textbf{EvalProof}$}{The evaluation proof produced by $\PCDLOpen$} \\
 \textbf{Output} \\
   \Desc{$\textbf{Result}((\Fb^d_q[X], \Gb), \bot)$}{The algorithm will either succeed and output ($h: \Fb^d_q[X], U: \Gb$) if $\pi$ is a valid proof and otherwise fail ($\bot$).}
 \begin{algorithmic}[1]
@@ -217,35 +176,117 @@ can get away with omitting the generators for $\vec{b}$ in the original protocol
   \EndFor
 \State Define the univariate polynomial $h(X) := \prod^{\lg(n)-1}_{i=0} (1 + \xi_{\lg(n) - i} X^{2^i}) \in \Fb_q[X]$.
 \State Compute the evaluation $v' := c \cdot h(z) \in \Fb_q$.
-\State Check that $C_{lg(n)} \meq \textsc{CM.Commit}(U \cat H', c \cat v', \bot)$
+\State Check that $C_{lg(n)} \meq cU + v'H'$
 \State Output (h(X), U).
 \end{algorithmic}
 \end{algorithm}
 
-### $\PCDLdot{Check}$
+### $\PCDLCheck$
 
 \begin{algorithm}[H]
-\caption{$\PCDLdot{Check}$}\label{alg:cap}
+\caption{$\PCDLCheck$}\label{alg:pcdl_check}
 \textbf{Inputs} \\
   \Desc{$C: \Eb(\Fb_q)$}{A commitment to the coefficients of $p$.} \\
   \Desc{$d: \Nb$}{The degree of $p$} \\
   \Desc{$z: \Fb_q$}{The element that $p$ is evaluated on.} \\
   \Desc{$v: \Fb_q$}{The claimed element $v = p(z)$.} \\
-  \Desc{$\pi: \mathbf{EvalProof}$}{The evaluation proof produced by $\PCDLdot{Open}$} \\
+  \Desc{$\pi: \mathbf{EvalProof}$}{The evaluation proof produced by $\PCDLOpen$} \\
 \textbf{Output} \\
   \Desc{$\textbf{Result}(\top, \bot)$}{The algorithm will either succeed ($\top$) if $\pi$ is a valid proof and otherwise fail ($\bot$).}
 \begin{algorithmic}[1]
   \Require $d \leq D$
   \Require $(d+1) = 2^k$, where $k \in \Nb$
-  \State Check that $\PCDLdot{SuccinctCheck}(C, d, z, v, \pi)$ accepts and outputs $(h, U)$.
-  \State Check that $U \meq \textsc{CM.Commit}(\vec{G}, \vec{h}, \bot)$, where $\vec{h}$ is the coefficient vector of the polynomial $h$.
+  \State Check that $\PCDLSuccinctCheck(C, d, z, v, \pi)$ accepts and outputs $(h, U)$.
+  \State Check that $U \meq \CMCommit(\vec{G}, \vec{h}, \bot)$, where $\vec{h}$ is the coefficient vector of the polynomial $h$.
 \end{algorithmic}
 \end{algorithm}
 
 ## Completeness
 
-This section will both function as an explainer of what is going on in this
-algorithm, along with a more formal proof of completeness.
+### Check 1 in $\PCDLSuccinctCheck$: $C_{lg(n)} \meq cU + v'H'$
+
+Let's start by looking at $C_{lg(n)}$. The verifer computes $C_{lg(n)}$ as:
+
+$$
+\begin{aligned}
+  C_0        &= C' + vH' = C + vH' \\
+  C_{\lg(n)} &= C_0 + \sum^{\lg(n)-1}_{i=0} \xi^{-1}_{i+1} L_i + \xi_{i+1} R_i \\
+\end{aligned}
+$$
+
+Given that the prover is honest, the following invariant should hold:
+
+$$
+\begin{alignedat}[b]{1}
+  C_{i+1} &= \ip{\vec{c}_{i+1}}{\vec{G}_{i+1}} + \ip{\vec{c}_{i+1}}{\vec{z}_{i+1}} H'\\ 
+          &= \ip{l(\vec{c}_i) + \xi^{-1}_{i+1} r(\vec{c}_i)}{l(\vec{G}_i) + \xi_{i+1} r(\vec{G}_i)} 
+            + \ip{l(\vec{c}_i) + \xi^{-1}_{i+1} r(\vec{c}_i)}{l(\vec{z}_i) + \xi_{i+1} r(\vec{z}_i)} H'\\
+          &= \ip{l(\vec{c}_i)}{l(\vec{G}_i)} + \xi_{i+1} \ip{l(\vec{c}_i))}{r(\vec{G}_i}
+            + \xi^{-1}_{i+1} \ip{r(\vec{c}_i)}{l(\vec{G}_i)} + \ip{r(\vec{c}_i)}{r(\vec{G}_i)}\\
+          &+ (\ip{l(\vec{c}_i)}{l(\vec{z}_i)} + \xi_{i+1} \ip{l(\vec{c}_i)}{r(\vec{z}_i)} 
+            + \xi^{-1}_{i+1} \ip{r(\vec{c}_i)}{l(\vec{z}_i)} + \ip{r(\vec{c}_i)}{l(\vec{z}_i)}) H'
+\end{alignedat}
+$$
+
+If we group these terms:
+
+$$
+\begin{alignedat}[b]{4}
+  C_{i+1} &= \ip{l(\vec{c}_i)}{l(\vec{z}_i)}  &&+ \ip{r(\vec{c}_i)}{r(\vec{G}_i)}     &&+ \xi_{i+1} \ip{l(\vec{c}_i)}{r(\vec{G}_i)}    &&+ \xi^{-1}_{i+1} \ip{r(\vec{c}_i)}{l(\vec{G}_i)} \\
+          &+ (\ip{l(\vec{c}_i)}{l(\vec{z}_i)} &&+ \ip{r(\vec{c}_i)}{r(\vec{z}_i)}) H' &&+ \xi_{i+1} \ip{l(\vec{c}_i)}{r(\vec{z}_i)} H' &&+ \xi^{-1}_{i+1} \ip{r(\vec{c}_i)}{l(\vec{z}_i)} H' \\
+          &= C_i                              &&                                      &&+ \xi_{i+1} R_i                                &&+ \xi^{-1}_{i+1} L_i \\
+          &\mkern-18mu\mkern-18mu \textbf{Where:} && && && \\
+  L_i     &= \ip{r(\vec{c}_i)}{l(\vec{G}_i)} &&+ \ip{r(\vec{c}_i)}{l(\vec{z}_i)} H' && && \\
+  R_i     &= \ip{l(\vec{c}_i)}{r(\vec{G}_i)} &&+ \ip{l(\vec{c}_i)}{r(\vec{z}_i)} H' && && 
+\end{alignedat}
+$$
+
+We see why $\vec{L}, \vec{R}$ is defined the way they are. They help
+the verifier check that the original relation hold, by showing it for the
+compressed form $C_{i+1}$. $\vec{L}, \vec{R}$ is just the minimal information
+needed to communicate this fact.
+
+This leaves us with the following vectors (notice the slight difference in length):
+
+$$
+\begin{alignedat}[b]{1}
+  \vec{L}    &= (L_1, \dots, L_{\lg(n)}) \\
+  \vec{R}    &= (R_1, \dots, R_{\lg(n)}) \\
+  \vec{C}    &= (C_0, \dots, C_{\lg(n)}) \\
+  \vec{\xi}  &= (\xi_0, \dots, \xi_{\lg(n)}) \\
+\end{alignedat}
+$$
+
+This means an honest prover will indeed produce $\vec{L}, \vec{R}$ s.t. $C_{\lg(n)} = C_0 + \sum^{\lg(n)-1}_{i=0} \xi^{-1}_{i+1} L_i + \xi_{i+1} R_i$
+
+Let's finally look at the left-hand side of the verifying check:
+
+\begin{align*}
+  C_{\lg(n)} &= C_0 + \sum^{\lg(n)-1}_{i=0} \xi^{-1}_{i+1} L_i + \xi_{i+1} R_i && \\
+             \intertext{The original definition of $C_i$:}
+             &= \ip{\vec{c}_{\lg(n)}}{\vec{G}_{\lg(n)}} + \ip{\vec{c}_{\lg(n)}}{\vec{z}_{\lg(n)}} H' \\
+             \intertext{Vectors have length one, so we use the single elements $c^{(0)}, G^{(0)}, c^{(0)}, z^{(0)}$ of the vectors:}
+             &= c^{(0)}G^{(0)} + c^{(0)}z^{(0)} H'                                                   \\
+             \intertext{The verifier has $c^{(0)} = c, G^{(0)} = U$ from $\pi \in \textbf{EvalProof}$:}
+             &= cU + cz^{(0)} H'                                                                     \\
+             \intertext{Then, by construction of $h(X) \in \Fb^d_q[X]$}
+             &= cU + ch(z) H'                                                                        \\
+             \intertext{Finally we use the definition of $v'$:}
+             &= cU + v'H'                                                                        \\
+\end{align*}
+Which corresponds exactly to the check that the verifier makes.
+
+What if we add hiding? Well, then $C_0$ becomes:
+
+$$
+  C_0 = C' + vH' = (C + \a \bar{C} + \o' S) + vH'
+$$
+
+### Check 2 in $\PCDLCheck$: $U \meq \CMCommit(\vec{G}, \vec{h}, \bot)$
+
+The honest prover will define $U = G^{(0)}$ as promised and the right-hand
+side will also become $U = G^{(0)}$ by the construction of $h(X)$. Adding
+hiding has no effect on this check.
 
 ## Soundness
 
@@ -255,10 +296,12 @@ algorithm, along with a more formal proof of completeness.
 
 # $\ASDL$: The Accumulation Scheme
 
-## Common subroutine
+## Outline
+
+### $\ASDLCommonSubroutine$
 
 \begin{algorithm}[H]
-\caption{$\ASDLdot{CommonSubroutine}$}
+\caption{$\ASDLCommonSubroutine$}
 \textbf{Inputs} \\
   \Desc{$d: \Nb$}{The degree of $p$.} \\
   \Desc{$\vec{q}: \Fb_q^m$}{New instances \textit{and accumulators} to be accumulated.} \\
@@ -272,26 +315,26 @@ algorithm, along with a more formal proof of completeness.
 \begin{algorithmic}[1]
   \Require $d \leq D$
   \Require $(d+1) = 2^k$, where $k \in \Nb$
+  \State \textcolor{GbBlueDk}{Parse $\pi_V$ as $(h_0, U_0, \o)$, where $h_0(X) = aX + b \in \Fb^1_q[X], U_0 \in \Gb$ and $\o \in \Fb_q$}
+  \State \textcolor{GbBlueDk}{Check that $U_0$ is a deterministic commitment to $h_0$: $U_0 = \PCDLCommit(h, \bot)$.}
   \For{$i \in [m]$}
     \State Parse $q_i$ as a tuple $((C_i, d_i, z_i, v_i), \pi_i)$.
-    \State Compute $(h_i(X), U_i) := \PCDLdot(C_i, z_i, v_i, \pi_i)$.
-    \State Check that $d_i = D$ (We accumulate only the degree bound D.)
+    \State Compute $(h_i(X), U_i) := \PCDLSuccinctCheck(C_i, z_i, v_i, \pi_i)$.
+    \State Check that $d_i = d$ (We accumulate only the degree bound D. TODO)
   \EndFor
-  \State \textcolor{GbBlueDk}{Parse $\pi_V$ as $(h_0, U_0, \o)$, where $h_0(X) = aX + b \in \Fb^1_q[X], U_0 \in \Gb$ and $\o \in \Fb_q$}
-  \State \textcolor{GbBlueDk}{Check that $U_0$ is a deterministic commitment to $h_0$: $U_0 = \PCDLdot{Commit}(h, \bot)$.}
   \State Compute the challenge $\a := \rho_1(\vec{h}, \vec{U}) \in \Fb_q$
-  \State Let the polynomial $h(X) := \sum^m_{i=0} \a^i h_i \in \Fb_q[X]$
-  \State Compute the accumulated commitment $C := \sum^m_{i=0} \a^i U_i$
+  \State Let the polynomial $h(X) := \mathcolor{GbBlueDk}{h_0 +} \sum^m_{i=1} \a^i h_i \in \Fb_q[X]$
+  \State Compute the accumulated commitment $C := \mathcolor{GbBlueDk}{U_0 +} \sum^m_{i=1} \a^i U_i$
   \State Compute the challenge $z := \rho_1(C, h) \in \Fb_q$.
   \State Randomize $C$: $\bar{C} := C \mathcolor{GbBlueDk}{+ \o S} \in \Gb$.
   \State Output $(\bar{C}, d, z, h(X))$.
 \end{algorithmic}
 \end{algorithm}
 
-## Prover
+### $\ASDLProver$
 
 \begin{algorithm}[H]
-\caption{$\ASDLdot{Prover}$}
+\caption{$\ASDLProver$}
 \textbf{Inputs} \\
   \Desc{$d: \Nb$}{The degree of $p$.} \\
   \Desc{$\vec{q}: \Fb_q^m$}{New instances \textit{and accumulators} to be accumulated.} \\
@@ -304,56 +347,65 @@ algorithm, along with a more formal proof of completeness.
   \begin{algorithmic}[1]
   \Require $d \leq D$
   \Require $(d+1) = 2^k$, where $k \in \Nb$
-  \State Let $n = d + 1$
-  \State Sample a random linear polynomial $h_0 \in F_q[X]$
-  \State Then compute a deterministic commitment to $h_0$: $U_0 := \PCDLdot{Commit}(h_0, \bot)$
+  \State \textcolor{GbBlueDk}{Sample a random linear polynomial $h_0 \in F_q[X]$}
+  \State \textcolor{GbBlueDk}{Then compute a deterministic commitment to $h_0$: $U_0 := \PCDLCommit(h_0, \bot)$}
   \State \textcolor{GbBlueDk}{Sample commitment randomness $\o \in F_q$, and set $\pi_V := (h_0, U_0, \o)$.}
-  \State Then, compute the tuple $(\bar{C}, d, z, h(X)) := \ASDLdot{CommonSubroutine}(d, \vec{q} \mathcolor{GbBlueDk}{, \pi_V})$.
+  \State Then, compute the tuple $(\bar{C}, d, z, h(X)) := \ASDLCommonSubroutine(d, \vec{q} \mathcolor{GbBlueDk}{, \pi_V})$.
   \State Compute the evaluation $v := h(z)$
-  \State Generate the hiding evaluation proof $\pi := \PCDLdot{Open}(h(X), \bar{C}, d, z \mathcolor{GbBlueDk}{, \o})$.
-  \State Finally, output the accumulator $acc = ((\bar{C}, d, z, v, \pi), \pi_V)$.
+  \State Generate the hiding evaluation proof $\pi := \PCDLOpen(h(X), \bar{C}, d, z \mathcolor{GbBlueDk}{, \o})$.
+  \State Finally, output the accumulator $acc = \mathcolor{GbBlueDk}{(}(\bar{C}, d, z, v, \pi)\mathcolor{GbBlueDk}{, \pi_V)}$.
 \end{algorithmic}
 \end{algorithm}
 
-## Verifier
+### $\ASDLVerifier$
 
 \begin{algorithm}[H]
-\caption{$\ASDLdot{Verifier}$}
+\caption{$\ASDLVerifier$}
 \textbf{Inputs} \\
   \Desc{$\vec{q}: \Fb_q^m$}{New instances \textit{and accumulators} to be accumulated.} \\
   \Desc{$acc: \textbf{Acc}$}{The accumulator.} \\
 \textbf{Output} \\
   \Desc{$\textbf{Result}(\top, \bot)$}{
-    The algorithm will either succeed $(\top)$ if TODO and otherwise fail ($\bot$).
+    The algorithm will either succeed $(\top)$ if $acc$ correctly accumulates
+    $\vec{q}$ and otherwise fail ($\bot$).
   }
   \begin{algorithmic}[1]
   \Require $acc.d \leq D$
   \Require $(acc.d+1) = 2^k$, where $k \in \Nb$ 
-    \State Parse $acc$ as $((\bar{C}, d, z, v, \_) \mathcolor{GbBlueDk}{, \pi_V})$
-    \State The accumulation verifier computes $(\bar{C}', d', z', h(X)) := \ASDLdot{CommonSubroutine}(d, \vec{q} \mathcolor{GbBlueDk}{, \pi_V})$
+    \State Parse $acc$ as $\mathcolor{GbBlueDk}{(}(\bar{C}, d, z, v, \_)\mathcolor{GbBlueDk}{, \pi_V)}$
+    \State The accumulation verifier computes $(\bar{C}', d', z', h(X)) := \ASDLCommonSubroutine(d, \vec{q} \mathcolor{GbBlueDk}{, \pi_V})$
     \State Then checks that $\bar{C}' \meq \bar{C}, d' \meq d, z' \meq z$, and $h(z) \meq v$.
 \end{algorithmic}
 \end{algorithm}
 
-## Decider
+### $\ASDLDecider$
 
 \begin{algorithm}[H]
-\caption{$\ASDLdot{Decider}$}
+\caption{$\ASDLDecider$}
 \textbf{Inputs} \\
   \Desc{$acc: \textbf{Acc}$}{The accumulator.} \\
 \textbf{Output} \\
   \Desc{$\textbf{Result}(\top, \bot)$}{
-    The algorithm will either succeed $(\top)$ if TODO and otherwise fail ($\bot$).
+    The algorithm will either succeed $(\top)$ if the accumulator has correctly
+    accumulated all previous instances and will otherwise fail ($\bot$).
   }
   \begin{algorithmic}[1]
   \Require $acc.d \leq D$
   \Require $(acc.d+1) = 2^k$, where $k \in \Nb$ 
     \State Parse $acc$ as $((\bar{C}, d, z, v, \pi), \_)$
-    \State Check $\top \meq \PCDLdot{Check}(\bar{C}, d, z, v, \pi)$
+    \State Check $\top \meq \PCDLCheck(\bar{C}, d, z, v, \pi)$
 \end{algorithmic}
 \end{algorithm}
 
 ## Completeness
+
+$\ASDLVerifier$ runs the same algorithm ($\ASDLCommonSubroutine$) with the same
+inputs and will therefore get the same outputs, these outputs are check will
+therefore always pass.
+
+As for the $\ASDLDecider$, it just runs $\PCDLCheck$, since we know that
+$\PCDL$ is sound the $\ASDLProver$ constructed $\pi$ honestly, we know that
+this check too will always pass.
 
 ## Soundness
 
@@ -367,35 +419,32 @@ algorithm, along with a more formal proof of completeness.
 
 ## Notation
 
-$(\Fb_q, \dots, \Eb(\Fb_q))$: Same as $\Fb_q \times \dots \times \Eb(\Fb_q)$
+|                                                                                 |                                                                                                           |
+|:--------------------------------------------------------------------------------|:----------------------------------------------------------------------------------------------------------|
+| $[n]$                                                                           | Denotes the integers $\{ 1, ..., n \}$                                                                    |
+| $a \in \Fb_q$                                                                   | A field element in a prime field of order $q$                                                             |
+| $\vec{a} \in S^n_q$                                                             | A vector of length $n$ consisting of elements from set $S$                                                |
+| $G \in \Eb(\Fb_q)$                                                              | An elliptic Curve point, defined over field $\Fb_q$                                                       |
+| $\vec{G}$                                                                       | A vector                                                                                                  |
+| $(S_1, \dots, S_n)$                                                             | Same as $S_1 \times \dots \times S_n$                                                                     |
+| $\dotp{\vec{a}}{\vec{G}}$ where $\vec{a} \in \Fb^n_q, \vec{G} \in \Eb^n(\Fb_q)$ | The dot product of $\vec{a}$ and $\vec{G}$ ($\sum^n_{i=0} a_i G_i$).                                      |
+| $\dotp{\vec{a}}{\vec{b}}$ where $\vec{a} \in \Fb^n_q, \vec{b} \in \Fb^n_q$      | The dot product of vectors $\vec{a}$ and $\vec{b}$.                                                       |
+| $l(\vec{a})$                                                                    | Gets the left half of $\vec{a}$.                                                                          |
+| $r(\vec{a})$                                                                    | Gets the right half of $\vec{a}$.                                                                         |
+| $\vec{a} \cat \vec{b}$ where $\vec{a} \in \Fb^n_q, \vec{b} \in \Fb^m_q$         | Concatinate vectors to create $\vec{c} \in \Fb^{n+m}_q$.                                                  |
+| $a \cat b$ where $a \in \Fb_q$                                                  | Create vector $\vec{c} = (a, b)$.                                                                         |
+| $\textbf{OPtion}(T)$                                                            | $\{ T, \bot \}$                                                                                           |
+| $\textbf{Result}(T, E)$                                                         | $\{ T, E \}$                                                                                              |
+| $\textbf{EvalProof}$                                                            | $(\Eb^{lg(n)}(\Fb_q), \Eb^{lg(n)}(\Fb_q), \Eb(\Fb_q), \Fb_q\mathcolor{GbBlueDk}{, \Eb(\Fb_q), \Fb_q})$    |
+| $\textbf{AccHiding}$                                                            | $(\Eb(\Fb_q), \Nb, \Fb_q, \Fb^d_q)$                                                                       |
+| $\textbf{Acc}$                                                                  | $((\Eb(\Fb_q), \Nb, \Fb_q, \Fb_q, \textbf{EvalProof}), \textbf{AccHiding})$                               |
 
-$\dotp{\vec{a}}{\vec{G}}$ where $\vec{a} \in \Fb^n_q, \vec{G} \in \Eb^n(\Fb_q)$: The dot product of field elements $\vec{a}$ and curve points $\vec{G}$ ($\sum^n_{i=0} a_i G_i$).
-
-$\dotp{\vec{a}}{\vec{b}}$ where $\vec{a} \in \Fb^n_q, \vec{b} \in \Fb^n_q$: The dot product of vectors $\vec{a}$ and $\vec{b}$.
-
-$l(\vec{a})$: Gets the left half of $\vec{a}$.
-
-$r(\vec{a})$: Gets the right half of $\vec{a}$.
-
-$\vec{a} \cat \vec{b}$ where $\vec{a} \in \Fb^n_q, \vec{b} \in \Fb^m_q$: Concatinate vectors to create $\vec{c} \in \Fb^{n+m}_q$.
-
-$a \cat b$ where $a \in \Fb_q$: Create vector $\vec{c} = (a, b)$.
-
-"Type aliases"
-
-$\textbf{EvalProof} = (\Eb^{lg(n)}(\Fb_q), \Eb^{lg(n)}(\Fb_q), \Eb(\Fb_q), \Fb_q\mathcolor{GbBlueDk}{, \Eb(\Fb_q), \Fb_q})$
-
-$\textbf{AccHiding} = (\Eb(\Fb_q), \Nb, \Fb_q, \Fb^d_q)$
-
-$\textbf{Acc} = ((\Eb(\Fb_q), \Nb, \Fb_q, \Fb_q, \textbf{EvalProof}), \textbf{AccHiding})$
-
-
-## $\textsc{CM}$: Pedersen Commitment
+## $\mathrm{CM}$: Pedersen Commitment
 
 As a reference, we include the Pedersen Commitment algorithm we use:
 
 \begin{algorithm}[H]
-\caption{$\textsc{CM.Commit}$}
+\caption{$\CMCommit$}
 \textbf{Inputs} \\
   \Desc{$\vec{m}: \Fb^n$}{The vectors we wish to commit to.} \\
   \Desc{$\vec{G}: \Eb(\Fb)^n$}{The generators we use to create the commitment.} \\
@@ -403,7 +452,7 @@ As a reference, we include the Pedersen Commitment algorithm we use:
 \textbf{Output} \\
   \Desc{$C: \Eb(\Fb_q)$}{The pedersen commitment.}
 \begin{algorithmic}[1]
-  \State Output $C := \vec{m} \cdot \vec{G} \mathcolor{GbBlueDk}{+ \o S})$.
+  \State Output $C := \ip{\vec{m}}{\vec{G}} \mathcolor{GbBlueDk}{+ \o S}$.
 \end{algorithmic}
 \end{algorithm}
 
