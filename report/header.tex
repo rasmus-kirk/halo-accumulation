@@ -26,6 +26,7 @@
     urlcolor=GbBlueDk      % External URL links
 }
 
+\usepackage{caption}
 \usepackage{algorithm}
 \usepackage{algpseudocode}
 
@@ -82,6 +83,14 @@
 \newcommand{\ranvec}[1]{ \boldsymbol{\ran{#1}} }
 \newcommand{\dotp}[2]{ \langle #1, #2 \rangle }
 \newcommand{\ip}[2]{ \langle #1, #2 \rangle }
+
+\newcommand*{\SNARKProver}{\mathrm{\text{SNARK}}.\mathrm{\text{P\scriptsize ROVER}}}
+\newcommand*{\SNARKVerifier}{\mathrm{\text{SNARK}}.\mathrm{\text{V\scriptsize ERIFIER}}}
+\newcommand*{\IVCProver}{\mathrm{\text{IVC}}.\mathrm{\text{P\scriptsize ROVER}}}
+\newcommand*{\IVCVerifier}{\mathrm{\text{IVC}}.\mathrm{\text{V\scriptsize ERIFIER}}}
+\newcommand*{\ASProver}{\mathrm{\text{AS}}.\mathrm{\text{P\scriptsize ROVER}}}
+\newcommand*{\ASVerifier}{\mathrm{\text{AS}}.\mathrm{\text{V\scriptsize ERIFIER}}}
+\newcommand*{\ASDecider}{\mathrm{\text{AS}}.\mathrm{\text{D\scriptsize ECIDER}}}
 \newcommand*{\PCDL}{\text{PC}_{\text{DL}}}
 \newcommand*{\PCDLSetup}{\PCDL.\mathrm{\text{S{\scriptsize ETUP}}}}
 \newcommand*{\PCDLTrim}{\PCDL.\mathrm{\text{T{\scriptsize RIM}}}}
@@ -100,6 +109,7 @@
 \newcommand*{\CMSetup}{\mathrm{\text{CM.S\scriptsize ETUP}}}
 \newcommand*{\CMTrim}{\mathrm{\text{CM.T\scriptsize RIM}}}
 \newcommand*{\CMCommit}{\mathrm{\text{CM.C\scriptsize OMMIT}}}
+
 \newcommand*\Result{\mathbf{Result}}
 \newcommand*\Option{\mathbf{Option}}
 \newcommand*\Acc{\mathbf{Acc}}

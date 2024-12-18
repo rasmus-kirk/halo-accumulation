@@ -24,11 +24,6 @@ Schemes"_ as a reference. The project covers both the theoretical aspects
 of the scheme described in this document along with a rust implementation,
 both of which can be found in the project's [repository](https://example.com).
 
-The original paper had additional functions for generating prover and
-verifier keys, getting the public parameters and trimming input to fit the
-public parameters. I have chosen to omit these from the discussion below as
-these are fixed per-implementation.
-
 ## Prerequisites
 
 Basic knowledge on elliptic curves, groups, interactive arguments are
@@ -56,7 +51,27 @@ TODO
 
 ### SNARKS
 
-TODO
+SNARKs - **S**uccinct **N**on-interactive **AR**guments of **K**nowledge
+- have seen increased usage due to their application in blockchains
+and cryptocurrencies. They function as so called general-purpose proof
+schemes. This means that, given any solution to an NP-problem, it will
+produce a proof that the prover knows the solution to said NP-problem. Most
+snarks also allow for zero-knowledge arguments, making them zk-SNARKs.
+
+More concretely, imagine that Alice has todays sudoko problem $x$: She
+claims to have a solution to this problem, her witness, $w$, and want to
+convince Bob without having to send all of it. She could then use a SNARK to
+create a proof to convince Bob. To do this she must first encode the sudoku
+verifier as a circuit $R_x$, and then give the SNARK prover ($\SNARKProver$)
+$R_x(w,w')$ where $w'$ is a public input. This public input could correspond
+to the known already known digits for todays sudoku. Finally she can send
+this proof, $\pi$, to Bob along with the public sudoku verifying circuit,
+$R_x$, and he can check the proof and be convinced using the snark verifier
+($\SNARKVerifier$).
+
+Importantly, the succinct part of the name means that the proof size and
+verification time must be sublinear. This allows SNARKs to be used for
+_Incrementally Verifiable Computation_.
 
 ### Incrementally Verifiable Computation
 
@@ -143,9 +158,10 @@ The proof $\pi_i$ describes the following:
 > ($z_i = F^i(z_0) = F(z_{i-1})$) and the associated proof $\pi_{i-1}$ for
 > the previous state is valid."}_
 
-Or more formally, $\pi_i$ is a proof of the claim:
+Or more formally, $\pi_i$ is a proof of the following claim expressed as a
+circuit $R$:
 
-$$z_i = F^i(z_0) \land (V(\pi_{i-1}) = \top \lor i = 0)$$
+$$z_i = F(z_{i-1}) \; \land \; \exists \, \pi_{i-1}, \, \text{ s.t. } \SNARKVerifier((z_{i-1}, \pi_{i-1})) = \top$$
 
 Where $V$ represents the verification circuit in the proof system we're
 using. This means, that we're taking the verifier, representing it as a circuit, and
@@ -155,7 +171,8 @@ properly, otherwise
 
 TODO:
 
-- Explain
+- SNARK?
+- Explain: Otherwise what happens? Blowup?
 - Size graph?
 
 ### Bulletproofs
@@ -193,60 +210,40 @@ the end of accumulation.
 In the [2020 paper _"Proof-Carrying Data from Accumulation
 Schemes"_](https://eprint.iacr.org/2020/499.pdf), that this project heavily
 relies on, the authors presented a generalized version of the previous
-accumulation structure of Halo that they coined _Accumulation Schemes_. An
-accumulation scheme consists of the following functions:
+accumulation structure of Halo that they coined _Accumulation Schemes_. Given
+a predicate $\Phi: X \to \{ \top, \bot \}$, an accumulation scheme consists
+of the following functions:
 
-- **The Prover:** $P(acc_{i_1}: \Acc, q: X) \to \Acc$
+- $\ASProver(acc_{i_1}: \Acc, q: X) \to \Acc$
 
     The prover accumulates the instance $q$ into the previous accumulator
     $acc_{i-1}$ into the new accumulator $acc_i$.
 
-- **The Verifier:** $V(acc_{i-1}: \Acc, q: X, acc_i: \Acc) \to \Result(\top, \bot)$
+- $\ASVerifier(acc_{i-1}: \Acc, q: X, acc_i: \Acc) \to \Result(\top, \bot)$
 
     The verifier checks that the instance $q$ was correctly accumulated into the previous accumulator
     $acc_{i-1}$ to form the new accumulator $acc_i$.
 
-- **The Decider:** $D(acc_i: \Acc) \to \Result(\top, \bot)$
+- $\ASDecider(acc_i: \Acc) \to \Result(\top, \bot)$
 
-    The verifier checks that the instance $q$ was correctly accumulated into the previous accumulator
-    $acc_{i-1}$ to form the new accumulator $acc_i$.
+    The decider performs a single check that simultaneously ensures that
+    _every_ previous instance-proof pair accumulated in $acc$ verifies.
 
-For a predicate $\Phi: X \to \{ \top, \bot \}$. 
+TODO: Runtimes
 
+Having such an accumulation scheme allows us to create an IVC scheme:
 
+- $\IVCProver(z_i: \textbf{Instance}, \pi_i: \textbf{Proof}, acc: \Acc) \to (\textbf{Proof}, \Acc)$
 
-Embedding the succinct verifier in the IVC proof claim instead of the regular
-verifier means that we can achieve IVC, this time with an untrusted setup.
+  - Accumulates $(z_i, \pi_i)$ with $acc_i$ to obtain a new accumulator $acc_{i+1}$.
+  - Then generates a SNARK proof $\pi_{i+1}$ of the following claim, expressed as a circuit $R$:
+    $$"z_{i+1} = F(z_i) \; \land \; \exists \, \pi_i, \, acc_i \text{ s.t. } \ASVerifier((z_i, \pi_i), acc_i, acc_{i+1}) = \top"$$
 
-### IVC from Accumulation Schemes
+- $\IVCVerifier(\pi_{i+1}: \textbf{Proof}, acc_{i+1}: \Acc) \to \Result(\top, \bot)$
 
-\begin{figure}[!H]
-\centering
-\begin{tikzpicture}[node distance=2cm]
+  Checks the proof: $\top \meq \SNARKVerifier(\pi_n) \meq \ASDecider(acc_n)$
 
-    % Nodes
-    \node (IVC_V) [process, minimum height=4cm, minimum width=4cm] {}; % IVC.V box below the label
-    \node (IVC_V_label) [above=0.2cm of IVC_V] {IVC.V}; % Label above IVC.V
-    \node (SNARK_V) [process, minimum width=2cm, below=0.7cm of IVC_V.north] {SNARK.V};
-    \node (ACC_D) [process, below=0.5cm of SNARK_V.south] {ACC.D};
-
-    % Annotations
-    \node at (-2.75, 1.5) {$z_i$};
-    \node at (-2.75, 0.5) {$\pi_i$};
-    \node at (-2.85, -0.5) {$acc$};
-
-    % Arrows: IVC.V box
-    \draw [arrow] (-2.5,  1.5) -- (SNARK_V.west);
-    \draw [arrow] (-2.5,  0.5) -- (SNARK_V.west);
-    \draw [arrow] (-2.5, -0.5) -- (SNARK_V.west);
-    \draw [arrow] (-2.5, -0.5) -- (ACC_D.west);
-
-    \draw [arrow] (SNARK_V.east) -- (IVC_V.east) node[anchor=south] {$b_1$};
-    \draw [arrow] (ACC_D.east) -- (IVC_V.east) node[anchor=south] {$b_2$};
-    \draw [arrow] (IVC_V.east) -- +(1.2,0) node[anchor=south] {$b_1 \land b_2$};
-
-\end{tikzpicture}
-\end{figure}
+TODO: Why
 
 ### The Implementation
 
@@ -272,25 +269,30 @@ This more closely models the implementation where the values were generated
 for a computationally viable value of $N$ and $S, H, \vec{G}$ were randomly
 sampled using a hashing algorithm. More specefically a genesis string was
 appended with an numeric index, run through the sha3 hashing algorithm, then
-used to generate a curve point. The associated rust code can be seen below:
+used to generate a curve point. These
+values were then added as constants in the code, see the
+[`/code/src/consts.rs`](https://github.com/rasmus-kirk/halo-accumulation/blob/main/code/src/consts.rs)
+in the repo.
+
+The associated rust code for generating the public parameters can be seen below:
 
 ```rust {.numberLines}
 // Function to generate a random generator for the Pallas Curve.
-// Since the order of the curve is prime, any point that is not the identity point is a generator.
+// Since the order of the curve is prime, any non-identity point is a generator.
 fn get_generator_hash(i: usize) -> PallasPoint {
-    let genesis_string = "To understand recursion, one must first understand recursion";
-    let mut data = genesis_string.as_bytes().to_vec();
-    data.extend_from_slice(&i.to_le_bytes());
+    let genesis_string = "To understand recursion, one must first understand recursion"
+      .as_bytes();
 
+    // Hash `genesis_string` concatinated with `i`
     let mut hasher = Sha3_256::new();
-    hasher.update(&data);
+    hasher.update(genesis_string);
+    hasher.update(i.to_le_bytes());
     let hash_result = hasher.finalize();
 
     // Interpret the hash as a scalar field element
-    let mut hash_bytes = [0u8; 32];
-    hash_bytes.copy_from_slice(&hash_result[..32]);
-    let scalar = PallasScalar::from_le_bytes_mod_order(&hash_bytes);
+    let scalar = PallasScalar::from_le_bytes_mod_order(&hash_result);
 
+    // Generate a uniformly sampled point from the uniformly sampled field element
     PallasPoint::generator() * scalar
 }
 
