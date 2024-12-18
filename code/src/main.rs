@@ -15,21 +15,19 @@ use group::{PallasPoint, PallasScalar};
 
 // Function to generate a random generator for the Pallas Curve.
 // Since the order of the curve is prime, any point that is not the identity point is a generator.
-// Generated from hashes for security.
 fn get_generator_hash(i: usize) -> PallasPoint {
-    let genesis_string = "To understand recursion, one must first understand recursion";
-    let mut data = genesis_string.as_bytes().to_vec();
-    data.extend_from_slice(&i.to_le_bytes());
+    let genesis_string = "To understand recursion, one must first understand recursion".as_bytes();
 
+    // Hash `genesis_string` concatinated with `i`
     let mut hasher = Sha3_256::new();
-    hasher.update(&data);
+    hasher.update(genesis_string);
+    hasher.update(i.to_le_bytes());
     let hash_result = hasher.finalize();
 
     // Interpret the hash as a scalar field element
-    let mut hash_bytes = [0u8; 32];
-    hash_bytes.copy_from_slice(&hash_result[..32]);
-    let scalar = PallasScalar::from_le_bytes_mod_order(&hash_bytes);
+    let scalar = PallasScalar::from_le_bytes_mod_order(&hash_result);
 
+    // Generate a uniformly sampled point from the uniformly sampled field element
     PallasPoint::generator() * scalar
 }
 
