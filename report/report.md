@@ -52,6 +52,8 @@ In a proof system you have a prover and a verifier:
 - Zero knowledge
 - Fiat-Shamir
 
+### SNARKS
+
 ### Incrementally Verifiable Computation
 
 The way Valiant originally described IVC in his [2008 paper](https://iacr.org/archive/tcc2008/49480001/49480001.pdf) in the following way:
@@ -69,21 +71,89 @@ is there a way for us to know that the ouput of said computation is correct,
 without taking the time to redo all that computation?
 
 Recently the concept of IVC has seen renewed interest with cryptocurrencies,
-as this concept lends itself well to the structure of blockchains. This allows
-a blockchain to omit previous transaction history in favour of only a single
-state, making it a so-called _succinct blockchain_. One such blockchain is
+as this concept lends itself well to the structure of blockchains. This
+allows a blockchain node to omit all previous transaction history in
+favour of only a single state, for example, containing all current account
+balances. This is a so-called _succinct blockchain_, one such blockchain is
 [Mina](https://minaprotocol.com/).
 
-TODO: Graph
+In order to acheive IVC, you need a function $F \in S \to S$ along with some
+initial state $z_0 \in S$. Then you can call $F$ to generate a series of
+$z$'s, $\vec{z} \in S^{n+1}$:
 
-...
+\begin{figure}[!H]
+\centering
+\begin{tikzpicture}[node distance=2cm]
+
+    % Nodes
+    \node (z0) [node] {$z_0$};
+    \node (z1) [node, right=of z0] {$z_1$};
+    \node (z2) [node, right=of z1] {$z_2$};
+    \node (dots) [right=1cm of z2] {$\dots$};
+    \node (zn) [node, right=1cm of dots] {$z_n$};
+
+    % Arrows with labels
+    \draw[arrow] (z0) -- node[above] {$F$} (z1);
+    \draw[arrow] (z1) -- node[above] {$F$} (z2);
+    \draw[arrow] (z2) -- node[above] {$F$} (dots);
+    \draw[arrow] (dots) -- node[above] {$F$} (zn);
+
+\end{tikzpicture}
+\caption{A visualization of the relationship between $F$ and $\vec{z}$ in a non-IVC setting.}
+\end{figure}
+
+In the IVC setting, we have a proof, $\pi$, associated with each state,
+so that anyone can take just a single pair $(z_m, \pi_m)$ along with the
+initial state and transition function ($z_0, F$) and verify that said state
+was computed correctly.
+
+\begin{figure}[!H]
+\centering
+\begin{tikzpicture}[node distance=2cm]
+
+    % Nodes
+    \node (z0) [node] {$z_0$};
+    \node (z1) [node, right=of z0] {$(z_1, \pi_1)$};
+    \node (z2) [node, right=of z1] {$(z_2, \pi_2)$};
+    \node (dots) [right=1cm of z2] {$\dots$};
+    \node (zn) [node, right=1cm of dots] {$(z_n, \pi_n)$};
+
+    % Arrows with labels
+    \draw[arrow] (z0) -- node[above] {$F$} (z1);
+    \draw[arrow] (z1) -- node[above] {$F$} (z2);
+    \draw[arrow] (z2) -- node[above] {$F$} (dots);
+    \draw[arrow] (dots) -- node[above] {$F$} (zn);
+
+\end{tikzpicture}
+\caption{A visualization of the relationship between $F, \vec{z}$ and $\vec{\pi}$ in an IVC setting.}
+\end{figure}
+
+The proof $\pi_i$ describes the following:
+
+_"The current state $z_i$ is computed from applying $F$ to the previous
+state $z_{i-1}$ ($z_i = F(z_{i-1})$) and the associated proof $\pi_{i-1}$
+for the previous state is valid."_
+
+Or more formally, $\pi_i$ is a proof of the claim:
+
+$$z_i = F(z_{i-1}) \land (V(\pi_{i-1}) = \top \lor i = 0)$$
+
+Where $V$ represents the verification circuit in the proof system we're
+using. This means, that we're taking the verifier, representing it as a circuit, and
+then feeding it to the prover. This is not a trivial task in practice! It
+also means that the verification time must be sublinear for IVC to work
+properly, otherwise
+
+TODO:
+- Explain
+- Size graph?
 
 ### Bulletproofs
 
 In 2016, [the Bulletproofs paper](https://eprint.iacr.org/2017/1066.pdf)
 was released. Bulletproofs relies on the hardness of the Discrete Logarithm
 problem, and allows for an untrusted setup to generate the Common Reference
-String. It has logarithmic proof size, TODO, TODO, yeilding itself especially
+String. It has logarithmic proof size, and lends itself well, especially
 to efficient range proofs. It's also possible to generate proofs for arbitrary
 circuits, but with less effeciency.  Unfortunately, Bulletproofs suffer from
 linear verification time, making them unsuitible for IVC.
@@ -155,7 +225,7 @@ We have four main functions:
   commitment $C \in \Eb(\Fb_q)$ s.t. $p(z) = v$" where $p$ is private
   and $d, z, v$ are public.
 
-- $\PCDLSuccinctCheck(C: \Eb(\Fb_q), d: \Nb, z: \Fb_q, v: \Fb_q, \pi: \pi_{\textsc{eval}}) \to \textbf{Result}(\Fb^d_q[X], \Gb)$:
+- $\PCDLSuccinctCheck(C: \Eb(\Fb_q), d: \Nb, z: \Fb_q, v: \Fb_q, \pi: \pi_{\textsc{eval}}) \to \textbf{Result}((\Fb^d_q[X], \Gb), \bot)$:
 
   Cheaply checks that a proof $\pi$ is correct. It is not a full check however,
   since an expensive part of the check is deferred until a later point.
@@ -248,7 +318,9 @@ can get away with omitting the generators for $\vec{b}$ in the original protocol
   \Desc{$v: \Fb_q$}{The claimed element $v = p(z)$.} \\
   \Desc{$\pi: \textbf{EvalProof}$}{The evaluation proof produced by $\PCDLOpen$} \\
 \textbf{Output} \\
-  \Desc{$\textbf{Result}((\Fb^d_q[X], \Gb), \bot)$}{The algorithm will either succeed and output ($h: \Fb^d_q[X], U: \Gb$) if $\pi$ is a valid proof and otherwise fail ($\bot$).}
+  \Desc{$\textbf{Result}((\Fb^d_q[X], \Gb), \bot)$}{
+    The algorithm will either succeed and output ($h: \Fb^d_q[X], U: \Gb$) if $\pi$ is a valid proof and otherwise fail ($\bot$).
+  }
 \begin{algorithmic}[1]
   \Require $d \leq D$
   \Require $(d+1) = 2^k$, where $k \in \Nb$
