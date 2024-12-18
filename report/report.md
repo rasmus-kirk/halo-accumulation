@@ -3,7 +3,7 @@ title: Investigating IVC with Halo2
 date: \today
 author: 
   - Rasmus Kirk Jakobsen - 201907084
-geometry: margin=1.75cm
+geometry: margin=2cm
 ---
 
 \tableofcontents
@@ -47,6 +47,8 @@ on bulletproofs if need be:
 
 In a proof system you have a prover and a verifier:
 
+TODO
+
 - Soundness
 - Completeness
 - Zero knowledge
@@ -54,17 +56,21 @@ In a proof system you have a prover and a verifier:
 
 ### SNARKS
 
+TODO
+
 ### Incrementally Verifiable Computation
 
-The way Valiant originally described IVC in his [2008 paper](https://iacr.org/archive/tcc2008/49480001/49480001.pdf) in the following way:
+Valiant originally described IVC in his [2008
+paper](https://iacr.org/archive/tcc2008/49480001/49480001.pdf) in the
+following way:
 
-> _Suppose humanity needs to conduct a very long computation which will span
-> super- polynomially many generations. Each generation runs the computation
+> _\textcolor{GbFg3}{Suppose humanity needs to conduct a very long computation which will span
+> superpolynomially many generations. Each generation runs the computation
 > until their deaths when they pass on the computational configuration to the
 > next generation. This computation is so important that they also pass on a
 > proof that the current configuration is correct, for fear that the following
 > generations, without such a guarantee, might abandon the project. Can this
-> be done?_
+> be done?}_
 
 That is, if we run a computation for 100's of years only for it to output 42,
 is there a way for us to know that the ouput of said computation is correct,
@@ -102,10 +108,13 @@ $z$'s, $\vec{z} \in S^{n+1}$:
 \caption{A visualization of the relationship between $F$ and $\vec{z}$ in a non-IVC setting.}
 \end{figure}
 
-In the IVC setting, we have a proof, $\pi$, associated with each state,
-so that anyone can take just a single pair $(z_m, \pi_m)$ along with the
-initial state and transition function ($z_0, F$) and verify that said state
-was computed correctly.
+In a blockchain setting, you might imagine any $z_i \in \vec{z}$ as a set
+of accounts with corresponding balances, and the transition function $F$
+as the computation happening when a new block is created and therefore
+a new state $z_i$ In the IVC setting, we have a proof, $\pi$, associated
+with each state, so that anyone can take just a single pair $(z_m, \pi_m)$
+along with the initial state and transition function ($z_0, F$) and verify
+that said state was computed correctly.
 
 \begin{figure}[!H]
 \centering
@@ -130,13 +139,13 @@ was computed correctly.
 
 The proof $\pi_i$ describes the following:
 
-_"The current state $z_i$ is computed from applying $F$ to the previous
-state $z_{i-1}$ ($z_i = F(z_{i-1})$) and the associated proof $\pi_{i-1}$
-for the previous state is valid."_
+> _\textcolor{GbFg3}{"The current state $z_i$ is computed from applying $F$ $i$ times to $z_0$
+> ($z_i = F^i(z_0) = F(z_{i-1})$) and the associated proof $\pi_{i-1}$ for
+> the previous state is valid."}_
 
 Or more formally, $\pi_i$ is a proof of the claim:
 
-$$z_i = F(z_{i-1}) \land (V(\pi_{i-1}) = \top \lor i = 0)$$
+$$z_i = F^i(z_0) \land (V(\pi_{i-1}) = \top \lor i = 0)$$
 
 Where $V$ represents the verification circuit in the proof system we're
 using. This means, that we're taking the verifier, representing it as a circuit, and
@@ -145,6 +154,7 @@ also means that the verification time must be sublinear for IVC to work
 properly, otherwise
 
 TODO:
+
 - Explain
 - Size graph?
 
@@ -153,15 +163,22 @@ TODO:
 In 2016, [the Bulletproofs paper](https://eprint.iacr.org/2017/1066.pdf)
 was released. Bulletproofs relies on the hardness of the Discrete Logarithm
 problem, and allows for an untrusted setup to generate the Common Reference
-String. It has logarithmic proof size, and lends itself well, especially
-to efficient range proofs. It's also possible to generate proofs for arbitrary
-circuits, but with less effeciency.  Unfortunately, Bulletproofs suffer from
-linear verification time, making them unsuitible for IVC.
+String. It has logarithmic proof size, and lends itself well efficient range
+proofs. It's also possible to generate proofs for arbitrary circuits, but
+with less effeciency.
+
+At the heart of Bulletproofs lies the Inner Product Argument (IPA), wherein
+a prover proves he knows two vectors, $\vec{a}, \vec{b} \in \Fb_q^n$,
+with commitment $C \in \Eb(\Fb_q)$, and their corresponding inner product,
+$c = \ip{\vec{a}}{\vec{b}}$. It creates this non-interactive proof,
+with only $\lg(n)$ size, by compressing the point and vectors $\lg(n)$
+times. Unfortunately, the IPA suffers, and by extension Bulletproofs, suffer
+from linear verification time, making them unsuitible for IVC.
 
 ### Accumulation Schemes
 
 The authors of [a 2019 paper](https://eprint.iacr.org/2019/1021.pdf) presented
-_halo_ the so-called first practical example of recursive proof composition
+_Halo_ the so-called first practical example of recursive proof composition
 without a trusted setup. Using a modified version of the Bulletproofs-style
 Inner Product Argument (IPA), they present a polynomial commitment
 scheme. Computing the evaluation of a point $z \in \Fb_q$ on polynomial $p(X)
@@ -169,9 +186,34 @@ scheme. Computing the evaluation of a point $z \in \Fb_q$ on polynomial $p(X)
 \dots, z^{d+1})$ and $\vec{p} \in \Fb^d$ is the coefficient vector of $p(X)$,
 using the IPA. However, since the the vector $\vec{z}$ is not private, and
 has a certain structure, we can split the verification algorithm in two:
-\textsc{SuccinctCheck} and \textsc{Check}. Using the \textsc{SuccinctCheck}
+$\PCDLSuccinctCheck$ and $\PCDLCheck$. Using the $\PCDLSuccinctCheck$
 we can accumulate $n$ instances, and only perform the expensive linear check at
 the end of accumulation.
+
+In the [2020 paper _"Proof-Carrying Data from Accumulation
+Schemes"_](https://eprint.iacr.org/2020/499.pdf), that this project heavily
+relies on, the authors presented a generalized version of the previous
+accumulation structure of Halo that they coined _Accumulation Schemes_. An
+accumulation scheme consists of the following functions:
+
+- **The Prover:** $P(acc_{i_1}: \Acc, q: X) \to \Acc$
+
+    The prover accumulates the instance $q$ into the previous accumulator
+    $acc_{i-1}$ into the new accumulator $acc_i$.
+
+- **The Verifier:** $V(acc_{i-1}: \Acc, q: X, acc_i: \Acc) \to \Result(\top, \bot)$
+
+    The verifier checks that the instance $q$ was correctly accumulated into the previous accumulator
+    $acc_{i-1}$ to form the new accumulator $acc_i$.
+
+- **The Decider:** $D(acc_i: \Acc) \to \Result(\top, \bot)$
+
+    The verifier checks that the instance $q$ was correctly accumulated into the previous accumulator
+    $acc_{i-1}$ to form the new accumulator $acc_i$.
+
+For a predicate $\Phi: X \to \{ \top, \bot \}$. 
+
+
 
 Embedding the succinct verifier in the IVC proof claim instead of the regular
 verifier means that we can achieve IVC, this time with an untrusted setup.
@@ -206,7 +248,67 @@ verifier means that we can achieve IVC, this time with an untrusted setup.
 \end{tikzpicture}
 \end{figure}
 
-TODO
+### The Implementation
+
+The authors also define a concrete Accumulation Scheme using the Discrete Log
+assumption $\ASDL$, which uses the same algorithms as in the 2019 Halo
+paper. This accumulation scheme in turn, relies heavily upon a Polynomial
+Commitment Scheme, $\PCDL$, which is also described in the paper. Both of
+these have been implemented as part of this project in Rust and the rest
+of the document will go over these sets of algorithms, their security,
+performance and implementation details.
+
+The authors of the paper present additional algorithms for setting up public
+parameters ($\CMSetup$, $\PCDLSetup$, $\ASDLGenerator$) and distributing them
+($\CMTrim$, $\PCDLTrim$, $\ASDLIndexer$), we omit them in the following
+algorithmic specifications on the assumption that:
+
+a. The setup has already been run, producing values $N, D \in \Nb, S, H \in_R
+   \Eb(\Fb_q), \vec{G} \in_R \Eb(\Fb_q)$ where $D = N - 1$ and $N$ is a
+   power of two.
+b. All algorithms have global access to the above values.
+
+This more closely models the implementation where the values were generated
+for a computationally viable value of $N$ and $S, H, \vec{G}$ were randomly
+sampled using a hashing algorithm. More specefically a genesis string was
+appended with an numeric index, run through the sha3 hashing algorithm, then
+used to generate a curve point. The associated rust code can be seen below:
+
+```rust {.numberLines}
+// Function to generate a random generator for the Pallas Curve.
+// Since the order of the curve is prime, any point that is not the identity point is a generator.
+fn get_generator_hash(i: usize) -> PallasPoint {
+    let genesis_string = "To understand recursion, one must first understand recursion";
+    let mut data = genesis_string.as_bytes().to_vec();
+    data.extend_from_slice(&i.to_le_bytes());
+
+    let mut hasher = Sha3_256::new();
+    hasher.update(&data);
+    let hash_result = hasher.finalize();
+
+    // Interpret the hash as a scalar field element
+    let mut hash_bytes = [0u8; 32];
+    hash_bytes.copy_from_slice(&hash_result[..32]);
+    let scalar = PallasScalar::from_le_bytes_mod_order(&hash_bytes);
+
+    PallasPoint::generator() * scalar
+}
+
+/// Get public parameters
+fn get_pp(n: usize) -> (PallasPoint, PallasPoint, Vec<PallasPoint>) {
+    let S = get_generator_hash(0);
+    let H = get_generator_hash(1);
+    let mut Gs = Vec::with_capacity(n);
+
+    for i in 2..(n + 2) {
+        Gs.push(get_generator_hash(i))
+    }
+
+    (S, H, Gs)
+}
+```
+
+\newpage
 
 # $\PCDL$: The Polynomial Commitment Scheme
 
@@ -233,6 +335,8 @@ We have four main functions:
 - $\PCDLCheck(C: \Eb(\Fb_q), d: \Nb, z: \Fb_q, v: \Fb_q, \pi: \pi_{\textsc{eval}}) \to \textbf{Result}(\top, \bot)$:
 
   The full check on $\pi$.
+
+The implementation relies heavily on the 
 
 ### $\PCDLCommit$
 
@@ -437,6 +541,8 @@ Which corresponds exactly to the check that the verifier makes.
 
 What if we add hiding? Well, then $C_0$ becomes:
 
+TODO: Hiding
+
 $$
   C_0 = C' + vH' = (C + \a \bar{C} + \o' S) + vH'
 $$
@@ -558,13 +664,16 @@ hiding has no effect on this check.
 
 ## Completeness
 
-$\ASDLVerifier$ runs the same algorithm ($\ASDLCommonSubroutine$) with the same
-inputs and will therefore get the same outputs, these outputs are check will
-therefore always pass.
+$\ASDLVerifier$ runs the same algorithm ($\ASDLCommonSubroutine$) with the
+same inputs and, given that $\ASDLProver$ is honest, will therefore get
+the same outputs, these outputs are checked and therefore $\ASDLVerifier$
+will always accept, returning $\top$.
 
 As for the $\ASDLDecider$, it just runs $\PCDLCheck$, since we know that
-$\PCDL$ is sound the $\ASDLProver$ constructed $\pi$ honestly, we know that
-this check too will always pass.
+$\PCDL$ is sound the honest $\ASDLProver$ constructed $\pi$ correctly,
+we know that this check too will always pass.
+
+TODO: Maybe explain why $\bar{C}, d, z, v, \o$ are valid
 
 ## Soundness
 
@@ -585,7 +694,8 @@ this check too will always pass.
 | $\vec{a} \in S^n_q$                                                             | A vector of length $n$ consisting of elements from set $S$                                                |
 | $G \in \Eb(\Fb_q)$                                                              | An elliptic Curve point, defined over field $\Fb_q$                                                       |
 | $\vec{G}$                                                                       | A vector                                                                                                  |
-| $(S_1, \dots, S_n)$                                                             | Same as $S_1 \times \dots \times S_n$                                                                     |
+| $a \in_R S$                                                                     | $a$ is a uniformly randomly sampled element of $S$                                                        |
+| $(S_1, \dots, S_n)$                                                             | In the context of sets, the same as $S_1 \times \dots \times S_n$                                         |
 | $\dotp{\vec{a}}{\vec{G}}$ where $\vec{a} \in \Fb^n_q, \vec{G} \in \Eb^n(\Fb_q)$ | The dot product of $\vec{a}$ and $\vec{G}$ ($\sum^n_{i=0} a_i G_i$).                                      |
 | $\dotp{\vec{a}}{\vec{b}}$ where $\vec{a} \in \Fb^n_q, \vec{b} \in \Fb^n_q$      | The dot product of vectors $\vec{a}$ and $\vec{b}$.                                                       |
 | $l(\vec{a})$                                                                    | Gets the left half of $\vec{a}$.                                                                          |
@@ -616,13 +726,12 @@ As a reference, we include the Pedersen Commitment algorithm we use:
 \end{algorithm}
 
 ```rust {.numberLines}
-pub fn commit(w: Option<&PallasScalar>, Gs: &[PallasAffine], ms: &[PallasScalar]) -> PallasPoint {
-    assert!(
-        Gs.len() == ms.len(),
-        "Length did not match for pedersen commitment: {}, {}",
-        Gs.len(),
-        ms.len()
-    );
+pub fn commit(
+  w: Option<&PallasScalar>,
+  Gs: &[PallasAffine],
+  ms: &[PallasScalar]) -> PallasPoint
+{
+    assert!(Gs.len() == ms.len());
 
     let acc = point_dot_affine(ms, Gs);
     if let Some(w) = w {
