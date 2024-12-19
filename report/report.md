@@ -13,7 +13,7 @@ geometry: margin=2cm
 
 Halo2, can be broken down into the following components:
 
-- **Plonk**: A general-purpose zero-knowledge proof scheme.
+- **Plonk**: A general-purpose, potentially zero-knowledge, proof scheme.
 - **$\PCDL$**: A Polynomial Commitment Scheme in the Discrete Log setting.
 - **$\ASDL$**: An Accumulation Scheme in the Discrete Log setting.
 - **Pasta**: A Cycle of Elliptic Curves, namely **Pa**llas and Ve**sta**.
@@ -335,21 +335,33 @@ these have been implemented as part of this project in Rust and the rest
 of the document will go over these sets of algorithms, their security,
 performance and implementation details.
 
+Since these kinds of proofs can both be used for proving knowledge of a
+large witness to a statement succinctly, and doing so without revealing
+any information about the underlying witness, the zero-knowledgeness of the
+protocol is described as _optional_. This is highlighted in the algorithmic
+specifications as the parts colored \textcolor{GbBlueDk}{blue}. In the Rust
+implementation I have chosen to include these parts as they were not too
+cumbersome to implement, but since IVC is at the heart of this project,
+not zero-knowledge, I have chosen to omit them from the soundness and
+completeness discussions in the following sections as well as omitted the
+proofs of zero-knowledgeness.
+
 The authors of the paper present additional algorithms for setting up public
 parameters ($\CMSetup$, $\PCDLSetup$, $\ASDLGenerator$) and distributing them
 ($\CMTrim$, $\PCDLTrim$, $\ASDLIndexer$), we omit them in the following
 algorithmic specifications on the assumption that:
 
-a. The setup has already been run, producing values $N, D \in \Nb, S, H \in_R
-   \Eb(\Fb_q), \vec{G} \in_R \Eb(\Fb_q)$ where $D = N - 1$ and $N$ is a
-   power of two.
+a. The setups has already been run, producing values $N, D \in \Nb, S, H \in_R
+   \Eb(\Fb_q), \vec{G} \in_R \Eb(\Fb_q)$ where $D = N - 1$, $N$ is a
+   power of two and any random values have been sampled honestly.
 b. All algorithms have global access to the above values.
 
-This more closely models the implementation where the values were generated for
-a computationally viable value of $N$ and $S, H, \vec{G}$ were randomly sampled
-using a hashing algorithm. More specefically a genesis string was appended with
-an numeric index, run through the sha3 hashing algorithm, then used to generate
-a curve point. These values were then added as constants in the code, see the
+This more closely models the implementation where the values were
+generated for a computationally viable value of $N$ and $S, H,
+\vec{G}$ were randomly sampled using a hashing algorithm. More
+specefically a genesis string was appended with an numeric index,
+run through the sha3 hashing algorithm, then used to generate a curve
+point. These values were then added as global constants in the code, see the
 [`/code/src/consts.rs`](https://github.com/rasmus-kirk/halo-accumulation/blob/main/code/src/consts.rs)
 in the repo.
 
@@ -624,14 +636,6 @@ Let's finally look at the left-hand side of the verifying check:
 \end{align*}
 Which corresponds exactly to the check that the verifier makes.
 
-What if we add hiding? Well, then $C_0$ becomes:
-
-**TODO**: Hiding
-
-$$
-  C_0 = C' + vH' = (C + \a \bar{C} + \o' S) + vH'
-$$
-
 ### Check 2 in $\PCDLCheck$: $U \meq \CMCommit(\vec{G}, \vec{h}, \bot)$
 
 The honest prover will define $U = G^{(0)}$ as promised and the right-hand
@@ -639,8 +643,6 @@ side will also become $U = G^{(0)}$ by the construction of $h(X)$. Adding
 hiding has no effect on this check.
 
 ## Soundness
-
-## Zero-knowledge
 
 ## Benchmarks
 
@@ -761,8 +763,6 @@ we know that this check too will always pass.
 **TODO**: Maybe explain why $\bar{C}, d, z, v, \o$ are valid
 
 ## Soundness
-
-## Zero-knowledge
 
 ## Benchmarks
 
