@@ -42,8 +42,8 @@ on bulletproofs if need be:
 
 In an Interactive Proof System we have two Interactive Turing machines
 the computationally unbounded Prover, P, and the polynomally time bounded
-Verifier, V. The Prover tries to convince the Verifier of a claim $x \in L$
-where $L \subset \mathbb{B}^*$. The following properties must be true:
+Verifier, V. The Prover tries to convince the Verifier of a statement $x \in L$
+language $L \subset \mathbb{B}^*$ in NP. The following properties must be true:
 
 - Completeness: $\forall P \in ITM, x\in L \implies Pr[V_{out} = \bot] \leq \epsilon(x)$
 
@@ -63,9 +63,20 @@ example a witness:
 - Completeness: $\forall P(PAI) \in PPT, x\in L \implies Pr[V_{out} = \bot] \leq \epsilon(x)$
 - Soundness: $\forall P^* \in PPT, x \notin L \implies Pr[V_{out} = \top] \leq \epsilon(x)$
 
-**TODO**: Proof of knowledge
+Proof of knowledge is another type of Proof System, here the prover claims
+to know a specific _witness_, $w$, for a statement $x$. Let $x \in L$
+and and $W(x)$ the set of witnesses for $x$ that should be accepted in the
+proof. This allows us to define the following relation:
 
-Proof of knowledge is another type of Proof System, here the 
+$$R = \{ (x,w) : x \in L , w \in W(x) \}$$
+
+A proof of knowledge for relation R with is a two party protocol (P, V)
+with the following two properties:
+
+- **Knowledge Completeness:** $Pr[P(w) \iff V_{out} = 1] = 1$, i.e. as in
+  Interactive Proof Systems, after an interaction between the prover and
+  verifier the verifier should be convinced with certainty.  
+- **Knowledge Soundness:** **TODO:**
 
 **TODO**: zero-knowledge
 
@@ -406,12 +417,9 @@ We have four main functions:
 
   The full check on $\pi$.
 
-The implementation relies heavily on the 
+The following subsections will describe them in pseudo-code.
 
 ### $\PCDLCommit$
-
-$\PCDLCommit$ is rather simple, we just take the coefficients of the polynomial and
-commit to them using a pedersen commitment:
 
 \begin{algorithm}[H]
 \caption{$\PCDLCommit$}\label{alg:cap}
@@ -427,6 +435,9 @@ commit to them using a pedersen commitment:
   \State Output $C := \CMCommit(\vec{G}, \vec{p}, \mathcolor{GbBlueDk}{\o})$.
 \end{algorithmic}
 \end{algorithm}
+
+$\PCDLCommit$ is rather simple, we just take the coefficients of the polynomial and
+commit to them using a pedersen commitment.
 
 ### $\PCDLOpen$
 
@@ -447,8 +458,8 @@ commit to them using a pedersen commitment:
   \State \textcolor{GbBlueDk}{Sample corresponding commitment randomness $\bar{\o} \in \Fb_q$.}
   \State \textcolor{GbBlueDk}{Compute a hiding commitment to $\bar{p}$: $\bar{C} \gets \CMCommit(\vec{G}, \bar{p}, \bar{\o}) \in \Gb$.}
   \State \textcolor{GbBlueDk}{Compute the challenge $\a := \rho_0(C, z, v, \bar{C}) \in \Fb^{*}_q$.}
+  \State \textcolor{GbBlueDk}{Compute commitment randomness $\o' := \o + \a \bar{\o} \in \Fb_q$}.
   \State Compute the polynomial $p' := p \mathcolor{GbBlueDk}{+ \a \bar{p}} = \sum_{i=0} c_i X_i \in \Fb_q[X]$.
-  \State Compute commitment randomness $\o' := \o + \a \bar{\o} \in \Fb_q$.
   \State Compute a non-hiding commitment to $p'$: $C' := C \mathcolor{GbBlueDk}{+ \a \bar{C} - \o' S} \in \Gb$.
   \State Compute the 0-th challenge field element $\xi_0 := \rho_0(C', z, v) \in \Fb_q$, then $H' := \xi_0 H \in \Gb$.
   \State Initialize the vectors ($\vec{c_0}$ is defined to be coefficient vector of $p'$):
@@ -472,14 +483,18 @@ commit to them using a pedersen commitment:
         \end{alignedat}
       $
   \EndFor
-  \State Finally output the evaluation proof $\pi := (\vec{L},\vec{R}, U := \vec{G}_{lg(n)}, c := \vec{c}_{lg(n)}, \mathcolor{GbBlueDk}{\bar{C}, \o'})$
+  \State Finally output the evaluation proof $\pi := (\vec{L},\vec{R}, U := G^{(0)}, c := c^{(0)}, \mathcolor{GbBlueDk}{\bar{C}, \o'})$
 \end{algorithmic}
 \end{algorithm}
 
-The $\PCDLOpen$ algorithm simply follows the proving algorithm from
-bulletproofs. Except,in this case we are trying to prove we know polynomial
+The $\PCDLOpen$ algorithm mostly follows the IPA algorithm from
+Bulletproofs. Except,in this case we are trying to prove we know polynomial
 $p$ s.t. $v = \dotp{\vec{c_0}}{\vec{z_0}}$. So because $z$ is public, we
-can get away with omitting the generators for $\vec{b}$ in the original protocol $(\vec{H})$.
+can get away with omitting the generators, $(\vec{H})$, for $\vec{b}$ which
+we would otherwise need in the Bulletproofs IPA. For efficiency we also
+send along the curve point $U = G^{(0)}$, which the original IPA does not
+do. The $\PCDLSuccinctCheck$ uses this to make its check and $\PCDLCheck$
+verifies its correctness.
 
 ### $\PCDLSuccinctCheck$
 
@@ -498,7 +513,7 @@ can get away with omitting the generators for $\vec{b}$ in the original protocol
 \begin{algorithmic}[1]
   \Require $d \leq D$
   \Require $(d+1) = 2^k$, where $k \in \Nb$
-  \State Parse $\pi$ as $(\vec{L},\vec{R}, U := \vec{G}_{lg(n)}, c := \vec{c}_{lg(n)}, \mathcolor{GbBlueDk}{\bar{C}, \o'})$ and let $n = d + 1$.
+  \State Parse $\pi$ as $(\vec{L},\vec{R}, U := G^{(0)}, c := c^{(0)}, \mathcolor{GbBlueDk}{\bar{C}, \o'})$ and let $n = d + 1$.
   \State \textcolor{GbBlueDk}{Compute the challenge $\alpha := \rho_0(C, z, v, \bar{C}) \in F^{*}_q$.}
   \State Compute the non-hiding commitment $C' := C \mathcolor{GbBlueDk}{+ \a \bar{C} - \o'S} \in \Gb$.
   \State Compute the 0-th challenge: $\xi_0 := \rho_0(C', z, v)$, and set $H' := \xi_0 H \in \Gb$.
@@ -605,7 +620,7 @@ Let's finally look at the left-hand side of the verifying check:
              \intertext{Then, by construction of $h(X) \in \Fb^d_q[X]$}
              &= cU + ch(z) H'                                                                        \\
              \intertext{Finally we use the definition of $v'$:}
-             &= cU + v'H'                                                                        \\
+             &= cU + v'H'                                                                            \\
 \end{align*}
 Which corresponds exactly to the check that the verifier makes.
 
@@ -764,6 +779,7 @@ we know that this check too will always pass.
 | $\vec{a} \in S^n_q$                                                             | A vector of length $n$ consisting of elements from set $S$                                                |
 | $G \in \Eb(\Fb_q)$                                                              | An elliptic Curve point, defined over field $\Fb_q$                                                       |
 | $\vec{G}$                                                                       | A vector                                                                                                  |
+| $v^{(0)}$                                                                       | The only element of a fully compressed vector $\vec{v_{\lg(n)}}$ from $\PCDLOpen$.                        |
 | $a \in_R S$                                                                     | $a$ is a uniformly randomly sampled element of $S$                                                        |
 | $(S_1, \dots, S_n)$                                                             | In the context of sets, the same as $S_1 \times \dots \times S_n$                                         |
 | $\dotp{\vec{a}}{\vec{G}}$ where $\vec{a} \in \Fb^n_q, \vec{G} \in \Eb^n(\Fb_q)$ | The dot product of $\vec{a}$ and $\vec{G}$ ($\sum^n_{i=0} a_i G_i$).                                      |
