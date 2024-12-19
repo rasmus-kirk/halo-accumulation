@@ -38,23 +38,52 @@ on bulletproofs if need be:
 
 ## Background and Motivation
 
-### Proof systems - Interactive Arguments 
+### Proof Systems
 
-In a proof system you have a prover and a verifier:
+In an Interactive Proof System we have two Interactive Turing machines
+the computationally unbounded Prover, P, and the polynomally time bounded
+Verifier, V. The Prover tries to convince the Verifier of a claim $x \in L$
+where $L \subset \mathbb{B}^*$. The following properties must be true:
 
-TODO
+- Completeness: $\forall P \in ITM, x\in L \implies Pr[V_{out} = \bot] \leq \epsilon(x)$
 
-- Soundness
-- Completeness
-- Zero knowledge
-- Fiat-Shamir
+  For all honest provers, P, where $x$ is true, the probability that the
+  verifier remains unconvinced is negligible in the length of $x$.
+
+- Soundness: $\forall P^* \in ITM, x \notin L \implies Pr[V_{out} = \top] \leq \epsilon(x)$
+
+  For all provers, honest or otherwise, $P^*$, that tries to convince the
+  verifier of a claim, $x$, that is not true, the probability that the
+  verifier will be convinced is negligible in the length of $x$.
+
+An Interactive Argument is very similar, but the honest and malicious prover
+is now polynomially bounded and receives a Private Auxilliary Input, for
+example a witness:
+
+- Completeness: $\forall P(PAI) \in PPT, x\in L \implies Pr[V_{out} = \bot] \leq \epsilon(x)$
+- Soundness: $\forall P^* \in PPT, x \notin L \implies Pr[V_{out} = \top] \leq \epsilon(x)$
+
+**TODO**: Proof of knowledge
+
+Proof of knowledge is another type of Proof System, here the 
+
+**TODO**: zero-knowledge
+
+The above proof systems may be _zero-knowledge_, which in loose terms means
+that anyone looking at the transcript, that is the interaction between prover
+and verifier, will not learn anything about the witness, $w$, of the prover
+
+Zero Knowledge
+
+- $\forall V^*(\delta). \exists S_{V^*}(x) \in PPT. S_{V^*} \sim^C (P,V^*)$
+- $C,S,P$ for $\sim$
 
 ### SNARKS
 
 SNARKs - **S**uccinct **N**on-interactive **AR**guments of **K**nowledge
-- have seen increased usage due to their application in blockchains
-and cryptocurrencies. They function as so called general-purpose proof
-schemes. This means that, given any solution to an NP-problem, it will
+- have seen increased usage due to their application in blockchains and
+cryptocurrencies. They usually also function as so called general-purpose
+proof schemes. This means that, given any solution to an NP-problem, it will
 produce a proof that the prover knows the solution to said NP-problem. Most
 snarks also allow for zero-knowledge arguments, making them zk-SNARKs.
 
@@ -70,8 +99,8 @@ $R_x$, and he can check the proof and be convinced using the snark verifier
 ($\SNARKVerifier$).
 
 Importantly, the succinct part of the name means that the proof size and
-verification time must be sublinear. This allows SNARKs to be used for
-_Incrementally Verifiable Computation_.
+verification time must be sublinear. This allows SNARKs to be directly used
+for _Incrementally Verifiable Computation_.
 
 ### Incrementally Verifiable Computation
 
@@ -161,7 +190,7 @@ The proof $\pi_i$ describes the following:
 Or more formally, $\pi_i$ is a proof of the following claim expressed as a
 circuit $R$:
 
-$$z_i = F(z_{i-1}) \; \land \; \exists \, \pi_{i-1}, \, \text{ s.t. } \SNARKVerifier((z_{i-1}, \pi_{i-1})) = \top$$
+$$z_i = F(z_{i-1}) \; \land \; (i = 0 \lor \exists \, \pi_{i-1}, \, \text{ s.t. } \SNARKVerifier(z_{i-1}, \pi_{i-1}) = \top)$$
 
 Where $V$ represents the verification circuit in the proof system we're
 using. This means, that we're taking the verifier, representing it as a circuit, and
@@ -169,11 +198,9 @@ then feeding it to the prover. This is not a trivial task in practice! It
 also means that the verification time must be sublinear for IVC to work
 properly, otherwise
 
-TODO:
+**TODO**:
 
-- SNARK?
 - Explain: Otherwise what happens? Blowup?
-- Size graph?
 
 ### Bulletproofs
 
@@ -208,42 +235,84 @@ we can accumulate $n$ instances, and only perform the expensive linear check at
 the end of accumulation.
 
 In the [2020 paper _"Proof-Carrying Data from Accumulation
-Schemes"_](https://eprint.iacr.org/2020/499.pdf), that this project heavily
-relies on, the authors presented a generalized version of the previous
-accumulation structure of Halo that they coined _Accumulation Schemes_. Given
-a predicate $\Phi: X \to \{ \top, \bot \}$, an accumulation scheme consists
-of the following functions:
+Schemes"_](https://eprint.iacr.org/2020/499.pdf), that this project
+heavily relies on, the authors presented a generalized version of the
+previous accumulation structure of Halo that they coined _Accumulation
+Schemes_. Simply put, given a predicate $\Phi: X \to \{ \top, \bot \}$,
+an accumulation scheme consists of the following functions:
 
-- $\ASProver(acc_{i_1}: \Acc, q: X) \to \Acc$
+- $\ASProver(q_i: X, acc_i: \Acc) \to \Acc$
 
-    The prover accumulates the instance $q$ into the previous accumulator
+    The prover accumulates the instance $q_i$ into the previous accumulator
     $acc_{i-1}$ into the new accumulator $acc_i$.
 
-- $\ASVerifier(acc_{i-1}: \Acc, q: X, acc_i: \Acc) \to \Result(\top, \bot)$
+- $\ASVerifier(q_i: X, acc_i: \Acc, acc_{i+1}: \Acc) \to \Result(\top, \bot)$
 
-    The verifier checks that the instance $q$ was correctly accumulated into the previous accumulator
-    $acc_{i-1}$ to form the new accumulator $acc_i$.
+    The verifier checks that the instance $q_i$ was correctly accumulated
+    into the previous accumulator $acc_{i-1}$ to form the new accumulator
+    $acc_i$.
 
-- $\ASDecider(acc_i: \Acc) \to \Result(\top, \bot)$
+- $\ASDecider(acc_{i+1}: \Acc) \to \Result(\top, \bot)$
 
     The decider performs a single check that simultaneously ensures that
-    _every_ previous instance-proof pair accumulated in $acc$ verifies.
+    _every_ previous instance-proof pair accumulated in $acc_{i+1}$ verifies
+    assuming the $\ASVerifier$ has accepted that every previous accumulator
+    correctly accumulates $q_i$.
 
-TODO: Runtimes
+We define completeness and soundness for the Accumulation Scheme:
 
-Having such an accumulation scheme allows us to create an IVC scheme:
+- **Completeness:** For all accumulators $acc_i$ and predicate inputs $q \in X$,
+  if $\ASDecider(acc) = 1 \land \Phi(q) = 1$, then for $\ASProver(q, acc_i)
+  = acc_{i+1}$ it holds that $\ASVerifier(acc_i, q, acc_{i+1}) = 1 \land
+  \ASDecider(acc_{i+1}) = 1$.
 
-- $\IVCProver(z_i: \textbf{Instance}, \pi_i: \textbf{Proof}, acc: \Acc) \to (\textbf{Proof}, \Acc)$
+- **Soundness:** For all efficiently-generated accumulators $acc_i, acc_{i+1}
+  \in \Acc$ and predicate inputs $q \in X$, if $\ASDecider(acc_{i+1}) = 1$
+  and $\ASVerifier(q, acc_i, acc_{i+1}) = 1$ then, with all but negligible
+  probability, $\Phi(q) = 1 \land \ASDecider(acc_i) = 1$.
+
+### IVC from Accumulation Schemes
+
+If the $\ASVerifier$ runtime is sub-linear and we have a $\SNARKVerifierSlow$
+that may run in linear time, then we can create an IVC scheme:
+
+- $\IVCProver(z_i: \textbf{Instance}, \pi_i: \textbf{Proof}, acc_i: \Acc) \to (\textbf{Proof}, \Acc)$
 
   - Accumulates $(z_i, \pi_i)$ with $acc_i$ to obtain a new accumulator $acc_{i+1}$.
   - Then generates a SNARK proof $\pi_{i+1}$ of the following claim, expressed as a circuit $R$:
-    $$"z_{i+1} = F(z_i) \; \land \; \exists \, \pi_i, \, acc_i \text{ s.t. } \ASVerifier((z_i, \pi_i), acc_i, acc_{i+1}) = \top"$$
+      $$"z_{i+1} = F(z_i) \; \land \; (i = 0 \lor \exists \, \pi_i, \, acc_i \text{ s.t. } \ASVerifier((z_i, \pi_i), acc_i, acc_{i+1}) = \top)"$$
+  - Output $(\pi_{i+1}, acc_{i+1})$
 
 - $\IVCVerifier(\pi_{i+1}: \textbf{Proof}, acc_{i+1}: \Acc) \to \Result(\top, \bot)$
 
-  Checks the proof: $\top \meq \SNARKVerifier(\pi_n) \meq \ASDecider(acc_n)$
+  Checks the proof: $\top \meq \SNARKVerifierSlow(\pi_{i+1}) \meq \ASDecider(acc_{i+1})$
 
-TODO: Why
+Consider the above chain run $n$ times. As in the "simple" SNARK IVC
+construction, if the SNARK verifier accepts at the end, then that means:
+
+$$
+\begin{alignedat}[b]{2}
+  &\SNARKVerifierSlow(\pi_i)                               &&= \top \then \\
+  &\ASVerifier((z_{n-1}, \pi_{n-1}), acc_{n-1}, acc_n)     &&= \top \then \\
+  &\ASVerifier((z_{n-2}, \pi_{n-2}), acc_{n-2}, acc_{n-1}) &&= \top \then \cdots \\
+  &\ASVerifier((z_0, \pi_0), acc_0, acc_1)                 &&= \top \then \\
+\end{alignedat}
+$$
+
+Now, by the soundness property of the Accumulation Scheme, and instance
+$q \in X$ will be true if $\ASVerifier(q, acc_i, acc_{i+1}) = 1 \land
+\ASDecider(acc_{i+1}) = 1$, so if all the accumulators $\vec{acc} \in
+\Acc^{n+1}$ are valid, then all the instances will be true. This is exactly
+the case however due to the definition of the decider whereby checking an
+accumulator $acc_i$ ensures that every previous instance is true $\Phi(q_i)
+= 1$ provided that all previous verifiers accepted.
+
+### General Polynomial Commitment Schemes
+
+**TODO**:
+
+- general-purpose proof schemes as polynomial commitments
+- PCS spec
 
 ### The Implementation
 
@@ -265,12 +334,11 @@ a. The setup has already been run, producing values $N, D \in \Nb, S, H \in_R
    power of two.
 b. All algorithms have global access to the above values.
 
-This more closely models the implementation where the values were generated
-for a computationally viable value of $N$ and $S, H, \vec{G}$ were randomly
-sampled using a hashing algorithm. More specefically a genesis string was
-appended with an numeric index, run through the sha3 hashing algorithm, then
-used to generate a curve point. These
-values were then added as constants in the code, see the
+This more closely models the implementation where the values were generated for
+a computationally viable value of $N$ and $S, H, \vec{G}$ were randomly sampled
+using a hashing algorithm. More specefically a genesis string was appended with
+an numeric index, run through the sha3 hashing algorithm, then used to generate
+a curve point. These values were then added as constants in the code, see the
 [`/code/src/consts.rs`](https://github.com/rasmus-kirk/halo-accumulation/blob/main/code/src/consts.rs)
 in the repo.
 
@@ -543,7 +611,7 @@ Which corresponds exactly to the check that the verifier makes.
 
 What if we add hiding? Well, then $C_0$ becomes:
 
-TODO: Hiding
+**TODO**: Hiding
 
 $$
   C_0 = C' + vH' = (C + \a \bar{C} + \o' S) + vH'
@@ -675,7 +743,7 @@ As for the $\ASDLDecider$, it just runs $\PCDLCheck$, since we know that
 $\PCDL$ is sound the honest $\ASDLProver$ constructed $\pi$ correctly,
 we know that this check too will always pass.
 
-TODO: Maybe explain why $\bar{C}, d, z, v, \o$ are valid
+**TODO**: Maybe explain why $\bar{C}, d, z, v, \o$ are valid
 
 ## Soundness
 
