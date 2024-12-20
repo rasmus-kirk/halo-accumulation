@@ -263,7 +263,7 @@ In the [2020 paper _"Proof-Carrying Data from Accumulation
 Schemes"_](https://eprint.iacr.org/2020/499.pdf), that this project
 heavily relies on, the authors presented a generalized version of the
 previous accumulation structure of Halo that they coined _Accumulation
-Schemes_. Simply put, given a predicate $\Phi: X \to \{ \top, \bot \}$,
+Schemes_. Simply put, given a predicate $\Phi: X \to \Bb$,
 an accumulation scheme consists of the following functions:
 
 - $\ASProver(q_i: X, acc_i: \Acc) \to \Acc$
@@ -287,14 +287,14 @@ an accumulation scheme consists of the following functions:
 We define completeness and soundness for the Accumulation Scheme:
 
 - **Completeness:** For all accumulators $acc_i$ and predicate inputs $q \in X$,
-  if $\ASDecider(acc) = 1 \land \Phi(q) = 1$, then for $\ASProver(q, acc_i)
-  = acc_{i+1}$ it holds that $\ASVerifier(acc_i, q, acc_{i+1}) = 1 \land
-  \ASDecider(acc_{i+1}) = 1$.
+  if $\top = \ASDecider(acc) = \Phi(q)$, then for $\ASProver(q, acc_i)
+  = acc_{i+1}$ it holds that $\top = \ASVerifier(acc_i, q, acc_{i+1}) =
+  \ASDecider(acc_{i+1})$.
 
 - **Soundness:** For all efficiently-generated accumulators $acc_i, acc_{i+1}
-  \in \Acc$ and predicate inputs $q \in X$, if $\ASDecider(acc_{i+1}) = 1$
-  and $\ASVerifier(q, acc_i, acc_{i+1}) = 1$ then, with all but negligible
-  probability, $\Phi(q) = 1 \land \ASDecider(acc_i) = 1$.
+  \in \Acc$ and predicate inputs $q \in X$, if $\top = \ASDecider(acc_{i+1}) =
+  \ASVerifier(q, acc_i, acc_{i+1})$ then, with all but negligible probability,
+  $\top = \Phi(q) = \ASDecider(acc_i)$.
 
 ### IVC from Accumulation Schemes
 
@@ -325,12 +325,12 @@ $$
 $$
 
 Now, by the soundness property of the Accumulation Scheme, and instance
-$q \in X$ will be true if $\ASVerifier(q, acc_i, acc_{i+1}) = 1 \land
-\ASDecider(acc_{i+1}) = 1$, so if all the accumulators $\vec{acc} \in
+$q \in X$ will be true if $\top = \ASVerifier(q, acc_i, acc_{i+1}) =
+\ASDecider(acc_{i+1})$, so if all the accumulators $\vec{acc} \in
 \Acc^{n+1}$ are valid, then all the instances will be true. This is exactly
 the case however due to the definition of the decider whereby checking an
-accumulator $acc_i$ ensures that every previous instance is true $\Phi(q_i)
-= 1$ provided that all previous verifiers accepted.
+accumulator $acc_i$ ensures that every previous instance is true, $\Phi(q_i)
+= \top$, provided that all previous verifiers accepted.
 
 ### General Polynomial Commitment Schemes
 
@@ -340,15 +340,35 @@ Sonic[^1], Plonk[^2] and Marlin[^3], commonly use PCS's _Polynomial Commitment
 Schemes_ for creating their proofs. This means that different PCS's can be
 used to get security under weaker or stronger assumptions.
 
+<!-- AGM gives you snarks? -->
 **TODO**: List the options (AGM?, BP, STARKS).
 
-The functions:
+**TODO**: The assumptions on $d$ seems wrong in the code, not a big deal
 
-- PCCommit
-- PCOpen
-- PCCheck
+A PCS allows a prover to prove to a verifier that a commited polynomial
+evaluates to a certain value, $v$, given an evaluation input $z$.There are
+three main functions used to prove this ($\PCSetup$ and $\PCTrim$ omitted):
 
-**TODO**: general-purpose proof schemes as polynomial commitments
+- $\PCCommit(p: \Fb^{d'}_q[X], d: \Nb, \o: \Option(\Fb_q)) \to \Eb(\Fb_q)$
+
+  Commits to a polynomial $p$ with degree bound $d$ where $d \geq d'$ using
+  optional hiding $\o$.
+
+- $\PCOpen(p: \Fb^{d'}_q[X], C: \Eb(\Fb_q), d: \Nb, z: \Fb_q, \o: \Option(\Fb_q)) \to \EvalProof$
+
+  Creates a proof, $\pi \in \EvalProof$, that the polynomial $p$, with
+  commitment $C$, evaluated at $z$ gives $v = p(z)$, using the hiding input
+  $\o$ if provided.
+
+- $\PCCheck(C: \Eb(\Fb_q), d: \Nb, z: \Fb_q, v: \Fb_q, \pi: \EvalProof) \to \Result(\top, \bot)$
+
+  Checks the proof $\pi$ that claims that the polynomial $p$ that $C$ is a
+  commitment to, evaluates to $v = p(z)$.
+
+Any given predicate $\Phi: X \to \Bb$ can be compiled into a circuit $R$. This
+circuit can then be fed to the general-purpose proof scheme that further
+compiles $X$ into a series of evaluation proofs $(\pi_1, \dots, \pi_n)$
+that if they verify, convinces the verifier that $\Phi(X) = \top$
 
 [^1]: Sonic Paper: [https://eprint.iacr.org/2019/099](https://eprint.iacr.org/2019/099)
 [^2]: Plonk Paper: [https://eprint.iacr.org/2019/953](https://eprint.iacr.org/2019/953)
@@ -368,7 +388,7 @@ Since these kinds of proofs can both be used for proving knowledge of a
 large witness to a statement succinctly, and doing so without revealing
 any information about the underlying witness, the zero-knowledgeness of the
 protocol is described as _optional_. This is highlighted in the algorithmic
-specifications as the parts colored \textcolor{GbBlueDk}{blue}. In the Rust
+specifications as the parts colored \textblue{blue}. In the Rust
 implementation I have chosen to include these parts as they were not too
 cumbersome to implement, but since IVC is at the heart of this project,
 not zero-knowledge, I have chosen to omit them from the soundness and
@@ -438,23 +458,23 @@ fn get_pp(n: usize) -> (PallasPoint, PallasPoint, Vec<PallasPoint>) {
 
 We have four main functions:
 
-- $\PCDLCommit(p: \Fb^d_q[X], \o: \textbf{Option}(\Fb_q)) \to \Eb(\Fb_q)$:
+- $\PCDLCommit(p: \Fb^d_q[X], \o: \Option(\Fb_q)) \to \Eb(\Fb_q)$:
 
   Creates a commitment to the coefficients of the polynomial $q$ of degree
   $d$ with optional hiding $\o$, using pedersen commitments.
 
-- $\PCDLOpen(p: \Fb^d_q[X], C: \Eb(\Fb_q), z: \Fb_q, \o: \textbf{Option}(\Fb_q)) \to \pi_{\textsc{eval}}$:
+- $\PCDLOpen(p: \Fb^d_q[X], C: \Eb(\Fb_q), z: \Fb_q, \o: \Option(\Fb_q)) \to \EvalProof$:
 
   Creates a proof $\pi$ that states: "I know $p \in \Fb^d_q[X]$ with
   commitment $C \in \Eb(\Fb_q)$ s.t. $p(z) = v$" where $p$ is private
   and $d, z, v$ are public.
 
-- $\PCDLSuccinctCheck(C: \Eb(\Fb_q), d: \Nb, z: \Fb_q, v: \Fb_q, \pi: \pi_{\textsc{eval}}) \to \textbf{Result}((\Fb^d_q[X], \Gb), \bot)$:
+- $\PCDLSuccinctCheck(C: \Eb(\Fb_q), d: \Nb, z: \Fb_q, v: \Fb_q, \pi: \EvalProof) \to \Result((\Fb^d_q[X], \Gb), \bot)$:
 
   Cheaply checks that a proof $\pi$ is correct. It is not a full check however,
   since an expensive part of the check is deferred until a later point.
 
-- $\PCDLCheck(C: \Eb(\Fb_q), d: \Nb, z: \Fb_q, v: \Fb_q, \pi: \pi_{\textsc{eval}}) \to \textbf{Result}(\top, \bot)$:
+- $\PCDLCheck(C: \Eb(\Fb_q), d: \Nb, z: \Fb_q, v: \Fb_q, \pi: \EvalProof) \to \Result(\top, \bot)$:
 
   The full check on $\pi$.
 
@@ -466,14 +486,14 @@ The following subsections will describe them in pseudo-code.
 \caption{$\PCDLCommit$}\label{alg:cap}
 \textbf{Inputs} \\
   \Desc{$p: \Fb^d_q[X]$}{The univariate polynomial that we wish to commit to.} \\
-  \Desc{$\mathcolor{GbBlueDk}{\o}: \textbf{Option}(\Fb_q)$}{Optional hiding factor for the commitment.} \\
+  \Desc{$\mathblue{\o}: \Option(\Fb_q)$}{Optional hiding factor for the commitment.} \\
 \textbf{Output} \\
   \Desc{$C: \Eb(\Fb_q)$}{The pedersen commitment to the coefficients of polynomial $p$.}
 \begin{algorithmic}[1]
   \Require $d \leq D$
-  \Require $(d+1) = 2^k$, where $k \in \Nb$
+  \Require $(d+1)$ is a power of 2.
   \State Let $\vec{p}$ be the coefficient vector for $p$
-  \State Output $C := \CMCommit(\vec{G}, \vec{p}, \mathcolor{GbBlueDk}{\o})$.
+  \State Output $C := \CMCommit(\vec{G}, \vec{p}, \mathblue{\o})$.
 \end{algorithmic}
 \end{algorithm}
 
@@ -488,20 +508,20 @@ commit to them using a pedersen commitment.
   \Desc{$p: \Fb^d_q[X]$}{The univariate polynomial that we wish to open for.} \\
   \Desc{$C: \Eb(\Fb_q$)}{A commitment to the coefficients of $p$.} \\
   \Desc{$z: \Fb_q$}{The element that $z$ will be evaluated on $v = p(z)$.} \\
-  \Desc{$\mathcolor{GbBlueDk}{\o}: \textbf{Option}(\Fb_q)$}{Optional hiding factor for $C$. \textit{Must} be included if $C$ was created with hiding!} \\
+  \Desc{$\mathblue{\o}: \Option(\Fb_q)$}{Optional hiding factor for $C$. \textit{Must} be included if $C$ was created with hiding!} \\
 \textbf{Output} \\
-  \Desc{$\mathbf{EvalProof}$}{Proof that states: "I know $p \in \Fb^d_q[X]$ with commitment $C \in \Eb(\Fb_q)$ s.t. $p(z) = v$"}
+  \Desc{$\EvalProof$}{Proof that states: "I know $p \in \Fb^d_q[X]$ with commitment $C \in \Eb(\Fb_q)$ s.t. $p(z) = v$"}
 \begin{algorithmic}[1]
   \Require $d \leq D$
-  \Require $(d+1) = 2^k$, where $k \in \Nb$
+  \Require $(d+1)$ is a power of 2.
   \State Compute $v = p(z)$ and let $n = d+1$.
-  \State \textcolor{GbBlueDk}{Sample a random polynomial $\bar{p} \in \Fb^{\leq d}_q[X]$ such that $\bar{p}(z) = 0$}.
-  \State \textcolor{GbBlueDk}{Sample corresponding commitment randomness $\bar{\o} \in \Fb_q$.}
-  \State \textcolor{GbBlueDk}{Compute a hiding commitment to $\bar{p}$: $\bar{C} \gets \CMCommit(\vec{G}, \bar{p}, \bar{\o}) \in \Gb$.}
-  \State \textcolor{GbBlueDk}{Compute the challenge $\a := \rho_0(C, z, v, \bar{C}) \in \Fb^{*}_q$.}
-  \State \textcolor{GbBlueDk}{Compute commitment randomness $\o' := \o + \a \bar{\o} \in \Fb_q$}.
-  \State Compute the polynomial $p' := p \mathcolor{GbBlueDk}{+ \a \bar{p}} = \sum_{i=0} c_i X_i \in \Fb_q[X]$.
-  \State Compute a non-hiding commitment to $p'$: $C' := C \mathcolor{GbBlueDk}{+ \a \bar{C} - \o' S} \in \Gb$.
+  \State \textblue{Sample a random polynomial $\bar{p} \in \Fb^{\leq d}_q[X]$ such that $\bar{p}(z) = 0$}.
+  \State \textblue{Sample corresponding commitment randomness $\bar{\o} \in \Fb_q$.}
+  \State \textblue{Compute a hiding commitment to $\bar{p}$: $\bar{C} \gets \CMCommit(\vec{G}, \bar{p}, \bar{\o}) \in \Gb$.}
+  \State \textblue{Compute the challenge $\a := \rho_0(C, z, v, \bar{C}) \in \Fb^{*}_q$.}
+  \State \textblue{Compute commitment randomness $\o' := \o + \a \bar{\o} \in \Fb_q$}.
+  \State Compute the polynomial $p' := p \mathblue{+ \a \bar{p}} = \sum_{i=0} c_i X_i \in \Fb_q[X]$.
+  \State Compute a non-hiding commitment to $p'$: $C' := C \mathblue{+ \a \bar{C} - \o' S} \in \Gb$.
   \State Compute the 0-th challenge field element $\xi_0 := \rho_0(C', z, v) \in \Fb_q$, then $H' := \xi_0 H \in \Gb$.
   \State Initialize the vectors ($\vec{c_0}$ is defined to be coefficient vector of $p'$):
     \Statex \algind $
@@ -524,7 +544,7 @@ commit to them using a pedersen commitment.
         \end{alignedat}
       $
   \EndFor
-  \State Finally output the evaluation proof $\pi := (\vec{L},\vec{R}, U := G^{(0)}, c := c^{(0)}, \mathcolor{GbBlueDk}{\bar{C}, \o'})$
+  \State Finally output the evaluation proof $\pi := (\vec{L},\vec{R}, U := G^{(0)}, c := c^{(0)}, \mathblue{\bar{C}, \o'})$
 \end{algorithmic}
 \end{algorithm}
 
@@ -546,17 +566,17 @@ verifies its correctness.
   \Desc{$d: \Nb$}{The degree of $p$} \\
   \Desc{$z: \Fb_q$}{The element that $p$ is evaluated on.} \\
   \Desc{$v: \Fb_q$}{The claimed element $v = p(z)$.} \\
-  \Desc{$\pi: \textbf{EvalProof}$}{The evaluation proof produced by $\PCDLOpen$} \\
+  \Desc{$\pi: \EvalProof$}{The evaluation proof produced by $\PCDLOpen$} \\
 \textbf{Output} \\
-  \Desc{$\textbf{Result}((\Fb^d_q[X], \Gb), \bot)$}{
+  \Desc{$\Result((\Fb^d_q[X], \Gb), \bot)$}{
     The algorithm will either succeed and output ($h: \Fb^d_q[X], U: \Gb$) if $\pi$ is a valid proof and otherwise fail ($\bot$).
   }
 \begin{algorithmic}[1]
   \Require $d \leq D$
-  \Require $(d+1) = 2^k$, where $k \in \Nb$
-  \State Parse $\pi$ as $(\vec{L},\vec{R}, U := G^{(0)}, c := c^{(0)}, \mathcolor{GbBlueDk}{\bar{C}, \o'})$ and let $n = d + 1$.
-  \State \textcolor{GbBlueDk}{Compute the challenge $\alpha := \rho_0(C, z, v, \bar{C}) \in F^{*}_q$.}
-  \State Compute the non-hiding commitment $C' := C \mathcolor{GbBlueDk}{+ \a \bar{C} - \o'S} \in \Gb$.
+  \Require $(d+1)$ is a power of 2.
+  \State Parse $\pi$ as $(\vec{L},\vec{R}, U := G^{(0)}, c := c^{(0)}, \mathblue{\bar{C}, \o'})$ and let $n = d + 1$.
+  \State \textblue{Compute the challenge $\alpha := \rho_0(C, z, v, \bar{C}) \in F^{*}_q$.}
+  \State Compute the non-hiding commitment $C' := C \mathblue{+ \a \bar{C} - \o'S} \in \Gb$.
   \State Compute the 0-th challenge: $\xi_0 := \rho_0(C', z, v)$, and set $H' := \xi_0 H \in \Gb$.
   \State Compute the group element $C_0 := C' + vH' \in \Gb$.
   \For{$i \in [\lg(n)]$}
@@ -579,12 +599,12 @@ verifies its correctness.
   \Desc{$d: \Nb$}{The degree of $p$} \\
   \Desc{$z: \Fb_q$}{The element that $p$ is evaluated on.} \\
   \Desc{$v: \Fb_q$}{The claimed element $v = p(z)$.} \\
-  \Desc{$\pi: \mathbf{EvalProof}$}{The evaluation proof produced by $\PCDLOpen$} \\
+  \Desc{$\pi: \EvalProof$}{The evaluation proof produced by $\PCDLOpen$} \\
 \textbf{Output} \\
-  \Desc{$\textbf{Result}(\top, \bot)$}{The algorithm will either succeed ($\top$) if $\pi$ is a valid proof and otherwise fail ($\bot$).}
+  \Desc{$\Result(\top, \bot)$}{The algorithm will either succeed ($\top$) if $\pi$ is a valid proof and otherwise fail ($\bot$).}
 \begin{algorithmic}[1]
   \Require $d \leq D$
-  \Require $(d+1) = 2^k$, where $k \in \Nb$
+  \Require $(d+1)$ is a power of 2.
   \State Check that $\PCDLSuccinctCheck(C, d, z, v, \pi)$ accepts and outputs $(h, U)$.
   \State Check that $U \meq \CMCommit(\vec{G}, \vec{h}, \bot)$, where $\vec{h}$ is the coefficient vector of the polynomial $h$.
 \end{algorithmic}
@@ -656,7 +676,7 @@ Let's finally look at the left-hand side of the verifying check:
              &= \ip{\vec{c}_{\lg(n)}}{\vec{G}_{\lg(n)}} + \ip{\vec{c}_{\lg(n)}}{\vec{z}_{\lg(n)}} H' \\
              \intertext{Vectors have length one, so we use the single elements $c^{(0)}, G^{(0)}, c^{(0)}, z^{(0)}$ of the vectors:}
              &= c^{(0)}G^{(0)} + c^{(0)}z^{(0)} H'                                                   \\
-             \intertext{The verifier has $c^{(0)} = c, G^{(0)} = U$ from $\pi \in \textbf{EvalProof}$:}
+             \intertext{The verifier has $c^{(0)} = c, G^{(0)} = U$ from $\pi \in \EvalProof$:}
              &= cU + cz^{(0)} H'                                                                     \\
              \intertext{Then, by construction of $h(X) \in \Fb^d_q[X]$}
              &= cU + ch(z) H'                                                                        \\
@@ -686,9 +706,9 @@ hiding has no effect on this check.
 \textbf{Inputs} \\
   \Desc{$d: \Nb$}{The degree of $p$.} \\
   \Desc{$\vec{q}: \Fb_q^m$}{New instances \textit{and accumulators} to be accumulated.} \\
-  \Desc{$\mathcolor{GbBlueDk}{\pi_V}: \Option(\textbf{AccHiding})$}{Necessary parameters if hiding is desired.} \\
+  \Desc{$\mathblue{\pi_V}: \Option(\AccHiding)$}{Necessary parameters if hiding is desired.} \\
 \textbf{Output} \\
-  \Desc{$\textbf{Result}((\Eb(\Fb_q), \Nb, \Fb_q, \Fb^d_q[X]), \bot)$}{
+  \Desc{$\Result((\Eb(\Fb_q), \Nb, \Fb_q, \Fb^d_q[X]), \bot)$}{
     The algorithm will either succeed $(\Eb(\Fb_q), \Nb, \Fb_q, \Fb^d_q[X])$
     if the instances has consistent degree and hiding parameters and otherwise
     fail ($\bot$).
@@ -696,18 +716,18 @@ hiding has no effect on this check.
 \begin{algorithmic}[1]
   \Require $d \leq D$
   \Require $(d+1) = 2^k$, where $k \in \Nb$
-  \State \textcolor{GbBlueDk}{Parse $\pi_V$ as $(h_0, U_0, \o)$, where $h_0(X) = aX + b \in \Fb^1_q[X], U_0 \in \Gb$ and $\o \in \Fb_q$}
-  \State \textcolor{GbBlueDk}{Check that $U_0$ is a deterministic commitment to $h_0$: $U_0 = \PCDLCommit(h, \bot)$.}
+  \State \textblue{Parse $\pi_V$ as $(h_0, U_0, \o)$, where $h_0(X) = aX + b \in \Fb^1_q[X], U_0 \in \Gb$ and $\o \in \Fb_q$}
+  \State \textblue{Check that $U_0$ is a deterministic commitment to $h_0$: $U_0 = \PCDLCommit(h, \bot)$.}
   \For{$i \in [m]$}
     \State Parse $q_i$ as a tuple $((C_i, d_i, z_i, v_i), \pi_i)$.
     \State Compute $(h_i(X), U_i) := \PCDLSuccinctCheck(C_i, z_i, v_i, \pi_i)$.
     \State Check that $d_i \leq d$
   \EndFor
   \State Compute the challenge $\a := \rho_1(\vec{h}, \vec{U}) \in \Fb_q$
-  \State Let the polynomial $h(X) := \mathcolor{GbBlueDk}{h_0 +} \sum^m_{i=1} \a^i h_i \in \Fb_q[X]$
-  \State Compute the accumulated commitment $C := \mathcolor{GbBlueDk}{U_0 +} \sum^m_{i=1} \a^i U_i$
+  \State Let the polynomial $h(X) := \mathblue{h_0 +} \sum^m_{i=1} \a^i h_i \in \Fb_q[X]$
+  \State Compute the accumulated commitment $C := \mathblue{U_0 +} \sum^m_{i=1} \a^i U_i$
   \State Compute the challenge $z := \rho_1(C, h) \in \Fb_q$.
-  \State Randomize $C$: $\bar{C} := C \mathcolor{GbBlueDk}{+ \o S} \in \Gb$.
+  \State Randomize $C$: $\bar{C} := C \mathblue{+ \o S} \in \Gb$.
   \State Output $(\bar{C}, d, z, h(X))$.
 \end{algorithmic}
 \end{algorithm}
@@ -720,21 +740,21 @@ hiding has no effect on this check.
   \Desc{$d: \Nb$}{The degree of $p$.} \\
   \Desc{$\vec{q}: \Fb_q^m$}{New instances \textit{and accumulators} to be accumulated.} \\
 \textbf{Output} \\
-  \Desc{$\textbf{Result}(\textbf{Acc}, \bot)$}{
+  \Desc{$\Result(\Acc, \bot)$}{
     The algorithm will either succeed $((\bar{C}, d, z, v, \pi), \pi_V)
-    \in \textbf{Acc})$ if the instances has consistent degree and hiding
+    \in \Acc)$ if the instances has consistent degree and hiding
     parameters and otherwise fail ($\bot$).
   }
   \begin{algorithmic}[1]
   \Require $d \leq D$
   \Require $(d+1) = 2^k$, where $k \in \Nb$
-  \State \textcolor{GbBlueDk}{Sample a random linear polynomial $h_0 \in F_q[X]$}
-  \State \textcolor{GbBlueDk}{Then compute a deterministic commitment to $h_0$: $U_0 := \PCDLCommit(h_0, \bot)$}
-  \State \textcolor{GbBlueDk}{Sample commitment randomness $\o \in F_q$, and set $\pi_V := (h_0, U_0, \o)$.}
-  \State Then, compute the tuple $(\bar{C}, d, z, h(X)) := \ASDLCommonSubroutine(d, \vec{q} \mathcolor{GbBlueDk}{, \pi_V})$.
+  \State \textblue{Sample a random linear polynomial $h_0 \in F_q[X]$}
+  \State \textblue{Then compute a deterministic commitment to $h_0$: $U_0 := \PCDLCommit(h_0, \bot)$}
+  \State \textblue{Sample commitment randomness $\o \in F_q$, and set $\pi_V := (h_0, U_0, \o)$.}
+  \State Then, compute the tuple $(\bar{C}, d, z, h(X)) := \ASDLCommonSubroutine(d, \vec{q} \mathblue{, \pi_V})$.
   \State Compute the evaluation $v := h(z)$
-  \State Generate the hiding evaluation proof $\pi := \PCDLOpen(h(X), \bar{C}, d, z \mathcolor{GbBlueDk}{, \o})$.
-  \State Finally, output the accumulator $acc = \mathcolor{GbBlueDk}{(}(\bar{C}, d, z, v, \pi)\mathcolor{GbBlueDk}{, \pi_V)}$.
+  \State Generate the hiding evaluation proof $\pi := \PCDLOpen(h(X), \bar{C}, d, z \mathblue{, \o})$.
+  \State Finally, output the accumulator $acc = \mathblue{(}(\bar{C}, d, z, v, \pi)\mathblue{, \pi_V)}$.
 \end{algorithmic}
 \end{algorithm}
 
@@ -744,17 +764,17 @@ hiding has no effect on this check.
 \caption{$\ASDLVerifier$}
 \textbf{Inputs} \\
   \Desc{$\vec{q}: \Fb_q^m$}{New instances \textit{and accumulators} to be accumulated.} \\
-  \Desc{$acc: \textbf{Acc}$}{The accumulator.} \\
+  \Desc{$acc: \Acc$}{The accumulator.} \\
 \textbf{Output} \\
-  \Desc{$\textbf{Result}(\top, \bot)$}{
+  \Desc{$\Result(\top, \bot)$}{
     The algorithm will either succeed $(\top)$ if $acc$ correctly accumulates
     $\vec{q}$ and otherwise fail ($\bot$).
   }
   \begin{algorithmic}[1]
   \Require $acc.d \leq D$
   \Require $(acc.d+1) = 2^k$, where $k \in \Nb$ 
-    \State Parse $acc$ as $\mathcolor{GbBlueDk}{(}(\bar{C}, d, z, v, \_)\mathcolor{GbBlueDk}{, \pi_V)}$
-    \State The accumulation verifier computes $(\bar{C}', d', z', h(X)) := \ASDLCommonSubroutine(d, \vec{q} \mathcolor{GbBlueDk}{, \pi_V})$
+    \State Parse $acc$ as $\mathblue{(}(\bar{C}, d, z, v, \_)\mathblue{, \pi_V)}$
+    \State The accumulation verifier computes $(\bar{C}', d', z', h(X)) := \ASDLCommonSubroutine(d, \vec{q} \mathblue{, \pi_V})$
     \State Then checks that $\bar{C}' \meq \bar{C}, d' \meq d, z' \meq z$, and $h(z) \meq v$.
 \end{algorithmic}
 \end{algorithm}
@@ -764,9 +784,9 @@ hiding has no effect on this check.
 \begin{algorithm}[H]
 \caption{$\ASDLDecider$}
 \textbf{Inputs} \\
-  \Desc{$acc: \textbf{Acc}$}{The accumulator.} \\
+  \Desc{$acc: \Acc$}{The accumulator.} \\
 \textbf{Output} \\
-  \Desc{$\textbf{Result}(\top, \bot)$}{
+  \Desc{$\Result(\top, \bot)$}{
     The algorithm will either succeed $(\top)$ if the accumulator has correctly
     accumulated all previous instances and will otherwise fail ($\bot$).
   }
@@ -808,7 +828,7 @@ we know that this check too will always pass.
 | $\vec{a} \in S^n_q$                                                             | A vector of length $n$ consisting of elements from set $S$                                                |
 | $G \in \Eb(\Fb_q)$                                                              | An elliptic Curve point, defined over field $\Fb_q$                                                       |
 | $\vec{G}$                                                                       | A vector                                                                                                  |
-| $v^{(0)}$                                                                       | The only element of a fully compressed vector $\vec{v_{\lg(n)}}$ from $\PCDLOpen$.                        |
+| $v^{(0)}$                                                                       | The singular element of a fully compressed vector $\vec{v_{\lg(n)}}$ from $\PCDLOpen$.                    |
 | $a \in_R S$                                                                     | $a$ is a uniformly randomly sampled element of $S$                                                        |
 | $(S_1, \dots, S_n)$                                                             | In the context of sets, the same as $S_1 \times \dots \times S_n$                                         |
 | $\dotp{\vec{a}}{\vec{G}}$ where $\vec{a} \in \Fb^n_q, \vec{G} \in \Eb^n(\Fb_q)$ | The dot product of $\vec{a}$ and $\vec{G}$ ($\sum^n_{i=0} a_i G_i$).                                      |
@@ -817,11 +837,15 @@ we know that this check too will always pass.
 | $r(\vec{a})$                                                                    | Gets the right half of $\vec{a}$.                                                                         |
 | $\vec{a} \cat \vec{b}$ where $\vec{a} \in \Fb^n_q, \vec{b} \in \Fb^m_q$         | Concatinate vectors to create $\vec{c} \in \Fb^{n+m}_q$.                                                  |
 | $a \cat b$ where $a \in \Fb_q$                                                  | Create vector $\vec{c} = (a, b)$.                                                                         |
-| $\textbf{Option}(T)$                                                            | $\{ T, \bot \}$                                                                                           |
-| $\textbf{Result}(T, E)$                                                         | $\{ T, E \}$                                                                                              |
-| $\textbf{EvalProof}$                                                            | $(\Eb^{lg(n)}(\Fb_q), \Eb^{lg(n)}(\Fb_q), \Eb(\Fb_q), \Fb_q\mathcolor{GbBlueDk}{, \Eb(\Fb_q), \Fb_q})$    |
-| $\textbf{AccHiding}$                                                            | $(\Eb(\Fb_q), \Nb, \Fb_q, \Fb^d_q)$                                                                       |
-| $\textbf{Acc}$                                                                  | $((\Eb(\Fb_q), \Nb, \Fb_q, \Fb_q, \textbf{EvalProof}), \textbf{AccHiding})$                               |
+| $\Bb$                                                                           | Represents a boolean $\{ \top, \bot \}$                                                                   |
+| $\Option(T)$                                                                    | $\{ T, \bot \}$                                                                                           |
+| $\Result(T, E)$                                                                 | $\{ T, E \}$                                                                                              |
+| $\EvalProof$                                                                    | $(\Eb^{lg(n)}(\Fb_q), \Eb^{lg(n)}(\Fb_q), \Eb(\Fb_q), \Fb_q\mathblue{, \Eb(\Fb_q), \Fb_q})$               |
+| $\AccHiding$                                                                    | $(\Eb(\Fb_q), \Nb, \Fb_q, \Fb^d_q)$                                                                       |
+| $\Acc$                                                                          | $((\Eb(\Fb_q), \Nb, \Fb_q, \Fb_q, \EvalProof), \AccHiding)$                                               |
+
+Note that the following are isomorphic $\Bb \iso \Option(\top) \iso
+\Result(\top, \bot)$, but they have different connotations.
 
 ## $\mathrm{CM}$: Pedersen Commitment
 
@@ -832,11 +856,11 @@ As a reference, we include the Pedersen Commitment algorithm we use:
 \textbf{Inputs} \\
   \Desc{$\vec{m}: \Fb^n$}{The vectors we wish to commit to.} \\
   \Desc{$\vec{G}: \Eb(\Fb)^n$}{The generators we use to create the commitment.} \\
-  \Desc{$\mathcolor{GbBlueDk}{\o}: \textbf{Option}(\Fb_q)$}{Optional hiding factor for the commitment.} \\
+  \Desc{$\mathblue{\o}: \Option(\Fb_q)$}{Optional hiding factor for the commitment.} \\
 \textbf{Output} \\
   \Desc{$C: \Eb(\Fb_q)$}{The pedersen commitment.}
 \begin{algorithmic}[1]
-  \State Output $C := \ip{\vec{m}}{\vec{G}} \mathcolor{GbBlueDk}{+ \o S}$.
+  \State Output $C := \ip{\vec{m}}{\vec{G}} \mathblue{+ \o S}$.
 \end{algorithmic}
 \end{algorithm}
 
