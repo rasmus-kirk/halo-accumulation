@@ -44,10 +44,6 @@
     \endorigfigure
 }
 
-\renewcommand*\mod{\bmod}
-\newcommand*\cat{\mathbin{+\mkern-10mu+}}
-\newcommand*\bor{\mathbin{\&\mkern-7mu\&}}
-\newcommand*\xor{\oplus}
 \newcommand*\Bb{\mathbb{B}}
 \newcommand*\Zb{\mathbb{Z}}
 \newcommand*\Fb{\mathbb{F}}
@@ -62,8 +58,7 @@
 \newcommand*\Vc{\mathcal{V}}
 \newcommand*\Sc{\mathcal{S}}
 \newcommand*\Hc{\mathcal{H}}
-\newcommand*\algind{\hspace*{\algorithmicindent}}
-\newcommand*\algindd{\algind \algind}
+
 \renewcommand*\a{\alpha}
 \renewcommand*\b{\beta}
 \renewcommand*\d{\delta}
@@ -73,9 +68,22 @@
 \renewcommand*\o{\omega}
 \newcommand*\ps{\psi}
 \renewcommand*\S{\Sigma}
+
+\renewcommand*\mod{\bmod}
+\newcommand*\cat{\mathbin{+\mkern-10mu+}}
+\newcommand*\bor{\mathbin{\&\mkern-7mu\&}}
+\newcommand*\xor{\oplus}
 \newcommand*\meq{\stackrel{?}{=}}
+\newcommand*\iso{\cong}
 \newcommand{\qed}{\hfill \ensuremath{\Box}}
 \newcommand{\defend}{\hfill \ensuremath{\triangle}}
+\newcommand*{\then}{\implies}
+
+\newcommand*\algind{\hspace*{\algorithmicindent}}
+\newcommand*\algindd{\algind \algind}
+
+\newcommand{\textblue}[1]{\textcolor{GbBlueDk}{#1}}
+\newcommand{\mathblue}[1]{\mathcolor{GbBlueDk}{#1}}
 \newcommand{\floor}[1]{\left \lfloor #1 \right \rfloor }
 \newcommand{\ceil}[1]{\left \lceil #1 \right \rceil }
 \renewcommand{\vec}[1]{ \boldsymbol{#1} }
@@ -83,7 +91,6 @@
 \newcommand{\ranvec}[1]{ \boldsymbol{\ran{#1}} }
 \newcommand{\dotp}[2]{ \langle #1, #2 \rangle }
 \newcommand{\ip}[2]{ \langle #1, #2 \rangle }
-\newcommand*{\then}{\implies}
 
 \newcommand*{\SNARKProver}{\mathrm{\text{SNARK}}.\mathrm{\text{P\scriptsize ROVER}}}
 \newcommand*{\SNARKVerifier}{\mathrm{\text{SNARK}}.\mathrm{\text{V\scriptsize ERIFIER}}}
@@ -93,6 +100,12 @@
 \newcommand*{\ASProver}{\mathrm{\text{AS}}.\mathrm{\text{P\scriptsize ROVER}}}
 \newcommand*{\ASVerifier}{\mathrm{\text{AS}}.\mathrm{\text{V\scriptsize ERIFIER}}}
 \newcommand*{\ASDecider}{\mathrm{\text{AS}}.\mathrm{\text{D\scriptsize ECIDER}}}
+\newcommand*{\PC}{\text{PC}}
+\newcommand*{\PCSetup}{\PC.\mathrm{\text{S{\scriptsize ETUP}}}}
+\newcommand*{\PCTrim}{\PC.\mathrm{\text{T{\scriptsize RIM}}}}
+\newcommand*{\PCCommit}{\PC.\mathrm{\text{C\scriptsize OMMIT}}}
+\newcommand*{\PCOpen}{\PC.\mathrm{\text{O\scriptsize PEN}}}
+\newcommand*{\PCCheck}{\PC.\mathrm{\text{C\scriptsize HECK}}}
 \newcommand*{\PCDL}{\text{PC}_{\text{DL}}}
 \newcommand*{\PCDLSetup}{\PCDL.\mathrm{\text{S{\scriptsize ETUP}}}}
 \newcommand*{\PCDLTrim}{\PCDL.\mathrm{\text{T{\scriptsize RIM}}}}
@@ -115,5 +128,7 @@
 \newcommand*\Result{\mathbf{Result}}
 \newcommand*\Option{\mathbf{Option}}
 \newcommand*\Acc{\mathbf{Acc}}
+\newcommand*\AccHiding{\mathbf{AccHiding}}
+\newcommand*\EvalProof{\mathbf{EvalProof}}
 
 
