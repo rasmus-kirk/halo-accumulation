@@ -64,30 +64,44 @@ example a witness:
 - Soundness: $\forall P^* \in PPT, x \notin L \implies Pr[V_{out} = \top] \leq \epsilon(x)$
 
 Proof of knowledge is another type of Proof System, here the prover claims
-to know a specific _witness_, $w$, for a statement $x$. Let $x \in L$
-and and $W(x)$ the set of witnesses for $x$ that should be accepted in the
-proof. This allows us to define the following relation:
+to know a specific _witness_, $w$, for a statement $x$. Let $x \in L$ and
+and $W(x)$ the set of witnesses for $x$ that should be accepted in the
+proof. This allows us to define the following relation: $R = \{ (x,w) :
+x \in L , w \in W(x) \}$
 
-$$R = \{ (x,w) : x \in L , w \in W(x) \}$$
-
-A proof of knowledge for relation R with is a two party protocol (P, V)
+A proof of knowledge for relation $R$ with is a two party protocol $(P, V)$
 with the following two properties:
 
 - **Knowledge Completeness:** $Pr[P(w) \iff V_{out} = 1] = 1$, i.e. as in
   Interactive Proof Systems, after an interaction between the prover and
   verifier the verifier should be convinced with certainty.  
-- **Knowledge Soundness:** **TODO:**
-
-**TODO**: zero-knowledge
+- **Knowledge Soundness:** Loosely speaking, in Knowledge Soundness we have
+  an extracter $E$, that when given a possibly malicious prover $P^*$
+  as a turing machine has at least as high as the probability that $P^*$
+  convinces $V$
 
 The above proof systems may be _zero-knowledge_, which in loose terms means
-that anyone looking at the transcript, that is the interaction between prover
-and verifier, will not learn anything about the witness, $w$, of the prover
+that anyone looking at the transcript, that is the interaction between
+prover and verifier, will not be able to tell the difference between a real
+transcript and one that is simulated. This means that an adversary will not
+learn any new information, that they could not have gathered themselves. We
+can define the property more formally:
 
-Zero Knowledge
+- **Zero-knowledge:** $\forall V^*(\delta). \exists S_{V^*}(x) \in PPT. S_{V^*} \sim^C (P,V^*)$
 
-- $\forall V^*(\delta). \exists S_{V^*}(x) \in PPT. S_{V^*} \sim^C (P,V^*)$
-- $C,S,P$ for $\sim$
+$V^*$ denotes a prover, honest or otherwise, $\d$ represents information
+that $V^*$ may have from previous executions of the protocol and $(P,V^*)$
+denotes the transcript between the prover and verifier. There is three kinds
+of zero-knowledge:
+
+- **Perfect Zero-knowledge:** $\forall V^*(\delta). \exists S_{V^*}(x) \in PPT. S_{V^*} \sim^P (P,V^*)$,
+  the transcripts $S_{V^*}(x)$ and $(P,V^*)$ are perfectly indistinguishable.
+- **Statistical Zero-knowledge:** $\forall V^*(\delta). \exists S_{V^*}(x) \in PPT. S_{V^*} \sim^S (P,V^*)$,
+  the transcripts $S_{V^*}(x)$ and $(P,V^*)$ are statistically indistinguishable.
+- **Computational Zero-knowledge:** $\forall V^*(\delta). \exists S_{V^*}(x) \in PPT. S_{V^*} \sim^C (P,V^*)$,
+  the transcripts $S_{V^*}(x)$ and $(P,V^*)$ are computationally
+  indistinguishable, i.e. no polynomially bounded adversary $\Ac$ can
+  distinguish them.
 
 ### SNARKS
 
@@ -232,18 +246,18 @@ from linear verification time, making them unsuitible for IVC.
 
 ### Accumulation Schemes
 
-The authors of [a 2019 paper](https://eprint.iacr.org/2019/1021.pdf) presented
-_Halo_ the so-called first practical example of recursive proof composition
-without a trusted setup. Using a modified version of the Bulletproofs-style
-Inner Product Argument (IPA), they present a polynomial commitment
-scheme. Computing the evaluation of a point $z \in \Fb_q$ on polynomial $p(X)
-\in \Fb^d_q[X]$ as $v = \ip{\vec{p}}{\vec{z}}$ where $\vec{z} = (z^0, z^1,
-\dots, z^{d+1})$ and $\vec{p} \in \Fb^d$ is the coefficient vector of $p(X)$,
-using the IPA. However, since the the vector $\vec{z}$ is not private, and
-has a certain structure, we can split the verification algorithm in two:
-$\PCDLSuccinctCheck$ and $\PCDLCheck$. Using the $\PCDLSuccinctCheck$
-we can accumulate $n$ instances, and only perform the expensive linear check at
-the end of accumulation.
+The authors of [a 2019 paper](https://eprint.iacr.org/2019/1021.pdf)
+presented _Halo_ the so-called first practical example of recursive
+proof composition without a trusted setup. Using a modified version
+of the Bulletproofs-style Inner Product Argument (IPA), they present a
+polynomial commitment scheme. Computing the evaluation of a point $z \in
+\Fb_q$ on polynomial $p(X) \in \Fb^d_q[X]$ as $v = \ip{\vec{p}}{\vec{z}}$
+where $\vec{z} = (z^0, z^1, \dots, z^{d+1})$ and $\vec{p} \in \Fb^d$ is the
+coefficient vector of $p(X)$, using the IPA. However, since the the vector
+$\vec{z}$ is not private, and has a certain structure, we can split the
+verification algorithm in two: $\PCDLSuccinctCheck$ and $\PCDLCheck$. Using
+the $\PCDLSuccinctCheck$ we can accumulate $n$ instances, and only perform
+the expensive linear check at the end of accumulation.
 
 In the [2020 paper _"Proof-Carrying Data from Accumulation
 Schemes"_](https://eprint.iacr.org/2020/499.pdf), that this project
@@ -320,10 +334,25 @@ accumulator $acc_i$ ensures that every previous instance is true $\Phi(q_i)
 
 ### General Polynomial Commitment Schemes
 
-**TODO**:
+In the section above about SNARKs, general-purpose proof schemes were
+described. Modern general-purpose (zero-knowledge) proof schemes, such as
+Sonic[^1], Plonk[^2] and Marlin[^3], commonly use PCS's _Polynomial Commitment
+Schemes_ for creating their proofs. This means that different PCS's can be
+used to get security under weaker or stronger assumptions.
 
-- general-purpose proof schemes as polynomial commitments
-- PCS spec
+**TODO**: List the options (AGM?, BP, STARKS).
+
+The functions:
+
+- PCCommit
+- PCOpen
+- PCCheck
+
+**TODO**: general-purpose proof schemes as polynomial commitments
+
+[^1]: Sonic Paper: [https://eprint.iacr.org/2019/099](https://eprint.iacr.org/2019/099)
+[^2]: Plonk Paper: [https://eprint.iacr.org/2019/953](https://eprint.iacr.org/2019/953)
+[^3]: Marlin Paper: [https://eprint.iacr.org/2019/1047](https://eprint.iacr.org/2019/1047)
 
 ### The Implementation
 
@@ -672,7 +701,7 @@ hiding has no effect on this check.
   \For{$i \in [m]$}
     \State Parse $q_i$ as a tuple $((C_i, d_i, z_i, v_i), \pi_i)$.
     \State Compute $(h_i(X), U_i) := \PCDLSuccinctCheck(C_i, z_i, v_i, \pi_i)$.
-    \State Check that $d_i = d$ (We accumulate only the degree bound D. TODO)
+    \State Check that $d_i \leq d$
   \EndFor
   \State Compute the challenge $\a := \rho_1(\vec{h}, \vec{U}) \in \Fb_q$
   \State Let the polynomial $h(X) := \mathcolor{GbBlueDk}{h_0 +} \sum^m_{i=1} \a^i h_i \in \Fb_q[X]$
