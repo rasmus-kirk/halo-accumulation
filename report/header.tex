@@ -54,6 +54,8 @@
 \newcommand*\Ac{\mathcal{A}}
 \newcommand*\Rc{\mathcal{R}}
 \newcommand*\Oc{\mathcal{O}}
+\newcommand*\Uc{\mathcal{U}}
+\newcommand*\Mc{\mathcal{M}}
 \newcommand*\Pc{\mathcal{P}}
 \newcommand*\Vc{\mathcal{V}}
 \newcommand*\Sc{\mathcal{S}}
@@ -92,38 +94,49 @@
 \newcommand{\dotp}[2]{ \langle #1, #2 \rangle }
 \newcommand{\ip}[2]{ \langle #1, #2 \rangle }
 
-\newcommand*{\SNARKProver}{\mathrm{\text{SNARK}}.\mathrm{\text{P\scriptsize ROVER}}}
-\newcommand*{\SNARKVerifier}{\mathrm{\text{SNARK}}.\mathrm{\text{V\scriptsize ERIFIER}}}
+\newcommand*{\pp}{\text{pp}}
+\newcommand*{\acc}{\text{acc}}
+\newcommand*{\Prover}{\mathrm{\text{P\scriptsize ROVER}}}
+\newcommand*{\Verifier}{\mathrm{\text{V\scriptsize ERIFIER}}}
+\newcommand*{\Setup}{\mathrm{\text{S{\scriptsize ETUP}}}}
+\newcommand*{\Generator}{\mathrm{\text{G{\scriptsize ENERATOR}}}}
+\newcommand*{\Trim}{\mathrm{\text{T{\scriptsize RIM}}}}
+\newcommand*{\Commit}{\mathrm{\text{C{\scriptsize OMMIT}}}}
+\newcommand*{\Decider}{\mathrm{\text{D{\scriptsize ECIDER}}}}
+\newcommand*{\SNARKProver}{\mathrm{\text{SNARK}}.\Prover}
+\newcommand*{\SNARKVerifier}{\mathrm{\text{SNARK}}.\Verifier}
 \newcommand*{\SNARKVerifierSlow}{\mathrm{\text{SNARK}}.\mathrm{\text{V\scriptsize ERIFIER}\text{S\scriptsize LOW}}}
-\newcommand*{\IVCProver}{\mathrm{\text{IVC}}.\mathrm{\text{P\scriptsize ROVER}}}
-\newcommand*{\IVCVerifier}{\mathrm{\text{IVC}}.\mathrm{\text{V\scriptsize ERIFIER}}}
-\newcommand*{\ASProver}{\mathrm{\text{AS}}.\mathrm{\text{P\scriptsize ROVER}}}
-\newcommand*{\ASVerifier}{\mathrm{\text{AS}}.\mathrm{\text{V\scriptsize ERIFIER}}}
-\newcommand*{\ASDecider}{\mathrm{\text{AS}}.\mathrm{\text{D\scriptsize ECIDER}}}
+\newcommand*{\IVCProver}{\mathrm{\text{IVC}}.\Prover}
+\newcommand*{\IVCVerifier}{\mathrm{\text{IVC}}.\Verifier}
+\newcommand*{\AS}{\text{AS}}
+\newcommand*{\ASGenerator}{\AS.\Generator}
+\newcommand*{\ASProver}{\AS.\Prover}
+\newcommand*{\ASVerifier}{\AS.\Verifier}
+\newcommand*{\ASDecider}{\AS.\Decider}
 \newcommand*{\PC}{\text{PC}}
-\newcommand*{\PCSetup}{\PC.\mathrm{\text{S{\scriptsize ETUP}}}}
-\newcommand*{\PCTrim}{\PC.\mathrm{\text{T{\scriptsize RIM}}}}
-\newcommand*{\PCCommit}{\PC.\mathrm{\text{C\scriptsize OMMIT}}}
+\newcommand*{\PCSetup}{\PC.\Setup}
+\newcommand*{\PCTrim}{\PC.\Trim}
+\newcommand*{\PCCommit}{\PC.\Commit}
 \newcommand*{\PCOpen}{\PC.\mathrm{\text{O\scriptsize PEN}}}
 \newcommand*{\PCCheck}{\PC.\mathrm{\text{C\scriptsize HECK}}}
 \newcommand*{\PCDL}{\text{PC}_{\text{DL}}}
-\newcommand*{\PCDLSetup}{\PCDL.\mathrm{\text{S{\scriptsize ETUP}}}}
-\newcommand*{\PCDLTrim}{\PCDL.\mathrm{\text{T{\scriptsize RIM}}}}
-\newcommand*{\PCDLCommit}{\PCDL.\mathrm{\text{C\scriptsize OMMIT}}}
+\newcommand*{\PCDLSetup}{\PCDL.\Setup}
+\newcommand*{\PCDLTrim}{\PCDL.\Trim}
+\newcommand*{\PCDLCommit}{\PCDL.\Commit}
 \newcommand*{\PCDLOpen}{\PCDL.\mathrm{\text{O\scriptsize PEN}}}
 \newcommand*{\PCDLSuccinctCheck}{\PCDL.\mathrm{\text{S{\scriptsize UCCINCT}C{\scriptsize HECK}}}}
 \newcommand*{\PCDLCheck}{\PCDL.\mathrm{\text{C\scriptsize HECK}}}
 \newcommand*{\ASDL}{\text{AS}_{\text{DL}}}
-\newcommand*{\ASDLGenerator}{\ASDL.\mathrm{\text{G\scriptsize ENERATOR}}}
+\newcommand*{\ASDLGenerator}{\ASDL.\Generator}
 \newcommand*{\ASDLIndexer}{\ASDL.\mathrm{\text{I\scriptsize NDEXER}}}
 \newcommand*{\ASDLCommonSubroutine}{\ASDL.\mathrm{\text{C{\scriptsize OMMON}S{\scriptsize UBROUTINE}}}}
 \newcommand*{\ASDLProver}{\ASDL.\mathrm{\text{P\scriptsize ROVER}}}
 \newcommand*{\ASDLVerifier}{\ASDL.\mathrm{\text{V\scriptsize ERIFIER}}}
 \newcommand*{\ASDLDecider}{\ASDL.\mathrm{\text{D\scriptsize ECIDER}}}
 \newcommand*{\CM}{\mathrm{\text{CM}}}
-\newcommand*{\CMSetup}{\mathrm{\text{CM.S\scriptsize ETUP}}}
-\newcommand*{\CMTrim}{\mathrm{\text{CM.T\scriptsize RIM}}}
-\newcommand*{\CMCommit}{\mathrm{\text{CM.C\scriptsize OMMIT}}}
+\newcommand*{\CMSetup}{\CM.\Setup}
+\newcommand*{\CMTrim}{\CM.\Trim}
+\newcommand*{\CMCommit}{\CM.\Commit}
 
 \newcommand*\Result{\mathbf{Result}}
 \newcommand*\Option{\mathbf{Option}}

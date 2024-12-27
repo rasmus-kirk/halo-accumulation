@@ -343,6 +343,11 @@ used to get security under weaker or stronger assumptions.
 <!-- AGM gives you snarks? -->
 **TODO**: List the options (AGM?, BP, STARKS).
 
+- **AGM:** Uses a trusted setup, this would give you a traditional SNARK.
+- **DL:** Uses an untrusted setup, assumed secure if the Discrete Log problem is hard, the verifier is linear.
+- **FRI:** Also uses an untrusted setup, assumed secure one way functions
+  exist. It has a higher overhead than PCSs based on the Discrete Log assumption.
+
 **TODO**: The assumptions on $d$ seems wrong in the code, not a big deal
 
 A PCS allows a prover to prove to a verifier that a commited polynomial
@@ -368,7 +373,9 @@ three main functions used to prove this ($\PCSetup$ and $\PCTrim$ omitted):
 Any given predicate $\Phi: X \to \Bb$ can be compiled into a circuit $R$. This
 circuit can then be fed to the general-purpose proof scheme that further
 compiles $X$ into a series of evaluation proofs $(\pi_1, \dots, \pi_n)$
-that if they verify, convinces the verifier that $\Phi(X) = \top$
+that if they verify, convinces the verifier that $\Phi(X) = \top$. In this
+way, accumulating predicates, $\vec{X}$, can be represented as a series of
+PCS evaluation proofs.
 
 [^1]: Sonic Paper: [https://eprint.iacr.org/2019/099](https://eprint.iacr.org/2019/099)
 [^2]: Plonk Paper: [https://eprint.iacr.org/2019/953](https://eprint.iacr.org/2019/953)
@@ -554,8 +561,8 @@ $p$ s.t. $v = \dotp{\vec{c_0}}{\vec{z_0}}$. So because $z$ is public, we
 can get away with omitting the generators, $(\vec{H})$, for $\vec{b}$ which
 we would otherwise need in the Bulletproofs IPA. For efficiency we also
 send along the curve point $U = G^{(0)}$, which the original IPA does not
-do. The $\PCDLSuccinctCheck$ uses this to make its check and $\PCDLCheck$
-verifies its correctness.
+do. The $\PCDLSuccinctCheck$ uses $U$ to make its check and $\PCDLCheck$
+verifies the correctness of $U$.
 
 ### $\PCDLSuccinctCheck$
 
@@ -590,6 +597,11 @@ verifies its correctness.
 \end{algorithmic}
 \end{algorithm}
 
+The $\PCDLSuccinctCheck$ algorithm performs the same check as in the
+Bulletproofs protocol. With the only difference being that instead of calculating
+$G^{(0)}$ itself, it trusts that the verifier sent the correct $U = G^{(0)}$ in
+the prover protocol, and defers the verification of this claim to $\PCDLCheck$.
+
 ### $\PCDLCheck$
 
 \begin{algorithm}[H]
@@ -609,6 +621,10 @@ verifies its correctness.
   \State Check that $U \meq \CMCommit(\vec{G}, \vec{h}, \bot)$, where $\vec{h}$ is the coefficient vector of the polynomial $h$.
 \end{algorithmic}
 \end{algorithm}
+
+Since $\PCDLSuccinctCheck$ handles the verification of the IPA given that
+$U = G^{(0)}$, we run $\PCDLSuccinctCheck$, then check that $U \meq G^{(0)}
+= \CMCommit(\vec{G}, \vec{h}, \bot) = \ip{\vec{G}}{\vec{h}}$.
 
 ## Completeness
 
