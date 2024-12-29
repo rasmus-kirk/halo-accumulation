@@ -19,7 +19,7 @@ Halo2, can be broken down into the following components:
 - **Pasta**: A Cycle of Elliptic Curves, namely **Pa**llas and Ve**sta**.
 
 This project is focused on the components of $\PCDL$ and $\ASDL$. I used the
-[2020 paper](https://example.com) _"Proof-Carrying Data from Accumulation
+[2020 paper](https://eprint.iacr.org/2020/499.pdf) _"Proof-Carrying Data from Accumulation
 Schemes"_ as a reference. The project covers both the theoretical aspects
 of the scheme described in this document along with a rust implementation,
 both of which can be found in the project's [repository](https://example.com).
@@ -41,7 +41,7 @@ on bulletproofs if need be:
 ### Proof Systems
 
 In an Interactive Proof System we have two Interactive Turing machines
-the computationally unbounded Prover, P, and the polynomally time bounded
+the computationally unbounded Prover, P, and the polynomially time bounded
 Verifier, V. The Prover tries to convince the Verifier of a statement $x \in L$
 language $L \subset \mathbb{B}^*$ in NP. The following properties must be true:
 
@@ -76,7 +76,7 @@ with the following two properties:
   Interactive Proof Systems, after an interaction between the prover and
   verifier the verifier should be convinced with certainty.  
 - **Knowledge Soundness:** Loosely speaking, in Knowledge Soundness we have
-  an extracter $E$, that when given a possibly malicious prover $P^*$
+  an efficient extractor $E$, that when given a possibly malicious prover $P^*$
   as a turing machine has at least as high as the probability that $P^*$
   convinces $V$
 
@@ -91,7 +91,7 @@ can define the property more formally:
 
 $V^*$ denotes a prover, honest or otherwise, $\d$ represents information
 that $V^*$ may have from previous executions of the protocol and $(P,V^*)$
-denotes the transcript between the prover and verifier. There is three kinds
+denotes the transcript between the honest prover and (possibly) malicious verifier. There are three kinds
 of zero-knowledge:
 
 - **Perfect Zero-knowledge:** $\forall V^*(\delta). \exists S_{V^*}(x) \in PPT. S_{V^*} \sim^P (P,V^*)$,
@@ -110,15 +110,15 @@ SNARKs - **S**uccinct **N**on-interactive **AR**guments of **K**nowledge
 cryptocurrencies. They usually also function as so called general-purpose
 proof schemes. This means that, given any solution to an NP-problem, it will
 produce a proof that the prover knows the solution to said NP-problem. Most
-snarks also allow for zero-knowledge arguments, making them zk-SNARKs.
+SNARKs also allow for zero-knowledge arguments, making them zk-SNARKs.
 
-More concretely, imagine that Alice has todays sudoko problem $x$: She
+More concretely, imagine that Alice has todays sudoku problem $x$: She
 claims to have a solution to this problem, her witness, $w$, and want to
 convince Bob without having to send all of it. She could then use a SNARK to
 create a proof to convince Bob. To do this she must first encode the sudoku
 verifier as a circuit $R_x$, and then give the SNARK prover ($\SNARKProver$)
 $R_x(w,w')$ where $w'$ is a public input. This public input could correspond
-to the known already known digits for todays sudoku. Finally she can send
+to the already known digits for todays sudoku. Finally she can send
 this proof, $\pi$, to Bob along with the public sudoku verifying circuit,
 $R_x$, and he can check the proof and be convinced using the snark verifier
 ($\SNARKVerifier$).
@@ -229,7 +229,7 @@ properly, otherwise
 
 ### Bulletproofs
 
-In 2016, [the Bulletproofs paper](https://eprint.iacr.org/2017/1066.pdf)
+In 2017, [the Bulletproofs paper](https://eprint.iacr.org/2017/1066.pdf)
 was released. Bulletproofs relies on the hardness of the Discrete Logarithm
 problem, and allows for an untrusted setup to generate the Common Reference
 String. It has logarithmic proof size, and lends itself well efficient range
@@ -241,7 +241,7 @@ a prover proves he knows two vectors, $\vec{a}, \vec{b} \in \Fb_q^n$,
 with commitment $C \in \Eb(\Fb_q)$, and their corresponding inner product,
 $c = \ip{\vec{a}}{\vec{b}}$. It creates this non-interactive proof,
 with only $\lg(n)$ size, by compressing the point and vectors $\lg(n)$
-times. Unfortunately, the IPA suffers, and by extension Bulletproofs, suffer
+times. Unfortunately, the IPA, and by extension Bulletproofs, suffer
 from linear verification time, making them unsuitible for IVC.
 
 ### Accumulation Schemes
@@ -252,12 +252,12 @@ proof composition without a trusted setup. Using a modified version
 of the Bulletproofs-style Inner Product Argument (IPA), they present a
 polynomial commitment scheme. Computing the evaluation of a point $z \in
 \Fb_q$ on polynomial $p(X) \in \Fb^d_q[X]$ as $v = \ip{\vec{p}}{\vec{z}}$
-where $\vec{z} = (z^0, z^1, \dots, z^{d+1})$ and $\vec{p} \in \Fb^d$ is the
+where $\vec{z} = (z^0, z^1, \dots, z^{d})$ and $\vec{p} \in \Fb^{d+1}$ is the
 coefficient vector of $p(X)$, using the IPA. However, since the the vector
 $\vec{z}$ is not private, and has a certain structure, we can split the
 verification algorithm in two: $\PCDLSuccinctCheck$ and $\PCDLCheck$. Using
 the $\PCDLSuccinctCheck$ we can accumulate $n$ instances, and only perform
-the expensive linear check at the end of accumulation.
+the expensive linear check (i.e., $\PCDLCheck$) at the end of accumulation.
 
 In the [2020 paper _"Proof-Carrying Data from Accumulation
 Schemes"_](https://eprint.iacr.org/2020/499.pdf), that this project
@@ -336,8 +336,8 @@ accumulator $acc_i$ ensures that every previous instance is true, $\Phi(q_i)
 
 In the section above about SNARKs, general-purpose proof schemes were
 described. Modern general-purpose (zero-knowledge) proof schemes, such as
-Sonic[^1], Plonk[^2] and Marlin[^3], commonly use PCS's _Polynomial Commitment
-Schemes_ for creating their proofs. This means that different PCS's can be
+Sonic[^1], Plonk[^2] and Marlin[^3], commonly use _Polynomial Commitment
+Schemes_ (PCSs) for creating their proofs. This means that different PCSs can be
 used to get security under weaker or stronger assumptions.
 
 <!-- AGM gives you snarks? -->
@@ -400,7 +400,7 @@ implementation I have chosen to include these parts as they were not too
 cumbersome to implement, but since IVC is at the heart of this project,
 not zero-knowledge, I have chosen to omit them from the soundness and
 completeness discussions in the following sections as well as omitted the
-proofs of zero-knowledgeness.
+proofs of zero-knowledge.
 
 The authors of the paper present additional algorithms for setting up public
 parameters ($\CMSetup$, $\PCDLSetup$, $\ASDLGenerator$) and distributing them
@@ -467,7 +467,7 @@ We have four main functions:
 
 - $\PCDLCommit(p: \Fb^d_q[X], \o: \Option(\Fb_q)) \to \Eb(\Fb_q)$:
 
-  Creates a commitment to the coefficients of the polynomial $q$ of degree
+  Creates a commitment to the coefficients of the polynomial $p$ of degree
   $d$ with optional hiding $\o$, using pedersen commitments.
 
 - $\PCDLOpen(p: \Fb^d_q[X], C: \Eb(\Fb_q), z: \Fb_q, \o: \Option(\Fb_q)) \to \EvalProof$:
