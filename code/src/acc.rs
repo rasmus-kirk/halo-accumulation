@@ -150,7 +150,7 @@ fn common_subroutine(
 
     // (3). Check that U_0 is a deterministic commitment to h_0: U_0 = PCDL.Commit_ρ0(ck^(1)_PC, h; ω = ⊥).
     ensure!(
-        *U_0 == pcdl::commit(h_0, None),
+        *U_0 == pcdl::commit(h_0, d, None),
         "U_0 ≠ PCDL.Commit_ρ0(ck^(1)_PC, h_0; ω = ⊥)"
     );
 
@@ -192,7 +192,7 @@ pub fn prover<R: Rng>(rng: &mut R, d: usize, qs: &[Instance]) -> Result<Accumula
     let h_0 = PallasPoly::rand(1, rng);
 
     // 2. Then compute a deterministic commitment to h_0: U_0 := PCDL.Commit_ρ0(ck_PC, h_0, d; ω = ⊥).
-    let U_0 = pcdl::commit(&h_0, None);
+    let U_0 = pcdl::commit(&h_0, d, None);
 
     // 3. Sample commitment randomness ω ∈ Fq, and set π_V := (h_0, U_0, ω).
     let w = PallasScalar::rand(rng);
@@ -206,7 +206,7 @@ pub fn prover<R: Rng>(rng: &mut R, d: usize, qs: &[Instance]) -> Result<Accumula
 
     // 6. Generate the hiding evaluation proof π := PCDL.Open_ρ0(ck_PC, h(X), C_bar, d, z; ω).
     //let pi = pcdl::open(rng, h, C_bar, d, &z, Some(&w));
-    let pi = pcdl::open(rng, h.get_poly(), C_bar, &z, Some(&w));
+    let pi = pcdl::open(rng, h.get_poly(), C_bar, d, &z, Some(&w));
 
     // 7. Finally, output the accumulator acc = ((C_bar, d, z, v), π) and the accumulation proof π_V.
     Ok(Accumulator {
@@ -262,15 +262,17 @@ mod tests {
     use super::*;
 
     fn random_instance<R: Rng>(rng: &mut R, d: usize) -> Instance {
+        let d_prime = rng.sample(&Uniform::new(1, d));
+
         // Commit to a random polynomial
         let w = PallasScalar::rand(rng);
-        let p = PallasPoly::rand(d, rng);
-        let C = pcdl::commit(&p, Some(&w));
+        let p = PallasPoly::rand(d_prime, rng);
+        let C = pcdl::commit(&p, d, Some(&w));
 
         // Generate an evaluation proof
         let z = PallasScalar::rand(rng);
         let v = p.evaluate(&z);
-        let pi = pcdl::open(rng, p, C, &z, Some(&w));
+        let pi = pcdl::open(rng, p, C, d, &z, Some(&w));
 
         Instance { C, d, z, v, pi }
     }

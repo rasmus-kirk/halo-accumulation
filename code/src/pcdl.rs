@@ -41,16 +41,6 @@ impl<T> VecPushOwn<T> for Vec<T> {
     }
 }
 
-pub fn commit(p: &PallasPoly, w: Option<&PallasScalar>) -> PallasPoint {
-    let d = p.degree();
-    let n = d + 1;
-
-    assert!(n.is_power_of_two());
-    assert!(d <= D);
-
-    pedersen::commit(w, &GS[0..n], &p.coeffs)
-}
-
 #[derive(Clone, CanonicalSerialize)]
 pub struct HPoly {
     pub(crate) xis: Vec<PallasScalar>,
@@ -101,6 +91,19 @@ impl HPoly {
     }
 }
 
+pub fn commit(p: &PallasPoly, d: usize, w: Option<&PallasScalar>) -> PallasPoint {
+    let n = d + 1;
+
+    assert!(n.is_power_of_two());
+    assert!(p.degree() <= d);
+    assert!(d <= D);
+
+    let mut coeffs = p.coeffs.clone();
+    coeffs.resize(n, PallasScalar::ZERO);
+
+    pedersen::commit(w, &GS[0..n], &coeffs)
+}
+
 /// rng: Required since the function uses randomness
 /// p: A univariate polynomial p(X)
 /// C: A commitment to p,
@@ -110,13 +113,14 @@ pub fn open<R: Rng>(
     rng: &mut R,
     p: PallasPoly,
     C: PallasPoint,
+    d: usize,
     z: &PallasScalar,
     w: Option<&PallasScalar>,
 ) -> EvalProof {
-    let d = p.degree();
     let n = d + 1;
     let lg_n = n.ilog2() as usize;
     assert!(n.is_power_of_two());
+    assert!(p.degree() <= d);
     assert!(d <= D);
 
     // 1. Compute the evaluation v := p(z) ∈ Fq.
@@ -126,7 +130,7 @@ pub fn open<R: Rng>(
         // (2). Sample a random polynomial p_bar ∈ F^(≤d)_q[X] such that p_bar(z) = 0.
         // p_bar(X) = (X - z) * q(X), where q(X) is a uniform random polynomial
         let z_poly = PallasPoly::from_coefficients_vec(vec![-*z, PallasScalar::ONE]);
-        let q = PallasPoly::rand(d - 1, rng);
+        let q = PallasPoly::rand(p.degree() - 1, rng);
         let p_bar = q * z_poly;
         assert_eq!(p_bar.evaluate(z), PallasScalar::ZERO);
         assert_eq!(p_bar.degree(), p.degree());
@@ -135,7 +139,7 @@ pub fn open<R: Rng>(
         let w_bar = PallasScalar::rand(rng);
 
         // (4). Compute a hiding commitment to p_bar: C_bar ← CM.Commit^(ρ0)(ck, p_bar; ω_bar) ∈ G.
-        let C_bar = commit(&p_bar, Some(&w_bar));
+        let C_bar = commit(&p_bar, d, Some(&w_bar));
 
         // (5). Compute the challenge α := ρ(C, z, v, C_bar) ∈ F^∗_q.
         let a = rho_0![C, z, v, C_bar];
@@ -169,6 +173,7 @@ pub fn open<R: Rng>(
     let H_prime = H * xi_i;
 
     let mut cs = p_prime.coeffs;
+    cs.resize(n, PallasScalar::ZERO);
     let mut gs: Vec<PallasPoint> = GS[0..n].iter().map(|x| PallasPoint::from(*x)).collect();
     let mut zs = construct_powers(z, n);
 
@@ -412,19 +417,19 @@ mod tests {
     #[test]
     fn test_check() -> Result<()> {
         let mut rng = rand::thread_rng();
-        let n_range = Uniform::new(2, 10);
-        let n = (2 as usize).pow(rng.sample(&n_range));
+        let n = (2 as usize).pow(rng.sample(&Uniform::new(2, 10)));
         let d = n - 1;
+        let d_prime = rng.sample(&Uniform::new(1, d));
 
         // Commit to a random polynomial
         let w = PallasScalar::rand(&mut rng);
-        let p = PallasPoly::rand(d, &mut rng);
-        let C = commit(&p, Some(&w));
+        let p = PallasPoly::rand(d_prime, &mut rng);
+        let C = commit(&p, d, Some(&w));
 
         // Generate an evaluation proof
         let z = PallasScalar::rand(&mut rng);
         let v = p.evaluate(&z);
-        let pi = open(&mut rng, p, C, &z, Some(&w));
+        let pi = open(&mut rng, p, C, d, &z, Some(&w));
 
         // Verify that check works
         check(&C, d, &z, &v, pi)?;
@@ -435,18 +440,18 @@ mod tests {
     #[test]
     fn test_check_no_hiding() -> Result<()> {
         let mut rng = rand::thread_rng();
-        let n_range = Uniform::new(2, 10);
-        let n = (2 as usize).pow(rng.sample(&n_range));
+        let n = (2 as usize).pow(rng.sample(&Uniform::new(2, 10)));
         let d = n - 1;
+        let d_prime = rng.sample(&Uniform::new(1, d));
 
         // Commit to a random polynomial
-        let p = PallasPoly::rand(d, &mut rng);
-        let C = commit(&p, None);
+        let p = PallasPoly::rand(d_prime, &mut rng);
+        let C = commit(&p, d, None);
 
         // Generate an evaluation proof
         let z = PallasScalar::rand(&mut rng);
         let v = p.evaluate(&z);
-        let pi = open(&mut rng, p, C, &z, None);
+        let pi = open(&mut rng, p, C, d, &z, None);
 
         // Verify that check works
         check(&C, d, &z, &v, pi)?;
