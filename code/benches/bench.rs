@@ -27,8 +27,16 @@ criterion_group! {
         acc_prover,
         acc_verifier,
         acc_decider,
-        acc_hamid_slow,
-        acc_hamid_fast,
+        acc_cmp_s_512,
+        acc_cmp_s_1024,
+        acc_cmp_s_2048,
+        acc_cmp_s_4096,
+        acc_cmp_s_8196,
+        acc_cmp_f_512,
+        acc_cmp_f_1024,
+        acc_cmp_f_2048,
+        acc_cmp_f_4096,
+        acc_cmp_f_8196,
 }
 
 criterion_main!(acc, h);
