@@ -18,7 +18,7 @@ use crate::{
 };
 
 /// q in the paper
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Instance {
     C: PallasPoint,      // Commitment to the coefficints of a polynomial p
     d: usize,            // The degree of p
@@ -40,7 +40,7 @@ impl Ord for Instance {
 }
 
 /// acc in the paper
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Accumulator {
     C_bar: PallasPoint,
     d: usize,
@@ -51,7 +51,7 @@ pub struct Accumulator {
 }
 
 /// pi_V in the paper, used for hiding only
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct AccumulatorHiding {
     h: PallasPoly,
     U: PallasPoint,
@@ -59,11 +59,11 @@ pub struct AccumulatorHiding {
 }
 
 #[derive(Clone, CanonicalSerialize)]
-pub struct AccumulatedHPolys {
-    pub(crate) h_0: Option<PallasPoly>,
-    pub(crate) hs: Vec<pcdl::HPoly>,
-    pub(crate) alpha: Option<PallasScalar>,
-    pub(crate) alphas: Vec<PallasScalar>,
+struct AccumulatedHPolys {
+    h_0: Option<PallasPoly>,
+    hs: Vec<pcdl::HPoly>,
+    alpha: Option<PallasScalar>,
+    alphas: Vec<PallasScalar>,
 }
 
 impl AccumulatedHPolys {
