@@ -19,7 +19,7 @@ use crate::{
     pedersen,
 };
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EvalProof {
     Ls: Vec<PallasPoint>,
     Rs: Vec<PallasPoint>,
