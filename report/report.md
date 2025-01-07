@@ -41,9 +41,9 @@ on bulletproofs if need be:
 ### Proof Systems
 
 In an Interactive Proof System we have two Interactive Turing machines
-the computationally unbounded Prover, P, and the polynomially time bounded
-Verifier, V. The Prover tries to convince the Verifier of a statement $x \in L$
-language $L \subset \mathbb{B}^*$ in NP. The following properties must be true:
+the computationally unbounded Prover, P, and the polynomally time bounded
+Verifier, V. The Prover tries to convince the Verifier of a statement
+$x \in L$ language $L$ in NP. The following properties must be true:
 
 - Completeness: $\forall P \in ITM, x\in L \implies Pr[V_{out} = \bot] \leq \epsilon(x)$
 
@@ -57,10 +57,9 @@ language $L \subset \mathbb{B}^*$ in NP. The following properties must be true:
   verifier will be convinced is negligible in the length of $x$.
 
 An Interactive Argument is very similar, but the honest and malicious prover
-is now polynomially bounded and receives a Private Auxilliary Input, for
-example a witness:
+is now polynomially bounded and receives a witness, $w$:
 
-- Completeness: $\forall P(PAI) \in PPT, x\in L \implies Pr[V_{out} = \bot] \leq \epsilon(x)$
+- Completeness: $\forall P(w) \in PPT, x\in L \implies Pr[V_{out} = \bot] \leq \epsilon(x)$
 - Soundness: $\forall P^* \in PPT, x \notin L \implies Pr[V_{out} = \top] \leq \epsilon(x)$
 
 Proof of knowledge is another type of Proof System, here the prover claims
@@ -116,12 +115,11 @@ More concretely, imagine that Alice has todays sudoku problem $x$: She
 claims to have a solution to this problem, her witness, $w$, and want to
 convince Bob without having to send all of it. She could then use a SNARK to
 create a proof to convince Bob. To do this she must first encode the sudoku
-verifier as a circuit $R_x$, and then give the SNARK prover ($\SNARKProver$)
-$R_x(w,w')$ where $w'$ is a public input. This public input could correspond
-to the already known digits for todays sudoku. Finally she can send
-this proof, $\pi$, to Bob along with the public sudoku verifying circuit,
-$R_x$, and he can check the proof and be convinced using the snark verifier
-($\SNARKVerifier$).
+verifier as a circuit $R_x$, which includes public inputs, such as today's
+sudoku values/positions, etc, and then give the SNARK prover ($\SNARKProver$)
+$R_x(w,w')$. Finally she can send this proof, $\pi$, to Bob along with the
+public sudoku verifying circuit, $R_x$, and he can check the proof and be
+convinced using the snark verifier ($\SNARKVerifier$).
 
 Importantly, the succinct part of the name means that the proof size and
 verification time must be sublinear. This allows SNARKs to be directly used
@@ -217,11 +215,11 @@ circuit $R$:
 
 $$z_i = F(z_{i-1}) \; \land \; (i = 0 \lor \exists \, \pi_{i-1}, \, \text{ s.t. } \SNARKVerifier(z_{i-1}, \pi_{i-1}) = \top)$$
 
-Where $V$ represents the verification circuit in the proof system we're
-using. This means, that we're taking the verifier, representing it as a circuit, and
-then feeding it to the prover. This is not a trivial task in practice! It
-also means that the verification time must be sublinear for IVC to work
-properly, otherwise
+Where $\SNARKVerifier$ represents the verification circuit in the proof
+system we're using. This means, that we're taking the verifier, representing
+it as a circuit, and then feeding it to the prover. This is not a trivial
+task in practice! It also means that the verification time must be sublinear
+for IVC to work properly, otherwise
 
 **TODO**:
 
@@ -320,9 +318,11 @@ $$
   &\SNARKVerifierSlow(\pi_i)                               &&= \top \then \\
   &\ASVerifier((z_{n-1}, \pi_{n-1}), acc_{n-1}, acc_n)     &&= \top \then \\
   &\ASVerifier((z_{n-2}, \pi_{n-2}), acc_{n-2}, acc_{n-1}) &&= \top \then \cdots \\
-  &\ASVerifier((z_0, \pi_0), acc_0, acc_1)                 &&= \top \then \\
+  &\ASVerifier((z_1, \pi_1), acc_0, acc_1)                 &&= \top \then \\
 \end{alignedat}
 $$
+
+<!-- TODO: acc_0 is sus -->
 
 Now, by the soundness property of the Accumulation Scheme, and instance
 $q \in X$ will be true if $\top = \ASVerifier(q, acc_i, acc_{i+1}) =
@@ -332,7 +332,7 @@ the case however due to the definition of the decider whereby checking an
 accumulator $acc_i$ ensures that every previous instance is true, $\Phi(q_i)
 = \top$, provided that all previous verifiers accepted.
 
-### General Polynomial Commitment Schemes
+### Polynomial Commitment Schemes
 
 In the section above about SNARKs, general-purpose proof schemes were
 described. Modern general-purpose (zero-knowledge) proof schemes, such as
@@ -356,8 +356,8 @@ three main functions used to prove this ($\PCSetup$ and $\PCTrim$ omitted):
 
 - $\PCCommit(p: \Fb^{d'}_q[X], d: \Nb, \o: \Option(\Fb_q)) \to \Eb(\Fb_q)$
 
-  Commits to a polynomial $p$ with degree bound $d$ where $d \geq d'$ using
-  optional hiding $\o$.
+  Commits to a degree-$d'$ polynomial $p$ with degree bound $d$ where $d
+  \geq d'$ using optional hiding $\o$.
 
 - $\PCOpen(p: \Fb^{d'}_q[X], C: \Eb(\Fb_q), d: \Nb, z: \Fb_q, \o: \Option(\Fb_q)) \to \EvalProof$
 
