@@ -44,21 +44,12 @@ fn get_pp(n: usize) -> (PallasPoint, PallasPoint, Vec<PallasPoint>) {
     (S, H, Gs)
 }
 
-fn format_affine(name: &str, P: Affine) -> String {
-    format!(
-        "{name}: ({:?}, {:?})\n",
-        P.x.into_bigint().0,
-        P.y.into_bigint().0
-    )
+fn format_affine(P: Affine) -> String {
+    format!("mk_aff!({:?}, {:?}),\n", P.x.0 .0, P.y.0 .0)
 }
 
 fn format_projective(name: &str, P: PallasPoint) -> String {
-    format!(
-        "{name}: ({:?}, {:?}, {:?})\n",
-        P.x.into_bigint().0,
-        P.y.into_bigint().0,
-        P.z.into_bigint().0
-    )
+    format!("{name}: ({:?}, {:?}, {:?})\n", P.x.0 .0, P.y.0 .0, P.z.0 .0)
 }
 
 fn log_pp(filepath: &Path, n: usize) -> Result<()> {
@@ -67,8 +58,8 @@ fn log_pp(filepath: &Path, n: usize) -> Result<()> {
     let mut output = File::create(filepath)?;
     write!(output, "{}", format_projective("S", S))?;
     write!(output, "{}", format_projective("H", H))?;
-    for (i, G) in Gs.iter().enumerate() {
-        let s = format_affine(format!("G_{}", i).as_str(), G.into_affine());
+    for G in Gs {
+        let s = format_affine(G.into_affine());
         write!(output, "{}", s)?;
     }
 
@@ -77,6 +68,34 @@ fn log_pp(filepath: &Path, n: usize) -> Result<()> {
 
 fn main() {
     println!("Hello, world!");
-    let n = 8192;
+    let n = 16384;
     log_pp(Path::new("points.txt"), n).unwrap();
+}
+
+#[cfg(test)]
+mod tests {
+    use ark_ff::BigInt;
+    use ark_pallas::Fq;
+
+    use super::*;
+
+    macro_rules! mk_aff {
+        ($x:tt, $y:tt) => {
+            Affine::new_unchecked(
+                Fq::new_unchecked(BigInt::new($x)),
+                Fq::new_unchecked(BigInt::new($y)),
+            )
+        };
+    }
+
+    #[test]
+    fn test_fq_reconstruction() {
+        let (_, _, Gs) = get_pp(512);
+
+        for G in Gs {
+            let x = G.into_affine().x.0 .0;
+            let y = G.into_affine().y.0 .0;
+            assert_eq!(mk_aff!(x, y), G.into_affine());
+        }
+    }
 }

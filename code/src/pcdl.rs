@@ -99,7 +99,7 @@ impl HPoly {
 pub fn commit(p: &PallasPoly, d: usize, w: Option<&PallasScalar>) -> PallasPoint {
     let n = d + 1;
 
-    assert!(n.is_power_of_two());
+    assert!(n.is_power_of_two(), "{:?}, {:?}, {:?}", p.degree(), d, w);
     assert!(p.degree() <= d);
     assert!(d <= D);
 
