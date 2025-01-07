@@ -12,11 +12,11 @@ use rand::{distributions::Uniform, Rng};
 
 //const N: usize = 8192;
 const N: usize = 512;
-const K: usize = 10;
+const K: usize = 1000;
 
 fn random_instance<R: Rng>(rng: &mut R, d: usize) -> acc::Instance {
-    let d_prime = rng.sample(&Uniform::new(1, d));
-
+    let d_prime = rng.sample(&Uniform::new(d/2, d));
+    
     // Commit to a random polynomial
     let w = PallasScalar::rand(rng);
     let p = PallasPoly::rand(d_prime, rng);
@@ -186,15 +186,267 @@ pub fn acc_cmp_f_4096(c: &mut Criterion) {
 }
 
 pub fn acc_cmp_s_8196(c: &mut Criterion) {
-    let accs = acc_compare_slow(8196, K);
+    let accs = acc_compare_slow(8192, K);
     c.bench_function("acc_cmp_s_8196", |b| {
         b.iter(|| acc_compare_slow_helper(accs.clone()).unwrap())
     });
 }
 
 pub fn acc_cmp_f_8196(c: &mut Criterion) {
-    let (d, qss, accs) = acc_compare_fast(8196, K);
+    let (d, qss, accs) = acc_compare_fast(8192, K);
     c.bench_function("acc_cmp_f_8196", |b| {
+        b.iter(|| acc_compare_fast_helper(d, &qss, accs.clone()).unwrap())
+    });
+}
+
+pub fn acc_cmp_s_512_10(c: &mut Criterion) {
+    let accs = acc_compare_slow(512, 10);
+    c.bench_function("acc_cmp_s_512_10", |b| {
+        b.iter(|| acc_compare_slow_helper(accs.clone()).unwrap())
+    });
+}
+
+pub fn acc_cmp_f_512_10(c: &mut Criterion) {
+    let (d, qss, accs) = acc_compare_fast(512, 10);
+    c.bench_function("acc_cmp_f_512_10", |b| {
+        b.iter(|| acc_compare_fast_helper(d, &qss, accs.clone()).unwrap())
+    });
+}
+
+pub fn acc_cmp_s_1024_10(c: &mut Criterion) {
+    let accs = acc_compare_slow(1024, 10);
+    c.bench_function("acc_cmp_s_1024_10", |b| {
+        b.iter(|| acc_compare_slow_helper(accs.clone()).unwrap())
+    });
+}
+
+pub fn acc_cmp_f_1024_10(c: &mut Criterion) {
+    let (d, qss, accs) = acc_compare_fast(1024, 10);
+    c.bench_function("acc_cmp_f_1024_10", |b| {
+        b.iter(|| acc_compare_fast_helper(d, &qss, accs.clone()).unwrap())
+    });
+}
+
+pub fn acc_cmp_s_2048_10(c: &mut Criterion) {
+    let accs = acc_compare_slow(2048, 10);
+    c.bench_function("acc_cmp_s_2048_10", |b| {
+        b.iter(|| acc_compare_slow_helper(accs.clone()).unwrap())
+    });
+}
+
+pub fn acc_cmp_f_2048_10(c: &mut Criterion) {
+    let (d, qss, accs) = acc_compare_fast(2048, 10);
+    c.bench_function("acc_cmp_f_2048_10", |b| {
+        b.iter(|| acc_compare_fast_helper(d, &qss, accs.clone()).unwrap())
+    });
+}
+
+pub fn acc_cmp_s_4096_10(c: &mut Criterion) {
+    let accs = acc_compare_slow(4096, 10);
+    c.bench_function("acc_cmp_s_4096_10", |b| {
+        b.iter(|| acc_compare_slow_helper(accs.clone()).unwrap())
+    });
+}
+
+pub fn acc_cmp_f_4096_10(c: &mut Criterion) {
+    let (d, qss, accs) = acc_compare_fast(4096, 10);
+    c.bench_function("acc_cmp_f_4096_10", |b| {
+        b.iter(|| acc_compare_fast_helper(d, &qss, accs.clone()).unwrap())
+    });
+}
+
+pub fn acc_cmp_s_8196_10(c: &mut Criterion) {
+    let accs = acc_compare_slow(8192, 10);
+    c.bench_function("acc_cmp_s_8196_10", |b| {
+        b.iter(|| acc_compare_slow_helper(accs.clone()).unwrap())
+    });
+}
+
+pub fn acc_cmp_f_8196_10(c: &mut Criterion) {
+    let (d, qss, accs) = acc_compare_fast(8192, 10);
+    c.bench_function("acc_cmp_f_8196_10", |b| {
+        b.iter(|| acc_compare_fast_helper(d, &qss, accs.clone()).unwrap())
+    });
+}
+
+pub fn acc_cmp_s_16384_10(c: &mut Criterion) {
+    let accs = acc_compare_slow(16384, 10);
+    c.bench_function("acc_cmp_s_16384_10", |b| {
+        b.iter(|| acc_compare_slow_helper(accs.clone()).unwrap())
+    });
+}
+
+pub fn acc_cmp_f_16384_10(c: &mut Criterion) {
+    let (d, qss, accs) = acc_compare_fast(16384, 10);
+    c.bench_function("acc_cmp_f_16384_10", |b| {
+        b.iter(|| acc_compare_fast_helper(d, &qss, accs.clone()).unwrap())
+    });
+}
+
+pub fn acc_cmp_s_512_100(c: &mut Criterion) {
+    let accs = acc_compare_slow(512, 100);
+    c.bench_function("acc_cmp_s_512_100", |b| {
+        b.iter(|| acc_compare_slow_helper(accs.clone()).unwrap())
+    });
+}
+
+pub fn acc_cmp_f_512_100(c: &mut Criterion) {
+    let (d, qss, accs) = acc_compare_fast(512, 100);
+    c.bench_function("acc_cmp_f_512_100", |b| {
+        b.iter(|| acc_compare_fast_helper(d, &qss, accs.clone()).unwrap())
+    });
+}
+
+pub fn acc_cmp_s_1024_100(c: &mut Criterion) {
+    let accs = acc_compare_slow(1024, 100);
+    c.bench_function("acc_cmp_s_1024_100", |b| {
+        b.iter(|| acc_compare_slow_helper(accs.clone()).unwrap())
+    });
+}
+
+pub fn acc_cmp_f_1024_100(c: &mut Criterion) {
+    let (d, qss, accs) = acc_compare_fast(1024, 100);
+    c.bench_function("acc_cmp_f_1024_100", |b| {
+        b.iter(|| acc_compare_fast_helper(d, &qss, accs.clone()).unwrap())
+    });
+}
+
+pub fn acc_cmp_s_2048_100(c: &mut Criterion) {
+    let accs = acc_compare_slow(2048, 100);
+    c.bench_function("acc_cmp_s_2048_100", |b| {
+        b.iter(|| acc_compare_slow_helper(accs.clone()).unwrap())
+    });
+}
+
+pub fn acc_cmp_f_2048_100(c: &mut Criterion) {
+    let (d, qss, accs) = acc_compare_fast(2048, 100);
+    c.bench_function("acc_cmp_f_2048_100", |b| {
+        b.iter(|| acc_compare_fast_helper(d, &qss, accs.clone()).unwrap())
+    });
+}
+
+pub fn acc_cmp_s_4096_100(c: &mut Criterion) {
+    let accs = acc_compare_slow(4096, 100);
+    c.bench_function("acc_cmp_s_4096_100", |b| {
+        b.iter(|| acc_compare_slow_helper(accs.clone()).unwrap())
+    });
+}
+
+pub fn acc_cmp_f_4096_100(c: &mut Criterion) {
+    let (d, qss, accs) = acc_compare_fast(4096, 100);
+    c.bench_function("acc_cmp_f_4096_100", |b| {
+        b.iter(|| acc_compare_fast_helper(d, &qss, accs.clone()).unwrap())
+    });
+}
+
+pub fn acc_cmp_s_8196_100(c: &mut Criterion) {
+    let accs = acc_compare_slow(8192, 100);
+    c.bench_function("acc_cmp_s_8196_100", |b| {
+        b.iter(|| acc_compare_slow_helper(accs.clone()).unwrap())
+    });
+}
+
+pub fn acc_cmp_f_8196_100(c: &mut Criterion) {
+    let (d, qss, accs) = acc_compare_fast(8192, 100);
+    c.bench_function("acc_cmp_f_8196_100", |b| {
+        b.iter(|| acc_compare_fast_helper(d, &qss, accs.clone()).unwrap())
+    });
+}
+
+pub fn acc_cmp_s_16384_100(c: &mut Criterion) {
+    let accs = acc_compare_slow(16384, 100);
+    c.bench_function("acc_cmp_s_16384_100", |b| {
+        b.iter(|| acc_compare_slow_helper(accs.clone()).unwrap())
+    });
+}
+
+pub fn acc_cmp_f_16384_100(c: &mut Criterion) {
+    let (d, qss, accs) = acc_compare_fast(16384, 100);
+    c.bench_function("acc_cmp_f_16384_100", |b| {
+        b.iter(|| acc_compare_fast_helper(d, &qss, accs.clone()).unwrap())
+    });
+}
+
+pub fn acc_cmp_s_512_1000(c: &mut Criterion) {
+    let accs = acc_compare_slow(512, 1000);
+    c.bench_function("acc_cmp_s_512_1000", |b| {
+        b.iter(|| acc_compare_slow_helper(accs.clone()).unwrap())
+    });
+}
+
+pub fn acc_cmp_f_512_1000(c: &mut Criterion) {
+    let (d, qss, accs) = acc_compare_fast(512, 1000);
+    c.bench_function("acc_cmp_f_512_1000", |b| {
+        b.iter(|| acc_compare_fast_helper(d, &qss, accs.clone()).unwrap())
+    });
+}
+
+pub fn acc_cmp_s_1024_1000(c: &mut Criterion) {
+    let accs = acc_compare_slow(1024, 1000);
+    c.bench_function("acc_cmp_s_1024_1000", |b| {
+        b.iter(|| acc_compare_slow_helper(accs.clone()).unwrap())
+    });
+}
+
+pub fn acc_cmp_f_1024_1000(c: &mut Criterion) {
+    let (d, qss, accs) = acc_compare_fast(1024, 1000);
+    c.bench_function("acc_cmp_f_1024_1000", |b| {
+        b.iter(|| acc_compare_fast_helper(d, &qss, accs.clone()).unwrap())
+    });
+}
+
+pub fn acc_cmp_s_2048_1000(c: &mut Criterion) {
+    let accs = acc_compare_slow(2048, 1000);
+    c.bench_function("acc_cmp_s_2048_1000", |b| {
+        b.iter(|| acc_compare_slow_helper(accs.clone()).unwrap())
+    });
+}
+
+pub fn acc_cmp_f_2048_1000(c: &mut Criterion) {
+    let (d, qss, accs) = acc_compare_fast(2048, 1000);
+    c.bench_function("acc_cmp_f_2048_1000", |b| {
+        b.iter(|| acc_compare_fast_helper(d, &qss, accs.clone()).unwrap())
+    });
+}
+
+pub fn acc_cmp_s_4096_1000(c: &mut Criterion) {
+    let accs = acc_compare_slow(4096, 1000);
+    c.bench_function("acc_cmp_s_4096_1000", |b| {
+        b.iter(|| acc_compare_slow_helper(accs.clone()).unwrap())
+    });
+}
+
+pub fn acc_cmp_f_4096_1000(c: &mut Criterion) {
+    let (d, qss, accs) = acc_compare_fast(4096, 1000);
+    c.bench_function("acc_cmp_f_4096_1000", |b| {
+        b.iter(|| acc_compare_fast_helper(d, &qss, accs.clone()).unwrap())
+    });
+}
+
+pub fn acc_cmp_s_8196_1000(c: &mut Criterion) {
+    let accs = acc_compare_slow(8192, 1000);
+    c.bench_function("acc_cmp_s_8196_1000", |b| {
+        b.iter(|| acc_compare_slow_helper(accs.clone()).unwrap())
+    });
+}
+
+pub fn acc_cmp_f_8196_1000(c: &mut Criterion) {
+    let (d, qss, accs) = acc_compare_fast(8192, 1000);
+    c.bench_function("acc_cmp_f_8196_1000", |b| {
+        b.iter(|| acc_compare_fast_helper(d, &qss, accs.clone()).unwrap())
+    });
+}
+
+pub fn acc_cmp_s_16384_1000(c: &mut Criterion) {
+    let accs = acc_compare_slow(16384, 1000);
+    c.bench_function("acc_cmp_s_16384_1000", |b| {
+        b.iter(|| acc_compare_slow_helper(accs.clone()).unwrap())
+    });
+}
+
+pub fn acc_cmp_f_16384_1000(c: &mut Criterion) {
+    let (d, qss, accs) = acc_compare_fast(16384, 1000);
+    c.bench_function("acc_cmp_f_16384_1000", |b| {
         b.iter(|| acc_compare_fast_helper(d, &qss, accs.clone()).unwrap())
     });
 }

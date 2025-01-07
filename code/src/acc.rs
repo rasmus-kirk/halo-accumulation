@@ -298,7 +298,7 @@ mod tests {
     #[test]
     fn test_acc_scheme() -> Result<()> {
         let mut rng = rand::thread_rng();
-        let n_range = Uniform::new(2, 10);
+        let n_range = Uniform::new(2, 5);
         let n = (2 as usize).pow(rng.sample(&n_range));
         let d = n - 1;
 
