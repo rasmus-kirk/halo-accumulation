@@ -10,9 +10,7 @@ use halo_accumulation::{
 };
 use rand::{distributions::Uniform, Rng};
 
-//const N: usize = 8192;
-const N: usize = 512;
-const K: usize = 1000;
+const N: usize = 1024;
 
 fn random_instance<R: Rng>(rng: &mut R, d: usize) -> acc::Instance {
     let d_prime = rng.sample(&Uniform::new(d/2, d));
