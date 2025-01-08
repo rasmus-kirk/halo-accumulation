@@ -33,6 +33,7 @@ criterion_group! {
         acc_cmp_s_1024_10,
         acc_cmp_s_2048_10,
         acc_cmp_s_4096_10,
+        acc_cmp_s_8196_10,
         acc_cmp_s_16384_10,
         acc_cmp_f_512_10,
         acc_cmp_f_1024_10,
