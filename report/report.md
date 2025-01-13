@@ -6,8 +6,6 @@ author:
 geometry: margin=2cm
 ---
 
-<!-- TODO: We use \exists in claims, but explicitly we require the prover to prove that they have know a witness not merely that it exists-->
-<!-- TODO: The assumptions on $d$ seems wrong in the code, not a big deal -->
 <!-- TODO: FRI does not technically form a PCS, but it's comparable -->
 
 \tableofcontents
@@ -165,18 +163,18 @@ $s$'s, $\vec{s} \in S^{n+1}$:
 \centering
 \begin{tikzpicture}[node distance=2cm]
 
-    % Nodes
-    \node (s0) [node] {$s_0$};
-    \node (s1) [node, right=of s0] {$s_1$};
-    \node (s2) [node, right=of s1] {$s_2$};
-    \node (dots) [right=2cm of s2] {$\dots$};
-    \node (sn) [node, right=2cm of dots] {$s_n$};
+  % Nodes
+  \node (s0) [node] {$s_0$};
+  \node (s1) [node, right=of s0] {$s_1$};
+  \node (s2) [node, right=of s1] {$s_2$};
+  \node (dots) [right=2cm of s2] {$\dots$};
+  \node (sn) [node, right=2cm of dots] {$s_n$};
 
-    % Arrows with labels
-    \draw[arrow] (s0) -- node[above] {$F(s_0)$} (s1);
-    \draw[arrow] (s1) -- node[above] {$F(s_1)$} (s2);
-    \draw[arrow] (s2) -- node[above] {$F(s_2)$} (dots);
-    \draw[arrow] (dots) -- node[above] {$F(s_{n-1})$} (sn);
+  % Arrows with labels
+  \draw[arrow] (s0) -- node[above] {$F(s_0)$} (s1);
+  \draw[arrow] (s1) -- node[above] {$F(s_1)$} (s2);
+  \draw[arrow] (s2) -- node[above] {$F(s_2)$} (dots);
+  \draw[arrow] (dots) -- node[above] {$F(s_{n-1})$} (sn);
 
 \end{tikzpicture}
 \caption{
@@ -196,23 +194,22 @@ function ($s_0, F(x)$) and verify that said state was computed correctly.
 \centering
 \begin{tikzpicture}[node distance=2cm]
 
-    % Nodes
-    \node (s0) [node] {$s_0$};
-    \node (s1) [node, right=of s0] {$(s_1, \pi_1)$};
-    \node (s2) [node, right=of s1] {$(s_2, \pi_2)$};
-    \node (dots) [right=2cm of s2] {$\dots$};
-    \node (sn) [node, right=2cm of dots] {$(s_n, \pi_n)$};
+  % Nodes
+  \node (s0) [node] {$s_0$};
+  \node (s1) [node, right=of s0] {$(s_1, \pi_1)$};
+  \node (dots) [right=2cm of s1] {$\dots$};
+  \node (sn) [node, right=3cm of dots] {$(s_n, \pi_n)$};
 
-    % Arrows with labels
-    \draw[arrow] (s0) -- node[above] {$F(s_0)$} (s1);
-    \draw[arrow] (s1) -- node[above] {$F(s_1)$} (s2);
-    \draw[arrow] (s2) -- node[above] {$F(s_2)$} (dots);
-    \draw[arrow] (dots) -- node[above] {$F(s_{n-1})$} (sn);
+  % Arrows with labels
+  \draw[arrow] (s0) -- node[above] {$\Pc(s_0, \bot)$} (s1);
+  \draw[arrow] (s1) -- node[above] {$\Pc(s_1, \pi_1)$} (dots);
+  \draw[arrow] (dots) -- node[above] {$\Pc(s_{n-1}, \pi_{n-1})$} (sn);
 
 \end{tikzpicture}
 \caption{
   A visualization of the relationship between $F, \vec{s}$ and $\vec{\pi}$
-  in an IVC setting using traditional SNARKs.
+  in an IVC setting using traditional SNARKs. $\Pc(s_i, \pi_i)$ denotes
+  $\SNARKProver(s_{i-1}, R_F, \pi_{i-1}) = (s_i, \pi_i)$.
 }
 \end{figure}
 
@@ -222,10 +219,10 @@ The proof $\pi_i$ describes the following claim:
 > ($s_i = F^i(s_0) = F(s_{i-1})$) and the associated proof $\pi_{i-1}$ for
 > the previous state is valid."}_
 
-Or more formally, $\pi_i$ is a proof of the following claim, $c_i$, expressed as a
-circuit $R$:
+Or more formally, $\pi_i$ is a proof of the following claim, expressed as
+a circuit $R$:
 
-$$R := \text{I.K.} \; \pi_{n-1} \; &&\text{ s.t. } \; s_i \meq F(s_{i-1}) \; \land \; (i \meq 1 \lor \SNARKVerifier(R, s_{i-1} \pi_{i-1}) \meq \top))$$
+$$R := \text{I.K.} \; \pi_{n-1} \; \text{ s.t. } \; s_i \meq F(s_{i-1}) \; \land \; (s_{i-1} \meq s_0 \lor \SNARKVerifier(R, s_{i-1}, \pi_{i-1}) \meq \top))$$
 
 Note that $s_{i-1}, s_0$ are not quantified above, but are public values. The
 $\SNARKVerifier$ represents the verification circuit in the proof system
@@ -239,8 +236,8 @@ To see that the above construction works, observe that $\pi_1, \dots, \pi_n$ pro
 
 $$
 \begin{alignedat}{7}
-  &\text{I.K.} \; \pi_{n-1} \; &&\text{ s.t. } \; &&s_n     &&= F(s_{n-1}) \; &&\land \; (s_{n-1} = s_0  &&\lor \SNARKVerifier(R, s_{n-1} \pi_{n-1}) = \top), \\
-  &\text{I.K.} \; \pi_{n-2} \; &&\text{ s.t. } \; &&s_{n-1} &&= F(s_{n-2}) \; &&\land \; (s_{n-2} = s_0  &&\lor \SNARKVerifier(R, s_{n-2} \pi_{n-2}) = \top), \; \dots \\
+  &\text{I.K.} \; \pi_{n-1} \; &&\text{ s.t. } \; &&s_n     &&= F(s_{n-1}) \; &&\land \; (s_{n-1} = s_0  &&\lor \SNARKVerifier(R, s_{n-1}, \pi_{n-1}) = \top), \\
+  &\text{I.K.} \; \pi_{n-2} \; &&\text{ s.t. } \; &&s_{n-1} &&= F(s_{n-2}) \; &&\land \; (s_{n-2} = s_0  &&\lor \SNARKVerifier(R, s_{n-2}, \pi_{n-2}) = \top), \; \dots \\
   &                            &&              \; &&s_1     &&= F(s_0)     \; &&\land \; (s_0 = s_0      &&\lor \SNARKVerifier(R, s_0, \pi_0) = \top)
 \end{alignedat}
 $$
@@ -316,9 +313,9 @@ three main functions used to prove this ($\PCSetup$ and $\PCTrim$ omitted):
   with commitment $C$, and degree bound $d$ where $d' \leq d$, evaluates to
   $v = p(z)$.
 
-Any NP-problem, $x \in NP$, with a witness $w$ can be compiled into a circuit
-$R_x$. This circuit can then be fed to a general-purpose proof scheme prover
-$\Pc_{R_x}$ along with the witness $w \in X$, that creates a proof of the
+Any NP-problem, $X \in NP$, with a witness $w$ can be compiled into a circuit
+$R_X$. This circuit can then be fed to a general-purpose proof scheme prover
+$\Pc_{R_X}$ along with the witness $w \in X$, that creates a proof of the
 statement $"R_X(w) = \top"$, typically consisting of a series of pairs
 representing opening proofs:
 
@@ -330,9 +327,10 @@ verified using $\PCCheck$:
 $$\PCCheck(C_1, d, z_1, v_1, \pi_1) \meq \dots \meq \PCCheck(C_m, d, z_m, v_m, \pi_m) \meq \top$$
 
 Along with some checks that the evaluations $\vec{v}$ satisfies any desired
-relations associated with the circuit $R_X$. If all these checks verify,
-then the verifier $\Vc_x$ will be convinced that $w$ is a valid witness for
-$x$. In this way, a proof of knowledge of a witness for any NP-problem can
+relations associated with the circuit $R_X$, which we can model using a
+function $I_X \in \Instance \to \{ \top, \bot \}$. If all these checks verify,
+then the verifier $\Vc_X$ will be convinced that $w$ is a valid witness for
+$X$. In this way, a proof of knowledge of a witness for any NP-problem can
 be represented as a series of PCS evaluation proofs, including our desired
 witness that $s_n = F^n(s_0)$.
 
@@ -484,16 +482,16 @@ A visualization of the chain of proofs can be seen below:
 \centering
 \begin{tikzpicture}[node distance=2cm]
 
-    % Nodes
-    \node (s0) [node] {$s_0$};
-    \node (s1) [node, right=of s0] {$(s_1, \pi_1)$};
-    \node (dots) [right=2cm of s1] {$\dots$};
-    \node (sn) [node, right=3cm of dots] {$(s_n, \pi_n)$};
+  % Nodes
+  \node (s0) [node] {$s_0$};
+  \node (s1) [node, right=of s0] {$(s_1, \pi_1)$};
+  \node (dots) [right=2cm of s1] {$\dots$};
+  \node (sn) [node, right=3cm of dots] {$(s_n, \pi_n)$};
 
-    % Arrows with labels
-    \draw[arrow] (s0) -- node[above] {$\Pc(s_0, \bot)$} (s1);
-    \draw[arrow] (s1) -- node[above] {$\Pc(s_1, \pi_1)$} (s2);
-    \draw[arrow] (dots) -- node[above] {$\Pc(s_{n-1}, \pi_{n-1})$} (sn);
+  % Arrows with labels
+  \draw[arrow] (s0) -- node[above] {$\Pc(s_0, \bot)$} (s1);
+  \draw[arrow] (s1) -- node[above] {$\Pc(s_1, \pi_1)$} (s2);
+  \draw[arrow] (dots) -- node[above] {$\Pc(s_{n-1}, \pi_{n-1})$} (sn);
 
 \end{tikzpicture}
 \caption{
