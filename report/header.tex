@@ -3,10 +3,11 @@
 \definecolor{GbBlueNt}{HTML}{458588}
 \definecolor{GbGrayNt}{HTML}{928374}
 \definecolor{GbBlueDk}{HTML}{076678}
+\definecolor{GbGrey}{HTML}{504945}
 \definecolor{GbFg4}{HTML}{7c6f64}
 \definecolor{GbFg3}{HTML}{665c54}
 \definecolor{GbFg2}{HTML}{504945}
-\definecolor{GbFg2}{HTML}{3c3836}
+\definecolor{GbFg1}{HTML}{3c3836}
 \usepackage{mathtools}
 
 \usepackage{tikz}
@@ -16,6 +17,10 @@
 \tikzstyle{data} = [trapezium, trapezium left angle=70, trapezium right angle=110, minimum width=1.5cm, minimum height=1cm, text centered, draw=black]
 \tikzstyle{arrow} = [thick, ->, >=stealth]
 \tikzstyle{node} = [rectangle, draw=black, minimum width=1cm, minimum height=1cm, text centered]
+
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepackage{pgfplotstable}
 
 \usepackage{hyperref}
 \hypersetup{
@@ -86,6 +91,8 @@
 
 \newcommand{\textblue}[1]{\textcolor{GbBlueDk}{#1}}
 \newcommand{\mathblue}[1]{\mathcolor{GbBlueDk}{#1}}
+\newcommand{\textgrey}[1]{\textcolor{GbGrey}{#1}}
+\newcommand{\mathgrey}[1]{\mathcolor{GbGrey}{#1}}
 \newcommand{\floor}[1]{\left \lfloor #1 \right \rfloor }
 \newcommand{\ceil}[1]{\left \lceil #1 \right \rceil }
 \renewcommand{\vec}[1]{ \boldsymbol{#1} }
@@ -93,6 +100,7 @@
 \newcommand{\ranvec}[1]{ \boldsymbol{\ran{#1}} }
 \newcommand{\dotp}[2]{ \langle #1, #2 \rangle }
 \newcommand{\ip}[2]{ \langle #1, #2 \rangle }
+\newcommand{\IK}[2]{ \mathrm{I.K} }
 
 \newcommand*{\pp}{\text{pp}}
 \newcommand*{\acc}{\text{acc}}
@@ -106,6 +114,7 @@
 \newcommand*{\SNARKProver}{\mathrm{\text{SNARK}}.\Prover}
 \newcommand*{\SNARKVerifier}{\mathrm{\text{SNARK}}.\Verifier}
 \newcommand*{\SNARKVerifierSlow}{\mathrm{\text{SNARK}}.\mathrm{\text{V\scriptsize ERIFIER}\text{S\scriptsize LOW}}}
+\newcommand*{\SNARKVerifierFast}{\mathrm{\text{SNARK}}.\mathrm{\text{V\scriptsize ERIFIER}\text{F\scriptsize AST}}}
 \newcommand*{\IVCProver}{\mathrm{\text{IVC}}.\Prover}
 \newcommand*{\IVCVerifier}{\mathrm{\text{IVC}}.\Verifier}
 \newcommand*{\AS}{\text{AS}}
@@ -141,6 +150,8 @@
 \newcommand*\Result{\mathbf{Result}}
 \newcommand*\Option{\mathbf{Option}}
 \newcommand*\Acc{\mathbf{Acc}}
+\newcommand*\Instance{\mathbf{Instance}}
+\newcommand*\Proof{\mathbf{Proof}}
 \newcommand*\AccHiding{\mathbf{AccHiding}}
 \newcommand*\EvalProof{\mathbf{EvalProof}}
 
