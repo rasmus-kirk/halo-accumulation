@@ -13,8 +13,8 @@ use rand::{distributions::Uniform, Rng};
 const N: usize = 1024;
 
 fn random_instance<R: Rng>(rng: &mut R, d: usize) -> acc::Instance {
-    let d_prime = rng.sample(&Uniform::new(d/2, d));
-    
+    let d_prime = rng.sample(&Uniform::new(d / 2, d));
+
     // Commit to a random polynomial
     let w = PallasScalar::rand(rng);
     let p = PallasPoly::rand(d_prime, rng);
@@ -75,7 +75,7 @@ fn acc_compare_fast_helper(d: usize, qss: &[Vec<Instance>], accs: Vec<Accumulato
 
 fn acc_compare(n: usize, k: usize) -> (usize, Vec<Vec<Instance>>, Vec<Accumulator>) {
     let mut rng = test_rng();
-    let d = n-1;
+    let d = n - 1;
     let mut accs = Vec::with_capacity(k);
     let mut qss = Vec::with_capacity(k);
 

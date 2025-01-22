@@ -5,10 +5,10 @@
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
 
     # code
-    code.url = "path:./code";
+    code.url = "./code";
     code.inputs.nixpkgs.follows = "nixpkgs";
     # report
-    report.url = "path:./report";
+    report.url = "./report";
     report.inputs.nixpkgs.follows = "nixpkgs";
 
     website-builder.url = "github:rasmus-kirk/website-builder";
