@@ -38,6 +38,7 @@ depend on a trusted setup.
 The report included in this repository covers:  
 
 1. **Prerequisites and Cryptographic Background**  
+   - Proof Systems
    - Fiat-Shamir heuristic  
    - SNARKs and Bulletproofs  
 
@@ -49,8 +50,8 @@ The report included in this repository covers:
    - Theory behind PCS and their role in succinct proofs  
 
 4. **Accumulation Schemes (AS)**  
-   - Construction of `ASDL` and its components  
-   - Theoretical guarantees (completeness, soundness)  
+   - How accumulation schemes work  
+   - Theoretical properties (completeness, soundness)  
 
 5. **IVC Using Accumulation Schemes**  
    - How accumulation schemes lead to new IVC constructions, without the need for a trusted setup  
