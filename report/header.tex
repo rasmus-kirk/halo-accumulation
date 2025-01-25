@@ -10,6 +10,7 @@
 \definecolor{GbFg1}{HTML}{3c3836}
 \usepackage{mathtools}
 
+\usepackage{subcaption} 
 \usepackage{tikz}
 \usetikzlibrary{shapes.geometric, arrows, positioning}
 
@@ -57,6 +58,9 @@
 \newcommand*\Eb{\mathbb{E}}
 \newcommand*\Gb{\mathbb{G}}
 \newcommand*\Ac{\mathcal{A}}
+\newcommand*\Bc{\mathcal{B}}
+\newcommand*\Cc{\mathcal{C}}
+\newcommand*\Ec{\mathcal{E}}
 \newcommand*\Rc{\mathcal{R}}
 \newcommand*\Oc{\mathcal{O}}
 \newcommand*\Uc{\mathcal{U}}
@@ -102,8 +106,12 @@
 \newcommand{\ip}[2]{ \langle #1, #2 \rangle }
 \newcommand{\IK}[2]{ \mathrm{I.K} }
 
+\newcommand*{\negl}{\text{negl}}
+\newcommand*{\poly}{\text{poly}}
+\newcommand*{\from}{\gets}
 \newcommand*{\pp}{\text{pp}}
 \newcommand*{\acc}{\text{acc}}
+\newcommand*{\ToInstance}{\mathrm{\text{T\scriptsize O}\text{I\scriptsize NSTANCE}}}
 \newcommand*{\Prover}{\mathrm{\text{P\scriptsize ROVER}}}
 \newcommand*{\Verifier}{\mathrm{\text{V\scriptsize ERIFIER}}}
 \newcommand*{\Setup}{\mathrm{\text{S{\scriptsize ETUP}}}}
@@ -119,6 +127,7 @@
 \newcommand*{\IVCVerifier}{\mathrm{\text{IVC}}.\Verifier}
 \newcommand*{\AS}{\text{AS}}
 \newcommand*{\ASGenerator}{\AS.\Generator}
+\newcommand*{\ASSetup}{\AS.\Setup}
 \newcommand*{\ASProver}{\AS.\Prover}
 \newcommand*{\ASVerifier}{\AS.\Verifier}
 \newcommand*{\ASDecider}{\AS.\Decider}
@@ -136,7 +145,7 @@
 \newcommand*{\PCDLSuccinctCheck}{\PCDL.\mathrm{\text{S{\scriptsize UCCINCT}C{\scriptsize HECK}}}}
 \newcommand*{\PCDLCheck}{\PCDL.\mathrm{\text{C\scriptsize HECK}}}
 \newcommand*{\ASDL}{\text{AS}_{\text{DL}}}
-\newcommand*{\ASDLGenerator}{\ASDL.\Generator}
+\newcommand*{\ASDLSetup}{\ASDL.\Setup}
 \newcommand*{\ASDLIndexer}{\ASDL.\mathrm{\text{I\scriptsize NDEXER}}}
 \newcommand*{\ASDLCommonSubroutine}{\ASDL.\mathrm{\text{C{\scriptsize OMMON}S{\scriptsize UBROUTINE}}}}
 \newcommand*{\ASDLProver}{\ASDL.\mathrm{\text{P\scriptsize ROVER}}}

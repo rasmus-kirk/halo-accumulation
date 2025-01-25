@@ -24,8 +24,8 @@
         texlive.combined.scheme-full
         librsvg
       ];
-      pandoc-script = pkgs.writeShellApplication {
-        name = "pandoc-compile";
+      mk-pandoc-script = pkgs.writeShellApplication {
+        name = "mk-pandoc-script";
         runtimeInputs = latexPkgs;
         text = ''
           # Loop through each .md file in the folder
@@ -42,18 +42,18 @@
           done
         '';
       };
-      pandoc-compile = pkgs.writeShellApplication {
-        name = "pandoc-compile";
+      mk-pandoc = pkgs.writeShellApplication {
+        name = "mk-pandoc";
         runtimeInputs = latexPkgs;
-        text = ''${pkgs.lib.getExe pandoc-script} "."'';
+        text = ''${pkgs.lib.getExe mk-pandoc-script} "."'';
       };
-      pandoc-compile-continuous = pkgs.writeShellApplication {
+      mk-pandoc-loop = pkgs.writeShellApplication {
         name = "pandoc-compile-continuous";
-        runtimeInputs = [pandoc-compile pkgs.fswatch];
+        runtimeInputs = [mk-pandoc pkgs.fswatch];
         text = ''
           set +e
           echo "Listening for file changes"
-          fswatch --event Updated ./*.md | xargs -n 1 sh -c 'date "+%Y-%m-%d - %H:%M:%S %Z"; pandoc-compile'
+          fswatch --event Updated ./*.md | xargs -n 1 sh -c 'date "+%Y-%m-%d - %H:%M:%S %Z"; mk-pandoc'
         '';
       };
       report = pkgs.stdenv.mkDerivation {
@@ -64,12 +64,13 @@
         buildPhase = ''
           export FONTCONFIG_FILE=${fonts}
           mkdir -p $out
-          ${pkgs.lib.getExe pandoc-script} "$out"
+          ${pkgs.lib.getExe mk-pandoc-script} "$out"
         '';
       };
       in {
         default = report;
-        loop = pandoc-compile-continuous;
+        loop = mk-pandoc-loop;
+        mk-pandoc = mk-pandoc;
       });
   };
 }
