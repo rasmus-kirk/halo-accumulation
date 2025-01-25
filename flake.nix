@@ -30,22 +30,24 @@
   in {
     packages = forAllSystems ({pkgs}: let
       reportPkg = report.outputs.packages."${pkgs.system}".default;
-      inputFile = pkgs.writeText "index.md" ''
-        **Report:** [Link](./report/report.pdf)
-      '';
       website = website-builder.lib {
         pkgs = pkgs;
         src = ./.;
         headerTitle = "Halo Accumulation Scheme";
         includedDirs = [ reportPkg ];
         standalonePages = [{
-          title = "Title";
-          inputFile = inputFile;
+          title = "Investigating IVC with Accumulation Schemes";
+          inputFile = ./README.md;
+          outputFile = "index.html";
         }];
         navbar = [
           {
             title = "Home";
             location = "/";
+          }
+          {
+            title = "Report";
+            location = "/report/report.pdf";
           }
           {
             title = "Github";
