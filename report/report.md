@@ -7,6 +7,7 @@ geometry: margin=2cm
 ---
 
 <!-- TODO: Thank Hamid and Jesper! -->
+<!-- TODO: Efficiency discussions -->
 
 \setcounter{tocdepth}{5}
 \tableofcontents
@@ -14,7 +15,11 @@ geometry: margin=2cm
 
 # Introduction
 
-Halo2, can be broken down into the following main components:
+Halo2 is a powerful, and very recent, proof system that allows for recursive
+proofs. One of the main applications of recursive proofs is Incrementally
+Verifiable Computation, used for example by the Mina blockchain to acheive
+a succinct blockchain. Halo2 can be broken down into the following main
+components:
 
 - **Plonk**: A general-purpose, potentially zero-knowledge, proof scheme.
 - **$\PCDL$**: A Polynomial Commitment Scheme in the Discrete Log setting.
@@ -30,10 +35,10 @@ both of which can be found in the project's
 
 ## Prerequisites
 
-Basic knowledge on elliptic curves, groups, interactive arguments are
-assumed in the following text. There is also a heavy reliance on the Inner
-Product Proof from the Bulletproofs protocol, see the following resources
-on bulletproofs if need be:
+Basic knowledge on elliptic curves, groups, interactive arguments are assumed
+in the following text along with familiarity with SNARKs. The polynomial
+commitment scheme also has a heavy reliance on the Inner Product Proof from the
+Bulletproofs protocol, see the following resources on bulletproofs if needed:
 
 - [Section 3 in the original Bulletproofs paper](https://eprint.iacr.org/2017/1066.pdf#section.3)
 - [From Zero (Knowledge) to Bulletproofs writeup](https://github.com/AdamISZ/from0k2bp/blob/master/from0k2bp.pdf)
@@ -796,12 +801,12 @@ We have four main functions:
     - Samples $H \in \Eb(\Fb_q)$ using the random oracle $H \from \rho_0(\pp_\CM)$,
     - Finally, outputs $\pp_\PC = (\pp_\CM, H)$.
 
-- $\PCDLCommit(p: \Fb^d_q[X], \o: \Option(\Fb_q)) \to \Eb(\Fb_q)$:
+- $\PCDLCommit(p: \Fb^d_q[X]{, \o: \Option(\Fb_q)}) \to \Eb(\Fb_q)$:
 
   Creates a commitment to the coefficients of the polynomial $p$ of degree
   $d$ with optional hiding $\o$, using pedersen commitments.
 
-- $\PCDLOpen^{\rho_0}(p: \Fb^d_q[X], C: \Eb(\Fb_q), z: \Fb_q, \o: \Option(\Fb_q)) \to \EvalProof$:
+- $\PCDLOpen^{\rho_0}(p: \Fb^d_q[X], C: \Eb(\Fb_q), z: \Fb_q\mathblue{, \o: \Option(\Fb_q)}) \to \EvalProof$:
 
   Creates a proof $\pi$ that states: "I know $p \in \Fb^d_q[X]$ with
   commitment $C \in \Eb(\Fb_q)$ s.t. $p(z) = v$" where $p$ is private
@@ -824,7 +829,7 @@ The following subsections will describe them in pseudo-code.
 \caption{$\PCDLCommit$}
 \textbf{Inputs} \\
   \Desc{$p: \Fb^d_q[X]$}{The univariate polynomial that we wish to commit to.} \\
-  \Desc{$\mathblue{\o}: \Option(\Fb_q)$}{Optional hiding factor for the commitment.} \\
+  \Desc{$\mathblue{\o: \Option(\Fb_q)}$}{Optional hiding factor for the commitment.} \\
 \textbf{Output} \\
   \Desc{$C: \Eb(\Fb_q)$}{The pedersen commitment to the coefficients of polynomial $p$.}
 \begin{algorithmic}[1]
@@ -846,7 +851,7 @@ commit to them using a pedersen commitment.
   \Desc{$p: \Fb^d_q[X]$}{The univariate polynomial that we wish to open for.} \\
   \Desc{$C: \Eb(\Fb_q$)}{A commitment to the coefficients of $p$.} \\
   \Desc{$z: \Fb_q$}{The element that $z$ will be evaluated on $v = p(z)$.} \\
-  \Desc{$\mathblue{\o}: \Option(\Fb_q)$}{Optional hiding factor for $C$. \textit{Must} be included if $C$ was created with hiding!} \\
+  \Desc{$\mathblue{\o: \Option(\Fb_q)}$}{Optional hiding factor for $C$. \textit{Must} be included if $C$ was created with hiding!} \\
 \textbf{Output} \\
   \Desc{$\EvalProof$}{
     Proof that states: "I know $p \in \Fb^d_q[X]$ with commitment $C \in
@@ -904,7 +909,7 @@ verifies the correctness of $U$.
 \caption{$\PCDLSuccinctCheck^{\rho_0}$}
 \textbf{Inputs} \\
   \Desc{$C: \Eb(\Fb_q)$}{A commitment to the coefficients of $p$.} \\
-  \Desc{$d: \Nb$}{The degree of $p$} \\
+  \Desc{$d: \Nb$}{A degree bound on $p$} \\
   \Desc{$z: \Fb_q$}{The element that $p$ is evaluated on.} \\
   \Desc{$v: \Fb_q$}{The claimed element $v = p(z)$.} \\
   \Desc{$\pi: \EvalProof$}{The evaluation proof produced by $\PCDLOpen$} \\
@@ -942,7 +947,7 @@ the prover protocol, and defers the verification of this claim to $\PCDLCheck$.
 \caption{$\PCDLCheck^{\rho_0}$}\label{alg:pcdl_check}
 \textbf{Inputs} \\
   \Desc{$C: \Eb(\Fb_q)$}{A commitment to the coefficients of $p$.} \\
-  \Desc{$d: \Nb$}{The degree of $p$} \\
+  \Desc{$d: \Nb$}{A degree bound on $p$} \\
   \Desc{$z: \Fb_q$}{The element that $p$ is evaluated on.} \\
   \Desc{$v: \Fb_q$}{The claimed element $v = p(z)$.} \\
   \Desc{$\pi: \EvalProof$}{The evaluation proof produced by $\PCDLOpen$} \\
@@ -1090,7 +1095,7 @@ The following subsections will describe them in pseudo-code, except $\ASDLSetup$
 \begin{algorithm}[H]
 \caption{$\ASDLCommonSubroutine$}
 \textbf{Inputs} \\
-  \Desc{$d: \Nb$}{The degree of $p$.} \\
+  \Desc{$d: \Nb$}{A degree bound on $p$} \\
   \Desc{$\vec{q}: \Instance^m$}{New instances \textit{and accumulators} to be accumulated.} \\
   \Desc{$\mathblue{\pi_V: \AccHiding}$}{Necessary parameters if hiding is desired.} \\
 \textbf{Output} \\
@@ -1133,7 +1138,7 @@ this works, refer to the note in the $\ASDLDecider$ section.
 \begin{algorithm}[H]
 \caption{$\ASDLProver$}
 \textbf{Inputs} \\
-  \Desc{$d: \Nb$}{The degree of $p$.} \\
+  \Desc{$d: \Nb$}{A degree bound on $p$} \\
   \Desc{$\vec{q}: \Instance^m$}{New instances \textit{and accumulators} to be accumulated.} \\
 \textbf{Output} \\
   \Desc{$\Result(\Acc, \bot)$}{
@@ -1145,7 +1150,7 @@ this works, refer to the note in the $\ASDLDecider$ section.
   \Require $d \leq D$
   \Require $(d+1) = 2^k$, where $k \in \Nb$
   \State \textblue{Sample a random linear polynomial $h_0 \in F_q[X]$}
-  \State \textblue{Then compute a deterministic commitment to $h_0$: $U_0 := \PCDLCommit(h_0, \bot)$}
+  \State \textblue{Then compute a deterministic commitment to $h_0(X)$: $U_0 := \PCDLCommit(h_0, \bot)$}
   \State \textblue{Sample commitment randomness $\o \in F_q$, and set $\pi_V := (h_0, U_0, \o)$.}
   \State Then, compute the tuple $(\bar{C}, d, z, h(X)) := \ASDLCommonSubroutine(d, \vec{q} \mathblue{, \pi_V})$.
   \State Compute the evaluation $v := h(z)$
@@ -1210,7 +1215,7 @@ $$h_i(X) := \prod^{lg(n)}_{i=0} (1 + \xi_{\lg(n)-i} \cdot X^{2^i}) \in F_q[X]$$
 
 We don't mention the previous accumulator $acc_{i-1}$ explicitly as it's
 treated as an instance in the protocol. The $\ASDLVerifier$ shows that $C$
-is a commitment to $h$ in the sense that it's a linear combination of all
+is a commitment to $h(X)$ in the sense that it's a linear combination of all
 $h$'s from the previous instances, by running the same $\ASDLCommonSubroutine$
 algorithm as the prover to get the same output. Note that the $\ASDLVerifier$
 does not guarantee that $C$ is a valid commitment to $h(X)$ in the sense that
@@ -1242,13 +1247,13 @@ Since we know from the $\ASDLVerifier$
 \end{enumerate}
 
 \textgrey{We first show that if $C$ is a valid commitment to $h(X)$, then that implies
-that each $U_i$ is a valid commitment to $h_i$, $U_i = \PCDLCommit(h_i(X),
+that each $U_i$ is a valid commitment to $h_i(X)$, $U_i = \PCDLCommit(h_i(X),
 \bot) = \ip{\vec{G}}{\vec{h_i}}$, thereby performing the second check of
 $\PCDLCheck$, on all $q_j$ instances at once. When the $\ASDLDecider$ runs
 $\PCDLCheck$, thereby performing the second check $C \meq \PCDLCommit(h(X),
-\bot)$ on h(X), they effectively check that $C$ is a valid commitment to $h$. If
+\bot)$ on h(X), they effectively check that $C$ is a valid commitment to $h(X)$. If
 this is not the case, then for at least one of the $U_i$'s $U_i \neq
-\PCDLCommit(h_i, \bot)$. That means that running the $\ASDLDecider$ corresponds
+\PCDLCommit(h_i(X), \bot)$. That means that running the $\ASDLDecider$ corresponds
 to checking all $U_i$'s.}
 
 \textgrey{What about checking the previous instances, $\vec{q}_{i-1}$, accumulated into
@@ -1294,9 +1299,9 @@ In order to prove soundness, we first need a helper lemma:
 **Lemma: Zero-Finding Game:**
 
 Let $\CM = (\CMSetup, \CMCommit)$ be a perfectly binding commitment scheme. Fix
-a maximum degree $D \in \Nb$ and a random oracle $\rho(\CMCommit(m \in \Mc))
-: F_\pp$. Then for every family of functions $\{f_\pp\}_\pp$ and fields
-$\{F_\pp\}_\pp$ where:
+a maximum degree $D \in \Nb$ and a random oracle $\rho$ that takes commitments
+from $\CM$ to $F_\pp$. Then for every family of functions $\{f_\pp\}_\pp$
+and fields $\{F_\pp\}_\pp$ where:
 
 - $f_\pp \in \Mc \to F_\pp^D[X]$
 - $F \in \Nb \to \Nb$
@@ -1353,7 +1358,8 @@ for its output $(m, \o)$, by increasing the query bound from $t$ to $t + 1$.
 \end{algorithmic}
 \end{algorithm}
 
-<!-- TODO: Step 3 -->
+<!-- TODO: Step 3 - Local Forking Lemma -->
+
 Each $(m, \o)$-pair represents a message where $p \neq 0 \land p(z) = 0$
 for $z = \rho(\CMCommit(m, \o))$ and $p = f_\pp(m)$ with probability $\d$
 
@@ -1416,23 +1422,23 @@ For the above Lemma to hold, the algorithms of $\CM$ must not have access to
 the random oracle $\rho$ used to generate the challenge point $z$, but
 $\CM$ may use other oracles. The lemma still holds even when $\Ac$ has
 access to the additional oracles. This is a concrete reason why domain
-seperation, as mentioned in the Fiat-Shamir section, is important.
+seperation, as mentioned in the Fiat-Shamir subsection, is important.
 
 ---
 
-With this lemma, we wish to show that given an adversary $\Ac$ that breaks
+With this lemma, we wish to show that given an adversary $\Ac$, that breaks
 the soundess property of $\ASDL$, we can create a reduction proof that then
-breaks the above zero-finding game. We fix $\Ac$ from the $\AS$ soundness
-definition:
+breaks the above zero-finding game. We fix $\Ac, D = \poly(\l)$ from the $\AS$
+soundness definition:
 
 $$
 \Pr \left[
   \begin{array}{c|c}
     \begin{array}{c}
-      \ASDLVerifier^{\rho_1}(q_{\acc_{i-1}} \cat \vec{q}, \acc_i) = 1, \\
-      \ASDLDecider^{\rho_1}(\acc_i) = 1 \\
-      \wedge \\
-      \exists i \in [n] : \Phi^{\rho_1}_{\PC}(\pp_\PC, q_i) = 0
+      \ASDLVerifier^{\rho_1}((q_{\acc_{i-1}} \cat \vec{q}), \acc_i) = \top, \\
+      \ASDLDecider^{\rho_1}(\acc_i) = \top \\
+      \land \\
+      \exists i \in [n] : \Phi_{\PC}(q_i) = \bot
     \end{array}
   & \quad
     \begin{aligned}
@@ -1443,41 +1449,116 @@ $$
       q_{acc_{i-1}} &\leftarrow \ToInstance(\acc_{i-1}) \\
     \end{aligned}
   \end{array}
-\right]
+\right] \leq \negl(\l)
 $$
 
-We will construct an adversary for the zero-finding game that wins with
-probability $\delta / 2 - \negl(\l)$, meaning that $\delta$ is negligible,
-since $q$ is superpolynomial in $\l$.
+We call the probability that the adversary $\Ac$ wins the above game
+$\d$. We bound $\d$ by constructing two adversaries, $\Bc_1, \Bc_2$, for
+the zero-finding game where the combined probability that one of them wins is:
+$$
+\begin{aligned}
+  \delta - \negl(\l) &=     \Pr[\Bc_1 \text{ wins}] + \Pr[\Bc_2\text{ wins}]          \\
+  \delta - \negl(\l) &\leq  \sqrt{\frac{D(t+1)}{F(\l)}} + \sqrt{\frac{D(t+1)}{F(\l)}} \\
+  \delta - \negl(\l) &\leq  2 \cdot \sqrt{\frac{D(t+1)}{|\Fb_q|}}                     \\
+  \delta             &\leq  2 \cdot \sqrt{\frac{D(t+1)}{|\Fb_q|}} + \negl(\l)         \\
+\end{aligned}
+$$
+Meaning that $\delta$ is negligible, since $q = |\Fb_q|$ is superpolynomial
+in $\l$. We define two perfectly binding commitment schemes to be used for
+the zero-finding game:
 
-- $\CM_1.\Setup^{\rho_0}(1^\l, n) := \pp_\PC \from \PCDLSetup^{\rho_0}(1^\lambda, n)$
-- $\CM_1.\Commit(p = (p, h), r) := (C \from \PCDLCommit(p, \bot), h)$
-- $\CM_2.\Setup^{\rho_0}(1^\l, n) := \pp_\PC \from \PCDLSetup^{\rho_0}(1^\lambda, n)$
-- $\CM_2.\Commit(p = [(h_i, U_i)]^n, r) := p$:
+- $\CM_1$:
+  - $\CM_1.\Setup^{\rho_0}(1^\l, D) := \pp_\PC \from \PCDLSetup^{\rho_0}(1^\lambda, D)$
+  - $\CM_1.\Commit((p(X), h(X)), \_) := (C \from \PCDLCommit(p(X), \bot), h)$
+  - $\Mc_{\CM_1} := \{(p(X), h(X) = \a^i h_i(X))\} \in \Pc((\Fb_q^{\leq D}[X])^2)$
+  - $z_{\CM_1} := \rho^1(\CM_1.\Commit((p(X), h(X)), \_)) = \rho^1((C \from \PCDLCommit(p(X), \bot), h)) = z_\acc$
+- $\CM_2$:
+  - $\CM_2.\Setup^{\rho_0}(1^\l, D) := \pp_\PC \from \PCDLSetup^{\rho_0}(1^\lambda, D)$
+  - $\CM_2.\Commit([(h_i(X), U_i)]^m, \_) := [(h_i(X), U_i)]^m$:
+  - $\Mc_{\CM_2} := \{[(h_i(X), U_i)]^m\} \in \Pc((\Fb_q^{\leq D}[X] \times \Eb(\Fb_q))^m)$
+  - $z_{\CM_2} := \rho^1(\CM_2.\Commit([(h_i(X), U_i)]^m, \_)) = \rho^1([(h_i(X), U_i)]^m) = \a$
 
-We define:
+Note that the $\CM_1, \CM_2$ above are perfectly binding, since they either
+return a Pedersen commitment, without binding, or simply return their
+input. $\Mc_{\CM_1}$ consists of pairs of polynomials of a maximum
+degree $D$, where $\forall i \in [n] : h(X) = \a^i h_i(x)$. $\Mc_{\CM_2}$
+consists of a list of pairs of a maximum degree $D$ polynomial, $h_i(X)$,
+and $U_i$ is a group element. Notice that $z_{\CM_1} = z_\acc$ and $z_{\CM_1}
+= \a$ where $z_\acc, \a$ are from the $\ASDL$ protocol.
 
-- $f^{(1)}_{\pp}(p, h = [h_i]^n) := p - \sum_{i} \alpha^i h_i,$
-- $f^{(2)}_{\pp}(p = [(h_i, U_i)]^n) := a(Z) = \sum_{i=0}^n a_i Z^i$ where for each $i \in [n]$:
+We define the corresponding functions $f^{(1)}_{\pp}, f^{(2)}_{\pp}$ for
+$\CM_1, \CM_2$ below:
+
+- $f^{(1)}_\pp(p(X), h(X) = [h_i(X)]^n) := a(X) = p(X) - \sum_{i} \alpha^i h_i(X)$,
+- $f^{(2)}_\pp(p = [(h_i, U_i)]^n) := b(Z) = \sum_{i=0}^n a_i Z^i$ where for each $i \in [n]$:
   - $B_i \leftarrow \PCDLCommit(h_i, \bot)$
-  - Compute $a_i : a_i G = U_i - B_i$
+  - Compute $b_i : b_i G = U_i - B_i$
+
+We then construct an intermediate adversary, $\Cc$, against $\PCDL$, using $\Ac$:
 
 \begin{algorithm}[H]
-\caption*{\textbf{The Adversary} $\Cc^\rho(\pp_\PC)$}
+\caption*{\textbf{The Adversary} $\Cc^{\rho_1}(\pp_\PC)$}
 \begin{algorithmic}[1]
   \State Parse $\pp_\PC$ to get the security parameter $1^\l$ and set $\AS$ public parameters $\pp_{\AS} := 1^\l$.
-  \State Compute $(\vec{q}, \acc_{i-1}, \acc_i) \leftarrow \Ac^\rho(\pp_\AS, \pp_\PC)$.
+  \State Compute $(\vec{q}, \acc_{i-1}, \acc_i) \leftarrow \Ac^{\rho_1}(\pp_\AS)$.
   \State Parse $\pp_\PC$ to get the degree bound $D$.
-  \State Output $(D, \acc_i = (C, d, z, v), \vec{q})$.
+  \State Output $(D, \acc_i = (C_\acc, d_\acc, z_\acc, v_\acc), \vec{q})$.
 \end{algorithmic}
 \end{algorithm}
 
+The above adversary also outputs $\vec{q}$ for convenience, but the
+knowledge extractor simply ignores this. Running the knowledge extractor,
+$\Ec_\Cc^{\rho_1}$, on $\Cc$ will give us $p$, s.t. the following holds:
+
+- $C_\acc$ is a deterministic commitment to $p(X)$.
+- $p(z_\acc) = v_\acc$
+- $\deg(p) \leq d_\acc \leq D$
+
+Furthermore:
+
+- $\exists i \in [n] : \bot = \Phi_{\pp_\PC}(q_i) \implies \PCDLCheck^{\rho_0}(C_i, d_i, z_i, v_i, \pi_i) = \bot$
+<!-- TODO: The above implication is sus --> 
+
+Let's denote successful knowledge extraction s.t. the above points
+holds as $E$. We're interested in the probability $\Pr[E \; | \; \top =
+\ASDLDecider]$. Since the events are independent:
+<!-- TODO: The events actually don't seem independent --> 
+<!-- TODO: Also, the below is wrong, use and, I guess --> 
+
+$$
+\begin{aligned}
+  \Pr[E \; | \; \ASDLDecider = \top] &= \Pr[\ASDLDecider = \top] \cdot \Pr[E] \\
+                                     &= \d \cdot (1 - \negl(\l)) \\
+                                     &= \d - \d \cdot \negl(\l) \\
+                                     &= \d - \negl(\l)
+\end{aligned}
+$$
+
+Now, since $\ASDLVerifier^{\rho_1}((q_{\acc_{i-1}} \cat \vec{q}), \acc_i)$ accepts,
+then, by construction, all the following holds:
+
+1. For each $i \in [m]$, $\PCDLSuccinctCheck$ accepts.
+2. Parsing $\acc_i = (C_\acc, d_\acc, z_\acc, v_\acc)$ and setting $\a := \rho_1([(h_i(X), U_i)]^m)$, we have that:
+    - $z_\acc = \rho_1(C_\acc, [h_i(X)]^m)$
+    - $C_\acc = \sum_{i=1}^m \alpha^i U_i$
+    - $v_\acc = \sum_{i=1}^m \alpha^i h_i(z)$
+
+Also by construction, this implies that either:
+
+<!-- TODO: The first point here is sus -->
+- $\PCDLSuccinctCheck$ rejects, which we showed above is not the case, so therefore,
+- The group element $U_i$ is not a commitment to $h_i(X)$.
+
+We utilize this fact in the next two adversaries, $\Bc_1, \Bc_2$,
+constructed, to win the zero-finding game for $\CM_1, \CM_2$ respectively,
+with non-negligible probability:
+
 \begin{algorithm}[H]
-\caption*{\textbf{The Adversary} $\Bc_j^\rho(\pp_\PC)$}
+\caption*{\textbf{The Adversary} $\Bc_j^{\rho_1}(\pp_\AS)$}
 \begin{algorithmic}[1]
-  \State Compute $(D, \acc_i, \vec{q}) \leftarrow C^\rho(\pp_\PC)$.
+  \State Compute $(D, \acc_i, \vec{q}) \leftarrow C^{\rho_1}(\pp_\AS)$.
   \State Parse $[a_i]^n$ as $(C_i, d_i, z_i, v_i)$.
-  \State Compute $p \leftarrow \Ec_C^\rho(\pp_\PC)$.
+  \State Compute $p \leftarrow \Ec_C^\rho(\pp_\AS)$.
   \State For each $i \in [n]$, $(h_i, U_i) \from \PCDLSuccinctCheck(C_i, d_i, z_i, v_i)$.
   \State Compute $\a := \rho_1([(h_i, U_i)]^n)$.
   \If{$j = 1$}
@@ -1488,30 +1569,27 @@ We define:
 \end{algorithmic}
 \end{algorithm}
 
-Since $\ASDLVerifier^\rho(\vec{q}, \acc_i, \acc_{i+1})$ accepts, then, by construction, all the following are true:
+Remember, the goal is to find an evaluation point, s.t. $a(X) \neq 0 \land
+a(z_a) = 0$ for $\CM_1$ and $b(X) \neq 0 \land b(z_b) = 0$ for $\CM_2$. We
+set $z_a = z_\acc$ and $z_b = \a$. Now, there are then two cases:
 
-1. For each $i \in [n]$, $\PCDLSuccinctCheck$ accepts.
-2. Parsing $\acc_{i+1} = (C, d, z, v)$ and setting $\a := \rho_1([(h_i, U_i)]^n)$, we have that:
-    - $z = \rho_1(C, [h_i]^n)$
-    - $C = \sum_{i=1}^n \alpha^i U_i$
-    - $v = \sum_{i=1}^n \alpha^i h_i(z)$
+1. $C_\acc \neq \sum_{i=1}^n \a^i B_i$: This means that for some $i \in [m]$,
+   $U_i \neq B_i$. Since $C_\acc$ is a commitment to $p(X)$, $p(X) - h(X)$ is not
+   identically zero, but $p(z) = h(z)$. Thusly, $a(X) \neq 0$
+   and $a(z) = 0$. Because $z_\acc$ is sampled using the random
+   oracle $z_\acc = \rho_1(\CM_1.\Commit(C \from \PCDLCommit(p(X), \bot), h(X)))$, $B_1$ wins the zero-finding game against $(\CM_1,
+   \{f_\pp^{(1)}\}_\pp)$.
 
-$\exists i \in [n] : 0 = \Phi_{PC}^\rho(\pp_\PC, q_i) = \PCDLCheck^\rho(C_i, d_i, z_i, v_i, \pi_i)$. Which, by construction, implies that either:
+2. $C = \sum_{i=1}^n \a^i B_i$. Which means that for all $i \in [m]$, $U_i =
+   B_i$. Since $C = \sum_{i=0}^n \a^i U_i$, $\a$ is a root of the
+   polynomial $a(Z)$, $a(\a) = 0$. Because $\a$ is sampled using the random
+   oracle $\rho_1$, $\Bc_2$ wins the zero-finding game against $(CM_2,
+   \{f_\pp^{(2)}\}_\pp)$.
 
-- $\PCDLSuccinctCheck$ rejects, or,
-- The group element $U_i$ is not a commitment to $h_i$.
 
-There are then two cases:
+<!-- TODO: Conclusion -->
 
-1. $C \neq \sum_{i=1}^n \a^i B_i$. Then since $C$ is a commitment to
-   $p$, $p(X) - h(X)$ is not identically zero, but $p(z) = h(z)$. Hence $B_1$
-   wins the zero-finding game against $(CM_1, \{f_\pp^{(1)}\}_\pp)$.
-
-2. $C = \sum_{i=1}^n \a^i B_i$. Then since $C = \sum_{i=0}^n \a^i U_i$,
-   $a(Z)$ is a zero of the polynomial $a(Z)$. Hence $B_2$ wins the zero-finding
-   game against $(CM_2, \{f_\pp^{(2)}\}_\pp)$.
-
-<!-- TODO: Connect the dots in the proof, add some flesh to that skeleton -->
+$\qed$
 
 # Benchmarks
 
