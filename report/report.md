@@ -8,6 +8,8 @@ geometry: margin=2cm
 
 <!-- TODO: Thank Hamid and Jesper! -->
 <!-- TODO: Efficiency discussions -->
+<!-- TODO: Redo IVC construction -->
+<!-- TODO: Add trusted/untrusted setup discussion -->
 
 \setcounter{tocdepth}{5}
 \tableofcontents
@@ -65,12 +67,12 @@ the computationally unbounded Prover, P, and the polynomally time bounded
 Verifier, V. The Prover tries to convince the Verifier of a statement
 $x \in L$ language $L$ in NP. The following properties must be true:
 
-- Completeness: $\forall P \in ITM, x\in L \implies Pr[V_{out} = \bot] \leq \epsilon(x)$
+- Completeness: $\forall P \in ITM, x\in L \implies \Pr[V_{out} = \bot] \leq \epsilon(x)$
 
   For all honest provers, P, where $x$ is true, the probability that the
   verifier remains unconvinced is negligible in the length of $x$.
 
-- Soundness: $\forall P^* \in ITM, x \notin L \implies Pr[V_{out} = \top] \leq \epsilon(x)$
+- Soundness: $\forall P^* \in ITM, x \notin L \implies \Pr[V_{out} = \top] \leq \epsilon(x)$
 
   For all provers, honest or otherwise, $P^*$, that tries to convince the
   verifier of a claim, $x$, that is not true, the probability that the
@@ -79,8 +81,8 @@ $x \in L$ language $L$ in NP. The following properties must be true:
 An Interactive Argument is very similar, but the honest and malicious prover
 is now polynomially bounded and receives a witness, $w$:
 
-- Completeness: $\forall P(w) \in PPT, x\in L \implies Pr[V_{out} = \bot] \leq \epsilon(x)$
-- Soundness: $\forall P^* \in PPT, x \notin L \implies Pr[V_{out} = \top] \leq \epsilon(x)$
+- Completeness: $\forall P(w) \in PPT, x\in L \implies \Pr[V_{out} = \bot] \leq \epsilon(x)$
+- Soundness: $\forall P^* \in PPT, x \notin L \implies \Pr[V_{out} = \top] \leq \epsilon(x)$
 
 Proof of knowledge is another type of Proof System, here the prover claims
 to know a specific _witness_, $w$, for a statement $x$. Let $x \in L$ and
@@ -91,7 +93,7 @@ x \in L , w \in W(x) \}$
 A proof of knowledge for relation $R$ with is a two party protocol $(P, V)$
 with the following two properties:
 
-- **Knowledge Completeness:** $Pr[P(w) \iff V_{out} = 1] = 1$, i.e. as in
+- **Knowledge Completeness:** $\Pr[P(w) \iff V_{out} = 1] = 1$, i.e. as in
   Interactive Proof Systems, after an interaction between the prover and
   verifier the verifier should be convinced with certainty.  
 - **Knowledge Soundness:** Loosely speaking, in Knowledge Soundness we have
@@ -791,7 +793,13 @@ fn get_pp(n: usize) -> (PallasPoint, PallasPoint, Vec<PallasPoint>) {
 
 ## Outline
 
-We have four main functions:
+The Polynomial Commitment Scheme, $\PCDL$, is based on the discrete log
+assumption, and does not require a Trusted Setup. Most of the functions simply
+works as one would expect for a PCS, but uniquely for this scheme, we have
+the function $\PCDLSuccinctCheck$ that allows deferring the expensive part
+of checking PCS openings until a later point. This function is what leads
+to the accumulation scheme based on the discrete log assumption $\ASDL$. We
+have five main functions:
 
 - $\PCDLSetup(\l, D)^{\rho_0} \to \pp_\PC$
 
@@ -821,7 +829,7 @@ We have four main functions:
 
   The full check on $\pi$.
 
-The following subsections will describe them in pseudo-code.
+The following subsections will describe them in pseudo-code, except for $\PCDLSetup$.
 
 ### $\PCDLCommit$
 
@@ -860,6 +868,7 @@ commit to them using a pedersen commitment.
 \begin{algorithmic}[1]
   \Require $d \leq D$
   \Require $(d+1)$ is a power of 2.
+  \State Let $n = d+1$
   \State Compute $v = p(z)$ and let $n = d+1$.
   \State \textblue{Sample a random polynomial $\bar{p} \in \Fb^{\leq d}_q[X]$ such that $\bar{p}(z) = 0$}.
   \State \textblue{Sample corresponding commitment randomness $\bar{\o} \in \Fb_q$.}
@@ -932,14 +941,16 @@ verifies the correctness of $U$.
 \State Define the univariate polynomial $h(X) := \prod^{\lg(n)-1}_{i=0} (1 + \xi_{\lg(n) - i} X^{2^i}) \in \Fb_q[X]$.
 \State Compute the evaluation $v' := c \cdot h(z) \in \Fb_q$.
 \State Check that $C_{lg(n)} \meq cU + v'H'$
-\State Output (h(X), U).
+\State Output $(h(X), U)$.
 \end{algorithmic}
 \end{algorithm}
 
 The $\PCDLSuccinctCheck$ algorithm performs the same check as in the
-Bulletproofs protocol. With the only difference being that instead of calculating
-$G^{(0)}$ itself, it trusts that the verifier sent the correct $U = G^{(0)}$ in
-the prover protocol, and defers the verification of this claim to $\PCDLCheck$.
+Bulletproofs protocol. With the only difference being that instead of
+calculating $G^{(0)}$ itself, it trusts that the verifier sent the correct $U
+= G^{(0)}$ in the prover protocol, and defers the verification of this claim
+to $\PCDLCheck$. Notice also the "magic" polynomial $h(X)$, which has a degree $d$,
+but can be evaluated in $\lg(d)$ time.
 
 ### $\PCDLCheck$
 
@@ -957,13 +968,13 @@ the prover protocol, and defers the verification of this claim to $\PCDLCheck$.
   \Require $d \leq D$
   \Require $(d+1)$ is a power of 2.
   \State Check that $\PCDLSuccinctCheck(C, d, z, v, \pi)$ accepts and outputs $(h, U)$.
-  \State Check that $U \meq \CMCommit(\vec{G}, \vec{h}, \bot)$, where $\vec{h}$ is the coefficient vector of the polynomial $h$.
+  \State Check that $U \meq \CMCommit(\vec{G}, \vec{h}^{\text{(coeffs)}}, \bot)$, where $\vec{h}^{\text{(coeffs)}}$ is the coefficient vector of the polynomial $h$.
 \end{algorithmic}
 \end{algorithm}
 
 Since $\PCDLSuccinctCheck$ handles the verification of the IPA given that
-$U = G^{(0)}$, we run $\PCDLSuccinctCheck$, then check that $U \meq G^{(0)}
-= \CMCommit(\vec{G}, \vec{h}, \bot) = \ip{\vec{G}}{\vec{h}}$.
+$U = G^{(0)}$, we run $\PCDLSuccinctCheck$, then check that $U \meq (G^{(0)}
+= \CMCommit(\vec{G}, \vec{h}^{\text{(coeffs)}}, \bot) = \ip{\vec{G}}{\vec{h}^{\text{(coeffs)}}})$.
 
 ## Completeness
 
@@ -1039,7 +1050,7 @@ $$C_{\lg(n)} = cU + v'H'$$
 
 Which corresponds exactly to the check that the verifier makes.
 
-**Check 2** ($U \meq \CMCommit(\vec{G}, \vec{h}, \bot)$) **in $\PCDLCheck$:**
+**Check 2** ($U \meq \CMCommit(\vec{G}, \vec{h}^{\text{(coeffs)}}, \bot)$) **in $\PCDLCheck$:**
 
 The honest prover will define $U = G^{(0)}$ as promised and the right-hand
 side will also become $U = G^{(0)}$ by the construction of $h(X)$.
@@ -1053,13 +1064,20 @@ side will also become $U = G^{(0)}$ by the construction of $h(X)$.
 
 ## Outline
 
-We have six main functions:
+The $\ASDL$ accumulation scheme is an accumulation scheme for accumulating
+polynomial commitments. This means that the corresponding predicate,
+$\Phi_\AS$, that we accumulate for, represents the checking of polynomial
+commitment openings, $\Phi_\AS(q_i) = \PCDLCheck(q_i)$. A slight deviation
+from the general $\AS$ specification, is that that the algorithms don't take
+the old accumulator $\acc_{i-1}$ as input, instead, since it has the same
+form as instances, it will be prepended to the instance list $\vec{q}$. We
+have six main functions:
 
 - $\ASDLSetup(1^\l, D) \to \pp_\AS$
 
   Outputs $\pp_\AS = \PCDLSetup(1^\l, D)$.
 
-- $\ASDLCommonSubroutine(d: \Nb, \vec{q}_{i-1}: \Instance^m \mathblue{, \pi_V: \AccHiding}) \to \Result((\Eb(\Fb_q), \Nb, \Fb_q, \Fb^d_q[X]), \bot)$
+- $\ASDLCommonSubroutine(\vec{q}_{i-1}: \Instance^m \mathblue{, \pi_V: \AccHiding}) \to \Result((\Eb(\Fb_q), \Nb, \Fb_q, \Fb^d_q[X]), \bot)$
 
   $\ASDLCommonSubroutine$ will either succeed if the instances has consistent
   degree and hiding parameters and will otherwise fail. It accumulates
@@ -1069,7 +1087,7 @@ We have six main functions:
   $(\bar{C}, d, z, h(X))$ representing the information needed to create the
   polynomial commitment represented by $\acc_i$.
 
-- $\ASDLProver(d: \Nb, \vec{q}_{i-1}: \Instance^m) \to \Result(\Acc, \bot)$:
+- $\ASDLProver(\vec{q}_{i-1}: \Instance^m) \to \Result(\Acc, \bot)$:
 
   Accumulates the instances $\vec{q}_{i-1}$, and an optional previous
   accumulator $\acc_{i-1}$, into a new accumulator $\acc_i$. If there is a
@@ -1085,17 +1103,25 @@ We have six main functions:
 
 - $\ASDLDecider(\acc_i: \Acc) \to \Result(\top, \bot)$:
 
-  Checks the validitor of the given accumulator $\acc_i$ along with all
+  Checks the validity of the given accumulator $\acc_i$ along with all
   previous accumulators that was accumulated into $\acc_i$.
 
-The following subsections will describe them in pseudo-code, except $\ASDLSetup$.
+This means that accumulating $m$ instances, $\vec{q} = [q_i]^m$, should
+yield $\acc_i$, using the $\ASDLProver(\vec{q})$. If we do this for $n$
+$\vec{q}$'s, then if the verifier accepts all $i \in [n]$ accumulators
+$\ASDLVerifier(\vec{q}, \acc_i) = \top$, and $\ASDLDecider$ accepts
+the final accumulator ($\ASDLDecider(\acc_n) = \top$), then all the
+polynomial commitment openings will be valid, by the soundness property
+of the accumulation scheme. This is proved in the soundness section. The
+following subsections will describe the functions in pseudo-code, except
+$\ASDLSetup$.
 
 ### $\ASDLCommonSubroutine$
 
 \begin{algorithm}[H]
 \caption{$\ASDLCommonSubroutine$}
 \textbf{Inputs} \\
-  \Desc{$d: \Nb$}{A degree bound on $p$} \\
+  \Desc{$d: \Nb$}{The degrees of the underlying polynomials, $\vec{p}$, for each $q_i$} \\
   \Desc{$\vec{q}: \Instance^m$}{New instances \textit{and accumulators} to be accumulated.} \\
   \Desc{$\mathblue{\pi_V: \AccHiding}$}{Necessary parameters if hiding is desired.} \\
 \textbf{Output} \\
@@ -1105,21 +1131,21 @@ The following subsections will describe them in pseudo-code, except $\ASDLSetup$
     otherwise fail ($\bot$).
   }
 \begin{algorithmic}[1]
-  \Require $d \leq D$
-  \Require $(d+1) = 2^k$, where $k \in \Nb$
+  \Require $(D+1) = 2^k$, where $k \in \Nb$
+  \State Parse $d$ from $q_1$.
   \State \textblue{Parse $\pi_V$ as $(h_0, U_0, \o)$, where $h_0(X) = aX + b \in \Fb^1_q[X], U_0 \in \Gb$ and $\o \in \Fb_q$}
-  \State \textblue{Check that $U_0$ is a deterministic commitment to $h_0$: $U_0 = \PCDLCommit(h, \bot)$.}
-  \For{$i \in [m]$}
+  \State \textblue{Check that $U_0$ is a deterministic commitment to $h_0$: $U_0 = \PCDLCommit(h, d, \bot)$.}
+  \For{$i \in [0, m]$}
     \State Parse $q_i$ as a tuple $((C_i, d_i, z_i, v_i), \pi_i)$.
-    \State Compute $(h_i(X), U_i) := \PCDLSuccinctCheck(C_i, z_i, v_i, \pi_i)$.
-    \State Check that $d_i \leq d$
+    \State Compute $(h_i(X), U_i) := \PCDLSuccinctCheck^{\rho_0}(C_i, d_i, z_i, v_i, \pi_i)$.
+    \State Check that $d_i \meq d$
   \EndFor
   \State Compute the challenge $\a := \rho_1(\vec{h}, \vec{U}) \in \Fb_q$
   \State Let the polynomial $h(X) := \mathblue{h_0 +} \sum^m_{i=1} \a^i h_i \in \Fb_q[X]$
   \State Compute the accumulated commitment $C := \mathblue{U_0 +} \sum^m_{i=1} \a^i U_i$
   \State Compute the challenge $z := \rho_1(C, h) \in \Fb_q$.
-  \State Randomize $C$: $\bar{C} := C \mathblue{+ \o S} \in \Gb$.
-  \State Output $(\bar{C}, d, z, h(X))$.
+  \State Randomize $C$: $\bar{C} := C \mathblue{+ \o S} \in \Eb(\Fb_q)$.
+  \State Output $(\bar{C}, D, z, h(X))$.
 \end{algorithmic}
 \end{algorithm}
 
@@ -1138,7 +1164,6 @@ this works, refer to the note in the $\ASDLDecider$ section.
 \begin{algorithm}[H]
 \caption{$\ASDLProver$}
 \textbf{Inputs} \\
-  \Desc{$d: \Nb$}{A degree bound on $p$} \\
   \Desc{$\vec{q}: \Instance^m$}{New instances \textit{and accumulators} to be accumulated.} \\
 \textbf{Output} \\
   \Desc{$\Result(\Acc, \bot)$}{
@@ -1147,19 +1172,19 @@ this works, refer to the note in the $\ASDLDecider$ section.
     parameters and otherwise fail ($\bot$).
   }
   \begin{algorithmic}[1]
-  \Require $d \leq D$
-  \Require $(d+1) = 2^k$, where $k \in \Nb$
+  \Require $\forall (\_, d_i, \_, \_, \_) \in \vec{q}, \forall (\_, d_j, \_, \_, \_) \in \vec{q} : d_i = d_j \land d_i \leq D$
+  \Require $(d_i+1) = 2^k$, where $k \in \Nb$
   \State \textblue{Sample a random linear polynomial $h_0 \in F_q[X]$}
   \State \textblue{Then compute a deterministic commitment to $h_0(X)$: $U_0 := \PCDLCommit(h_0, \bot)$}
   \State \textblue{Sample commitment randomness $\o \in F_q$, and set $\pi_V := (h_0, U_0, \o)$.}
-  \State Then, compute the tuple $(\bar{C}, d, z, h(X)) := \ASDLCommonSubroutine(d, \vec{q} \mathblue{, \pi_V})$.
-  \State Compute the evaluation $v := h(z)$
+  \State Then, compute the tuple $(\bar{C}, d, z, h(X)) := \ASDLCommonSubroutine(\vec{q} \mathblue{, \pi_V})$.
+  \State Compute the evaluation $v := h(z) \in \Fb_q$.
   \State Generate the hiding evaluation proof $\pi := \PCDLOpen(h(X), \bar{C}, d, z \mathblue{, \o})$.
-  \State Finally, output the accumulator $acc = \mathblue{(}(\bar{C}, d, z, v, \pi)\mathblue{, \pi_V)}$.
+  \State Finally, output the accumulator $\acc_i = \mathblue{(}(\bar{C}, d, z, v, \pi)\mathblue{, \pi_V)}$.
 \end{algorithmic}
 \end{algorithm}
 
-Simply accumulates the the instances, $\vec{q}$, into new accumulator $\acc$, using $\ASDLCommonSubroutine$.
+Simply accumulates the the instances, $\vec{q}$, into new accumulator $\acc_i$, using $\ASDLCommonSubroutine$.
 
 ### $\ASDLVerifier$
 
@@ -1167,20 +1192,28 @@ Simply accumulates the the instances, $\vec{q}$, into new accumulator $\acc$, us
 \caption{$\ASDLVerifier$}
 \textbf{Inputs} \\
   \Desc{$\vec{q}: \Instance^m$}{New instances \textit{and possible accumulator} to be accumulated.} \\
-  \Desc{$acc: \Acc$}{The accumulator.} \\
+  \Desc{$\acc_i: \Acc$}{The accumulator that accumulates $\vec{q}$. \textit{Not} the previous accumulator $\acc_{i-1}$.} \\
 \textbf{Output} \\
   \Desc{$\Result(\top, \bot)$}{
     The algorithm will either succeed $(\top)$ if $acc$ correctly accumulates
     $\vec{q}$ and otherwise fail ($\bot$).
   }
   \begin{algorithmic}[1]
-  \Require $acc.d \leq D$
-  \Require $(acc.d+1) = 2^k$, where $k \in \Nb$ 
+  \Require $(D+1) = 2^k$, where $k \in \Nb$ 
     \State Parse $acc$ as $\mathblue{(}(\bar{C}, d, z, v, \_)\mathblue{, \pi_V)}$
-    \State The accumulation verifier computes $(\bar{C}', d', z', h(X)) := \ASDLCommonSubroutine(d, \vec{q} \mathblue{, \pi_V})$
+    \State The accumulation verifier computes $(\bar{C}', d', z', h(X)) := \ASDLCommonSubroutine(\vec{q} \mathblue{, \pi_V})$
     \State Then checks that $\bar{C}' \meq \bar{C}, d' \meq d, z' \meq z$, and $h(z) \meq v$.
 \end{algorithmic}
 \end{algorithm}
+
+The verifier also runs $\ASDLCommonSubroutine$, therefore verifying that $\acc_i$ correctly accumulats $\vec{q}$, which means:
+
+- $\bar{C} = C + \o S = \sum_{i=1}^m \a^i U_i + \o S$
+- $\forall (\_, d_i, \_, \_, \_) \in \vec{q} : d_i = d$
+- $z = \rho_1(C, h)$
+- $v = h(z)$
+- $h(X) = \sum_{i=0}^m \a^i h_i(X)$
+- $\a := \rho_1(\vec{h}, \vec{U})$
 
 ### $\ASDLDecider$
 
@@ -1194,37 +1227,49 @@ Simply accumulates the the instances, $\vec{q}$, into new accumulator $\acc$, us
     accumulated all previous instances and will otherwise fail ($\bot$).
   }
   \begin{algorithmic}[1]
-  \Require $acc.d \leq D$
-  \Require $(acc.d+1) = 2^k$, where $k \in \Nb$ 
-    \State Parse $acc$ as $((\bar{C}, d, z, v, \pi), \_)$
+  \Require $\acc_i.d \leq D$
+  \Require $(\acc_i.d+1) = 2^k$, where $k \in \Nb$ 
+    \State Parse $\acc_i$ as $\mathblue{(}(\bar{C}, d, z, v, \pi)\mathblue{, \_)}$
     \State Check $\top \meq \PCDLCheck(\bar{C}, d, z, v, \pi)$
 \end{algorithmic}
 \end{algorithm}
 
+The decider fully checks the accumulator $\acc_i$, this verifies each previous accumulator meaning that:
+$$
+\begin{aligned}
+  &\forall i \in [n], \forall j \in [m] : \\
+  &\ASDLVerifier((\ToInstance(\acc_{i-1}) \cat \vec{q}_{i-1}), \acc_i) \land \ASDLDecider(\acc_n) \implies \\
+  &\Phi_\AS(q^{(i)}_j) = \PCDLCheck(q^{(i)}_j) = \top
+\end{aligned}
+$$
+
+The sidenote below gives an intuition why this is the case.
+
 \begin{quote}
 \color{GbGrey}
 
-\textbf{Note: Why does checking $acc_i$ check all previous instances
+\textbf{Sidenote: Why does checking $acc_i$ check all previous instances
 and previous accumulators?}
 
 The $\ASDLProver$ runs the $\ASDLCommonSubroutine$ that creates an accumulated
-polynomial $h$ from $\vec{h}$ that is in turn created for each instance $q_j
+polynomial $h$ from $[h_i]^m$ that is in turn created for each instance $q_j
 \in \vec{q}_i$ by $\PCDLSuccinctCheck$:
 
 $$h_i(X) := \prod^{lg(n)}_{i=0} (1 + \xi_{\lg(n)-i} \cdot X^{2^i}) \in F_q[X]$$
 
-We don't mention the previous accumulator $acc_{i-1}$ explicitly as it's
-treated as an instance in the protocol. The $\ASDLVerifier$ shows that $C$
-is a commitment to $h(X)$ in the sense that it's a linear combination of all
-$h$'s from the previous instances, by running the same $\ASDLCommonSubroutine$
-algorithm as the prover to get the same output. Note that the $\ASDLVerifier$
-does not guarantee that $C$ is a valid commitment to $h(X)$ in the sense that
-$C = \PCDLCommit(h, \bot)$, that's the $\ASDLDecider$'s job. Since $\ASDLVerifier$
-does not verify that each $U_i$ is valid, and therefore that $C = \PCDLCommit(h,
-\bot)$, we now wish to argue that the second pass checks for all instances
-that has been accumulated into the accumulator $acc_i$.
+We don't mention the previous accumulator $\acc_{i-1}$ explicitly as it's
+treated as an instance in the protocol. We also only consider the case where
+the protocol does not have zero knowledge, meaning that we omit the blue parts
+of the protocol. The $\ASDLVerifier$ shows that $C$ is a commitment to $h(X)$
+in the sense that it's a linear combination of all $h$'s from the previous
+instances, by running the same $\ASDLCommonSubroutine$ algorithm as the prover
+to get the same output. Note that the $\ASDLVerifier$ does not guarantee that
+$C$ is a valid commitment to $h(X)$ in the sense that $C = \PCDLCommit(h, d,
+\bot)$, that's the $\ASDLDecider$'s job. Since $\ASDLVerifier$ does not verify
+that each $U_i$ is valid, and therefore that $C = \PCDLCommit(h, d, \bot)$,
+we now wish to argue that $\ASDLDecider$ verifies this for all the instances.
 
-\textbf{Showing that $C = \PCDLCommit(h, \bot)$:}
+\textbf{Showing that $C = \PCDLCommit(h, d, \bot)$:}
 
 The $\ASDLProver$ has a list of instances $\vec{q}_i$, then runs
 $\PCDLSuccinctCheck$ on each $q_j \in \vec{q}_i$ of them, getting $(U_1,
@@ -1232,43 +1277,59 @@ $\PCDLSuccinctCheck$ on each $q_j \in \vec{q}_i$ of them, getting $(U_1,
 vector $\vec{U} \in \Eb(\Fb_q)^m$ and each element $h_i(X)$ in the vector
 $\vec{h} \in (\Fb^{\leq d}_q[X])^m$, the $\ASDLProver$ defines:
 
-$$h(X) := \sum^{m}_{i=0} \a^i \cdot h_i(X)$$
-$$C := \sum^{m}_{i=0} \a^i \cdot U_i$$
+$$h(X) := \sum^{m}_{i=1} \a^i \cdot h_i(X)$$
+$$C := \sum^{m}_{i=1} \a^i \cdot U_i$$
 
-Since we know from the $\ASDLVerifier$
+Since we know from the $\ASDLVerifier$:
 
 \begin{enumerate}
-  \item $h(X)$ and $C$ is constructed as above.
-  \item
-     The $\ASDLVerifier$ also runs $\PCDLSuccinctCheck$, therefore we know
-     that for each instance $q_i$ (and the previous accumulator $acc_{i-1}$)
-     $\Phi(q_i) = \top$, provided that the second check passes $U_i \meq
-     \PCDLCommit(h_i, \bot)$.
+  \item $\PCDLSuccinctCheck(q_j) = \top$
+  \item $C_{\acc_i} = \sum_{i=1}^m \a^i U_i$
+  \item $z_{\acc_i} = \rho_1(C, h)$
+  \item $h_{\acc_i}(X) = \sum_{i=0}^m \a^i h_i(X)$
+  \item $\a := \rho_1(\vec{h}, \vec{U})$
 \end{enumerate}
 
-\textgrey{We first show that if $C$ is a valid commitment to $h(X)$, then that implies
-that each $U_i$ is a valid commitment to $h_i(X)$, $U_i = \PCDLCommit(h_i(X),
-\bot) = \ip{\vec{G}}{\vec{h_i}}$, thereby performing the second check of
-$\PCDLCheck$, on all $q_j$ instances at once. When the $\ASDLDecider$ runs
-$\PCDLCheck$, thereby performing the second check $C \meq \PCDLCommit(h(X),
-\bot)$ on h(X), they effectively check that $C$ is a valid commitment to $h(X)$. If
-this is not the case, then for at least one of the $U_i$'s $U_i \neq
-\PCDLCommit(h_i(X), \bot)$. That means that running the $\ASDLDecider$ corresponds
-to checking all $U_i$'s.}
+Which implies that $\Phi(q_j) = \top$ if $U = G^{(0)}$. We then argue that
+when the $\ASDLDecider$ checks that $C = \PCDLCommit(h(X), d, \bot)$, then
+that implies that each $U_i$ is a valid commitment to $h_i(X)$, $U_i =
+\PCDLCommit(h_i(X), \bot) = \ip{\vec{G}}{\vec{h_i}}$, thereby performing
+the second check of $\PCDLCheck$, on all $q_j$ instances at once. We know that:
 
-\textgrey{What about checking the previous instances, $\vec{q}_{i-1}$, accumulated into
-the previous accumulator, $acc_{i-1}$? The accumulator for $\vec{q}_{i-1}$
-is represented by an instance $acc_{i-1} = (C = \PCDLCommit(h_{acc_{i-1}},
-\bot), d, z, v = h_{acc_{i-1}}(z), \pi)$, which, as mentioned, behaves
+\begin{enumerate}
+  \item
+    $\PCDLCheck$ tells us that $C_\acc = \sum_{i=1}^m \a^i U_i$ except with
+    negligible probability, since,
+  \item
+    The binding property of $\CM$ states that it's hard to find a different
+    $C'$, s.t., $C = C'$ but $h_{\acc_i}(X) \neq h'(X)$. Which means that
+    $h_{\acc_i}(X) = h'(X)$.
+  \item
+    Define $B_i = \ip{\vec{G}}{\vec{h_i}^{(\text{coeffs})}}$. If $\exists i
+    \in [m]$ $B_i \neq U_i$ then $U_i$ is not a valid commitment to $h_i$ and
+    $\sum_{i=1}^m \a_i B_i \neq \sum_{i=1}^m \a_i U_i$. As such $C_{\acc_i}$
+    will not be a valid commitment to $h_{\acc_i}(X)$. Unless,
+  \item
+    $\a := \rho_1(\vec{h}, \vec{U})$ or $z = \rho_1(C, h)$ is constructed
+    in a malicious way, which is hard, since they're from the random oracle.
+\end{enumerate}
+
+To sum up, this means that running the $\ASDLDecider$ corresponds to checking
+all $U_i$'s.
+
+What about checking the previous instances, $\vec{q}_{i-1}$, accumulated into
+the previous accumulator, $\acc_{i-1}$? The accumulator for $\vec{q}_{i-1}$
+is represented by an instance $acc_{i-1} = (C = \PCDLCommit(h_{\acc_{i-1}},
+\bot), d, z, v = h_{\acc_{i-1}}(z), \pi)$, which, as mentioned, behaves
 like all other instances in the protocol and represents a PCS opening
-to $h_{acc_{i-1}}(X)$. Since $acc_{i-1}$ is represented as an instance,
+to $h_{\acc_{i-1}}(X)$. Since $\acc_{i-1}$ is represented as an instance,
 and we showed that as long as each instance is checked by $\ASVerifier$
-(which $acc$ also is), running $\PCDLCheck(acc_i)$ on the corresponding
-accumulation polynomial $h_{acc_i}(X)$ is equivalent to performing the second
-check $U_i = \PCDLCommit(h_i(X), \bot)$ on all the $h_i$ that $h_{acc_i}(X)$
+(which $\acc$ also is), running $\PCDLCheck(\acc_i)$ on the corresponding
+accumulation polynomial $h_{\acc_i}(X)$ is equivalent to performing the second
+check $U_i = \PCDLCommit(h_i(X), \bot)$ on all the $h_i$ that $h_{\acc_i}(X)$
 consists of. Therefore, we will also check the previous set of instances
 $\vec{q}_{i-1}$, and by induction, all accumulated instances $\vec{q}$
-and accumulators $\vec{acc}$.}
+and accumulators $\vec{\acc}$.
 
 \end{quote}
 
@@ -1334,7 +1395,7 @@ $$
 Intuitively, the above lemma states that for any non-zero polynomial $p$,
 that you can create using the commitment $C$, it will be highly improbable
 that a random evaluation point $z$ be a root of the polynomial $p$, $p(z)
-= 0$. For reference, this is not too unlike the Schartz-Zippel Lemma.
+= 0$. For reference, this is not too unlike the Schwartz-Zippel Lemma.
 
 **Proof:**
 
@@ -1385,7 +1446,7 @@ $$
 \Pr[E] \leq \Pr[E \land (p = p')] + \Pr[E \land (p \neq p')]
 $$
 
-And, by Frank-Zippel:
+And, by Schwartz-Zippel:
 
 $$
 \begin{aligned}
@@ -1454,13 +1515,22 @@ $$
 
 We call the probability that the adversary $\Ac$ wins the above game
 $\d$. We bound $\d$ by constructing two adversaries, $\Bc_1, \Bc_2$, for
-the zero-finding game where the combined probability that one of them wins is:
+the zero-finding game. Assuming:
+
+- $\Pr[\Bc_1 \text{ wins} \lor \Bc_2 \text{wins}] = \delta - \negl(\l)$
+- $\Pr[\Bc_1 \text{ wins} \lor \Bc_2 \text{wins}] = 0$
+
+These assumptions will be proved after defining the adversaries concretely. So,
+we claim that the probability that either of the adversaries wins is $\delta -
+\negl(\l)$ and that both of the adversaries cannot win the game at the same
+time. With these assumptions, we can bound $\d$:
 $$
 \begin{aligned}
-  \delta - \negl(\l) &=     \Pr[\Bc_1 \text{ wins}] + \Pr[\Bc_2\text{ wins}]          \\
-  \delta - \negl(\l) &\leq  \sqrt{\frac{D(t+1)}{F(\l)}} + \sqrt{\frac{D(t+1)}{F(\l)}} \\
-  \delta - \negl(\l) &\leq  2 \cdot \sqrt{\frac{D(t+1)}{|\Fb_q|}}                     \\
-  \delta             &\leq  2 \cdot \sqrt{\frac{D(t+1)}{|\Fb_q|}} + \negl(\l)         \\
+  \Pr[\Bc_1 \text{ wins} \lor \Bc_2 \text{ wins}] &= \Pr[\Bc_1 \text{ wins}] + \Pr[\Bc_2\text{ wins}] - \Pr[\Bc_1 \text{ wins} \land \Bc_2 \text{ wins}]\\
+  \Pr[\Bc_1 \text{ wins} \lor \Bc_2 \text{ wins}] &= \Pr[\Bc_1 \text{ wins}] + \Pr[\Bc_2\text{ wins}] - 0 \\
+  \delta - \negl(\l)                              &\leq  \sqrt{\frac{D(t+1)}{F(\l)}} + \sqrt{\frac{D(t+1)}{F(\l)}} \\
+  \delta - \negl(\l)                              &\leq  2 \cdot \sqrt{\frac{D(t+1)}{|\Fb_q|}}                     \\
+  \delta                                          &\leq  2 \cdot \sqrt{\frac{D(t+1)}{|\Fb_q|}} + \negl(\l)         \\
 \end{aligned}
 $$
 Meaning that $\delta$ is negligible, since $q = |\Fb_q|$ is superpolynomial
@@ -1508,29 +1578,31 @@ We then construct an intermediate adversary, $\Cc$, against $\PCDL$, using $\Ac$
 
 The above adversary also outputs $\vec{q}$ for convenience, but the
 knowledge extractor simply ignores this. Running the knowledge extractor,
-$\Ec_\Cc^{\rho_1}$, on $\Cc$ will give us $p$, s.t. the following holds:
+$\Ec_\Cc^{\rho_1}$, on $\Cc$, meaning we extract $\acc_i$, will give us $p$.
+Provided that $\ASDLDecider$ accepts, the following will hold with probability
+$(1 - \negl)$:
 
 - $C_\acc$ is a deterministic commitment to $p(X)$.
 - $p(z_\acc) = v_\acc$
 - $\deg(p) \leq d_\acc \leq D$
 
-Furthermore:
+Let's denote successful knowledge extraction s.t. the above points holds
+as $E_\Ec$. Furthermore, the $\ASDLDecider$ (and $\ASDLVerifier$'s) will accept
+with probability $\d$, s.t. the following holds:
 
-- $\exists i \in [n] : \bot = \Phi_{\pp_\PC}(q_i) \implies \PCDLCheck^{\rho_0}(C_i, d_i, z_i, v_i, \pi_i) = \bot$
-<!-- TODO: The above implication is sus --> 
+- $\ASDLVerifier^{\rho_1}((q_{\acc_{i-1}} \cat \vec{q}), \acc_i) = \top$
+- $\ASDLDecider^{\rho_1}(\acc_i) = \top$
+- $\exists i \in [n] : \Phi_{\pp_\PC}(q_i) = \bot \implies \PCDLCheck^{\rho_0}(C_i, d_i, z_i, v_i, \pi_i) = \bot$
 
-Let's denote successful knowledge extraction s.t. the above points
-holds as $E$. We're interested in the probability $\Pr[E \; | \; \top =
-\ASDLDecider]$. Since the events are independent:
-<!-- TODO: The events actually don't seem independent --> 
-<!-- TODO: Also, the below is wrong, use and, I guess --> 
+Let's denote this event as $E_\Dc$. We're interested in the probability $\Pr[E_\Ec
+\land E_\Dc]$. Using the chain rule we get:
 
 $$
 \begin{aligned}
-  \Pr[E \; | \; \ASDLDecider = \top] &= \Pr[\ASDLDecider = \top] \cdot \Pr[E] \\
-                                     &= \d \cdot (1 - \negl(\l)) \\
-                                     &= \d - \d \cdot \negl(\l) \\
-                                     &= \d - \negl(\l)
+  \Pr[E_\Ec \land E_\Dc] &= \Pr[E_\Ec \; | \; E_\Dc] \cdot \Pr[E_\Ec] \\
+                         &= \d \cdot (1 - \negl(\l)) \\
+                         &= \d - \d \cdot \negl(\l) \\
+                         &= \d - \negl(\l)
 \end{aligned}
 $$
 
@@ -1545,7 +1617,6 @@ then, by construction, all the following holds:
 
 Also by construction, this implies that either:
 
-<!-- TODO: The first point here is sus -->
 - $\PCDLSuccinctCheck$ rejects, which we showed above is not the case, so therefore,
 - The group element $U_i$ is not a commitment to $h_i(X)$.
 
@@ -1586,8 +1657,13 @@ set $z_a = z_\acc$ and $z_b = \a$. Now, there are then two cases:
    oracle $\rho_1$, $\Bc_2$ wins the zero-finding game against $(CM_2,
    \{f_\pp^{(2)}\}_\pp)$.
 
-
-<!-- TODO: Conclusion -->
+So, since one of these adversaries always win if $E_\Ec \land E_\Dc$, the
+probability that $\Pr[\Bc_1 \text{ wins} \lor \Bc_2 \text{wins}]$ is indeed
+$\delta - \negl(\l)$. And since the above cases are mutually exclusive we
+also have $\Pr[\Bc_1 \text{ wins} \lor \Bc_2 \text{wins}]$. Thus, we have
+proved that, given the zero-finding game Lemma, the probability that an
+adversary can break the soundness property of the $\ASDL$ accumulation scheme
+is negligible.
 
 $\qed$
 
@@ -1738,17 +1814,15 @@ The results of the benchmarks, can be seen in the graphs below:
 
 Unsurprisingly, increasing the number of iterations only changes the
 performance difference up to a certain point, as the difference between
-running the decider once and many times gets amortized away as the number
-of iterations approaches infinity. Also, as was hoped for in the beginning
-of the project, the performance of the two approaches show the expected
-theoretical runtimes. The relatively low number degree bounds tested is due
-to the fact that the $\vec{G}$'s are represented as constants in the code,
-and that increasing the length of $\vec{G}$ significantly above 16,384 leads
-to slow compilation and failing LSP's. If not for this fact, testing higher
-degrees would have been preferred. The solution is to handle $\vec{G}$
-differently, generating a much larger set at compile-time and reading it
-as efficiently as possible during runtime, but this was not done due to
-time constraints.
+running the decider gets amortized away as the number of iterations
+approaches infinity. Also, as was hoped for in the beginning of the
+project, the performance of the two approaches show the expected theoretical
+runtimes. The $\vec{G}$ is represented as a constant in the code, as such,
+increasing the length of $\vec{G}$ significantly above 16,384 leads to slow
+compilation and failing LSP's. If not for this fact, testing higher degrees
+would have been preferred. The solution is to generate a much larger $\vec{G}$
+at compile-time, including it in the binary, and reading it as efficiently
+as possible during runtime, but this was not done due to time constraints.
 
 \newpage
 
