@@ -3,13 +3,14 @@ title: Investigating IVC with Accumulation Schemes
 date: \today
 author: 
   - Rasmus Kirk Jakobsen - 201907084
+abstract: Test
 geometry: margin=2cm
 ---
 
 <!-- TODO: Thank Hamid and Jesper! -->
 <!-- TODO: Efficiency discussions -->
-<!-- TODO: Redo IVC construction -->
 <!-- TODO: Add trusted/untrusted setup discussion -->
+<!-- TODO: Bibtex-->
 
 \setcounter{tocdepth}{5}
 \tableofcontents
@@ -28,11 +29,11 @@ components:
 - **$\ASDL$**: An Accumulation Scheme in the Discrete Log setting.
 - **Pasta**: A Cycle of Elliptic Curves, namely **Pa**llas and Ve**sta**.
 
-This project is focused on the components of $\PCDL$ and $\ASDL$. I used the
-[2020 paper](https://eprint.iacr.org/2020/499.pdf) _"Proof-Carrying Data from Accumulation
-Schemes"_ as a reference. The project covers both the theoretical aspects
-of the scheme described in this document along with a rust implementation,
-both of which can be found in the project's
+This project is focused on the components of $\PCDL$ and $\ASDL$. IThe
+[2020 paper](https://eprint.iacr.org/2020/499.pdf) _"Proof-Carrying Data
+from Accumulation Schemes"_ was used as a reference. The project covers
+both the theoretical aspects of the scheme described in this document along
+with a rust implementation, both of which can be found in the project's
 [repository](https://github.com/rasmus-kirk/halo-accumulation).
 
 ## Prerequisites
@@ -175,7 +176,7 @@ was released. Bulletproofs relies on the hardness of the Discrete Logarithm
 problem, and allows for an untrusted setup to generate the Common Reference
 String. It has logarithmic proof size, and lends itself well efficient range
 proofs. It's also possible to generate proofs for arbitrary circuits, but
-with less effeciency.
+with less efficiency.
 
 At the heart of Bulletproofs lies the Inner Product Argument (IPA), wherein
 a prover proves he knows two vectors, $\vec{a}, \vec{b} \in \Fb_q^n$,
@@ -233,10 +234,10 @@ $s$'s, $\vec{s} \in S^{n+1}$:
   \node (sn) [node, right=2cm of dots] {$s_n$};
 
   % Arrows with labels
-  \draw[arrow] (s0) -- node[above] {$F(s_0)$} (s1);
-  \draw[arrow] (s1) -- node[above] {$F(s_1)$} (s2);
-  \draw[arrow] (s2) -- node[above] {$F(s_2)$} (dots);
-  \draw[arrow] (dots) -- node[above] {$F(s_{n-1})$} (sn);
+  \draw[thick-arrow] (s0) -- node[above] {$F(s_0)$} (s1);
+  \draw[thick-arrow] (s1) -- node[above] {$F(s_1)$} (s2);
+  \draw[thick-arrow] (s2) -- node[above] {$F(s_2)$} (dots);
+  \draw[thick-arrow] (dots) -- node[above] {$F(s_{n-1})$} (sn);
 
 \end{tikzpicture}
 \caption{
@@ -266,9 +267,9 @@ state was computed correctly.
   \node (sn) [node, right=3cm of dots] {$(s_n, \pi_n)$};
 
   % Arrows with labels
-  \draw[arrow] (s0) -- node[above] {$\Pc(s_0, \bot)$} (s1);
-  \draw[arrow] (s1) -- node[above] {$\Pc(s_1, \pi_1)$} (dots);
-  \draw[arrow] (dots) -- node[above] {$\Pc(s_{n-1}, \pi_{n-1})$} (sn);
+  \draw[thick-arrow] (s0) -- node[above] {$\Pc(s_0, \bot)$} (s1);
+  \draw[thick-arrow] (s1) -- node[above] {$\Pc(s_1, \pi_1)$} (dots);
+  \draw[thick-arrow] (dots) -- node[above] {$\Pc(s_{n-1}, \pi_{n-1})$} (sn);
 
 \end{tikzpicture}
 \caption{
@@ -447,6 +448,8 @@ $$
 I.e. any adversary, $\Ac$, will not be able to open on a different polynomial,
 than the one they commited to.
 
+<!-- TODO: Review the above -->
+
 [^sonic-paper]: Sonic Paper: [https://eprint.iacr.org/2019/099](https://eprint.iacr.org/2019/099)
 [^plonk-paper]: Plonk Paper: [https://eprint.iacr.org/2019/953](https://eprint.iacr.org/2019/953)
 [^marlin-paper]: Marlin Paper: [https://eprint.iacr.org/2019/1047](https://eprint.iacr.org/2019/1047)
@@ -514,203 +517,276 @@ We define completeness and soundness informally for the Accumulation Scheme:
 
 ### IVC from Accumulation Schemes
 
-In order to construct and IVC-scheme, we first present a SNARK with
-parital succinct verification, that proves a single run of $F$ and can be
-used with accumulation. This SNARK can be constructed using general-purpose
-zero-knowledge proof scheme based on a PCS as described in the PCS section. To
-help the reader we define $\Proof = (\Instance^m, \Option(\Acc), \Acc)$. Also,
-as is the case for the accumulation scheme, the accumulator inputs are
-represented with $\Option(\Acc)$ to highlight the base case of $s_0$. Below
-is the definition of the SNARK:
 
-- $\SNARKProver(a: A, R: A \to B, acc_{i-1}: \Option(\Acc)) \to (b, \Proof)$:  
-  Outputs $\pi_i = (\vec{q}, acc_{i-1}, acc_i)$ that proves the statement
-  that $b = R(a) \in B$, where:
-  - $\vec{q} \in \Instance^m$: Represents the polynomial commitment openings.
-  - $acc_i \in \Acc$: Represents the accumulation scheme accumulator. The $\SNARKProver$
-    will run $\ASProver(\vec{q}, acc_{i-1}) = acc_i$ to accumulate the
-    instances $\vec{q}$ into the new accumulator $acc_i$, allowing succinct
-    verification.
-- $\SNARKVerifierFast(R: A \to B, b: B, \pi_i = (\vec{q}, acc_{i-1}, acc_i): \Proof) \to \Result(\top, \bot)$:  
-  Partially checks a proof $\pi_i$, in sub-linear time, i.e:
-    $$\top \meq \ASVerifier(\vec{q}, acc_{i-1}, acc_i) \land I_R(\vec{q})$$
-  Where $I_R \in \Instance^m \times B \to \{ \top, \bot \}$ represents a
-  sub-linear[^IR] function that checks identities between evaluations, $v_j =
-  p_j(z_j)$, in $(C_j, d, z_j, v_j, \pi^{(j)}_{Eval}) = q_j \in \vec{q}$,
-  the circuit $R$ and the claimed output $b$, that must hold in order for
-  $b = R(a)$ to be true. So for $\pi_i$ to be a valid proof, all $q_j \in
-  \vec{q}$ must check and the identities represented by $I_R$ must hold:
-  $\forall q_j \in \vec{q} : \PCCheck(q_j) \land I_R(\vec{q}, b) = \top$.
-- $\SNARKVerifierSlow(R: A \to B, b: B, \pi_i = (\_, \_, acc_i) : \Proof) \to \Result(\top, \bot)$:  
-  Fully checks a proof $\pi_i$, in possibly linear time, i.e:
-    $$\top \meq \SNARKVerifierFast(R, b, \pi_i) \meq \ASDecider(acc_i)$$
+For simplicity, as in the PCS section, we assume we have an underlying SNARK
+which proof consists of only instances $\pi \in \Proof = \{ \vec{q} \}$. We
+assume this SNARK has three algorithms:
 
-It's easy to see why the above works, the checks normally made by
-the general-purpose zero-knowledge proof scheme will all be performed
-succinctly by $\ASVerifier$. This does not yet yield soundness, but since the
-$\SNARKVerifierSlow$ also check the accumulator for the instances $acc_i$
-using $\ASDecider$, by the security properties of $\AS$ and the general
-purpose zero-knowledge proof scheme used, the SNARK construction above will
-inherit the same level of security. We'll loosely look at the properties of
-soundness and completeness:
+- $\SNARKProver(R: \Circuit, x: \PublicInfo, w: \Witness) \to \Proof$
+- $\SNARKVerifier(R: \Circuit, x: \PublicInfo, \pi) \to \Result(\top, \bot)$
+- $\SNARKVerifierFast(R: \Circuit, x: \PublicInfo) \to \Result(\top, \bot)$
 
-For completeness, we first look at the check made by the $\SNARKVerifierFast$:
-  $$\top \meq \SNARKVerifierFast(R, b, \pi_i) \meq \ASDecider(acc_i)$$
-  $$\top \meq \ASVerifier(\vec{q}, acc_{i-1}, acc_i) \meq I_R(\vec{q}, b) \meq \ASDecider(acc_i)$$
-Firstly, see that since the prover runs $\ASProver$ honestly, by the
-completeness of $\AS$, $\ASVerifier(\vec{q}, acc_{i-1}, acc_i) = \top
-\land \ASDecider(acc_i) = \top$. The above construction must be based on
-a general purpose zero-knowledge scheme, and assuming that it's complete,
-$I_{R_F}(\vec{q}, b) = \top$. Putting these together the check done in
-$\SNARKVerifierSlow$ will always pass, and as such, we have completeness. The
-soundness will depend on the underlying general purpose zero-knowledge proof
-scheme and $\AS$. $\SNARKVerifierFast$ will trivially have completeness,
-but obviously no soundness, which may not be useful on its own, but we
-will use it in the IVC scheme. Also note that a single step of IVC can be
-performed using the above construction $\SNARKProver(s_0, R_F, \bot) = \pi$
-then, $\SNARKVerifierSlow(R_F, \pi) = \top$.
+The $\SNARKProver, \SNARKVerifier$ pair is just the usual algorithms,
+but the verifier may run in linear time. The $\SNARKVerifierFast$ _must_
+run in sub-linear time however, but may assume each $q_j \in \vec{q}$ is
+a valid instance, meaning that $\forall q_j \in \vec{q} : \PCCheck(q_j)
+= \top$. This means that $\SNARKVerifierFast$ only performs linear checks
+to ensure that the instances, $\vec{q}$, representing information about
+the witness $w$, satisfies the constraints dictated by the circuit $R$
+and the public inputs $x$. It also means that when the $\SNARKVerifierFast$
+accepts with $\top$, then we don't know that these relations hold until we
+also know that all the instances are valid.
 
-At the surface, the SNARK construction may not seem particularly useful, as
-the added complexity does not even allow for proof recursion. All we get is
-unneccesarily larger proof sizes. The above specification may also seem overly
-abstract, why not hardcode $R = R_F$ representing the transition function
-$F$? Well, the abstractness arises since the above SNARK construction is
-also used to prove the IVC claim $R_{IVC}$, allowing us to simply reuse the
-above SNARK definition.  With the above SNARK construction we can acheive
-IVC with Accumulation Schemes:
-
-- $\IVCProver(s_{i-1}: S, R_F: S \to S, \pi_F^{(i)} = (\_, \_, acc_{i-1}): \Option(\Proof)) \to (S, (\Proof, \Proof))$
-
-  1. Runs $\SNARKProver(s_{i-1}, R_F, acc_{i-1}) = \pi_F^{(i)} = (\vec{q}_i, I_F, acc_i)$.
-  2. Then generate a SNARK proof $\pi_{IVC}^{(i)}$ using the following claim,
-     expressed as a circuit $R_{IVC} \in \Proof \to \{ \top, \bot \}$,
-     with $s_0$ being public:
-       $$R_{IVC} := \text{I.K} \; \pi_F^{(i)} = (\vec{q}_i, \_, \_) \; \text{s.t.} \; I_F(\vec{q}_i, s_i) \meq \top \land (s_{i-1} \meq s_0 \lor \SNARKVerifierFast(R_F, s_i, \pi_F^{(i)}) \meq \top)$$
-  3. Run $\SNARKProver(s_{i-1}, R_{IVC}, acc_i) = \pi_{IVC}^{(i)}$.
-  4. Output $\pi_i = (s_i, (\pi_{IVC}^{(i)}, \pi_F^{(i)}))$
-
-- $\IVCVerifier(R_{IVC}: \Proof \to \{ \top, \bot \}, s_i: S, \pi_{IVC}^{(i)}: \textbf{Proof}) \to \Result(\top, \bot)$
-
-  1. Checks the proof: $\SNARKVerifierSlow(R_{IVC}, s_i, \pi_{IVC}^{(i)}) \meq \top$
-
-A visualization of the chain of proofs can be seen below:
+Each step in the IVC protocol built from accumulation schemes, consists of the
+triple ($s_{i-1}, \pi_{i-1}, \acc_{i-1}$), representing the previous proof,
+accumulator and value. As per usual, the base-case is the exception, that
+only consists of $s_0$. This gives us the following chain:
 
 \begin{figure}[!H]
 \centering
-\begin{tikzpicture}[node distance=2cm]
+\begin{tikzpicture}[node distance=2.25cm]
 
   % Nodes
   \node (s0) [node] {$s_0$};
-  \node (s1) [node, right=of s0] {$(s_1, \pi_1)$};
-  \node (dots) [right=2cm of s1] {$\dots$};
-  \node (sn) [node, right=3cm of dots] {$(s_n, \pi_n)$};
+  \node (s1) [node, right=of s0] {$(s_1, \pi_1, \acc_1)$};
+  \node (dots) [right=2.75cm of s1] {$\dots$};
+  \node (sn) [node, right=4cm of dots] {$(s_n, \pi_n, \acc_n)$};
 
   % Arrows with labels
-  \draw[arrow] (s0) -- node[above] {$\Pc(s_0, \bot)$} (s1);
-  \draw[arrow] (s1) -- node[above] {$\Pc(s_1, \pi_1)$} (s2);
-  \draw[arrow] (dots) -- node[above] {$\Pc(s_{n-1}, \pi_{n-1})$} (sn);
+  \draw[thick-arrow] (s0) -- node[above] {$\Pc(s_0, \bot, \bot)$} (s1);
+  \draw[thick-arrow] (s1) -- node[above] {$\Pc(s_1, \pi_1, \acc_1)$} (dots);
+  \draw[thick-arrow] (dots) -- node[above] {$\Pc(s_{n-1}, \pi_{n-1}, \acc_{n-1})$} (sn);
 
 \end{tikzpicture}
 \caption{
-  A visualization of the relationship between $F, \vec{s}$ and $\vec{\pi}$
-  in an IVC setting using Accumulation Schemes. Where each $\pi_i$ is a pair
-  representing a proof used to verify the IVC relation, $\pi_{IVC}^{(i)}$
-  and a proof used to prove new recursive proofs, $\pi_F^{(i)}$, so $\pi_i =
-  (\pi_{IVC}^{(i)}, \pi_F^{(i)})$. $\Pc$ is defined to be $\Pc(s_{i-1},
-  \pi_{i-1}) = \IVCProver(s_{i-1}, R_F, \pi_F^{(i-1)}) = (s_i, \pi_i)$.
+  A visualization of the relationship between $F, \vec{s}, \vec{\pi}$ and
+  $\vec{\acc}$ in an IVC setting using Accumulation Schemes. Where $\Pc$ is
+  defined to be $\Pc(s_{i-1}, \pi_{i-1}, \acc_{i-1}) = \IVCProver(s_{i-1},
+  \pi_{i-1}, \acc_{i-1}) = \pi_i$, $s_i = F(s_{i-1})$, $\acc_i =
+  \ASProver(\vec{q}, \acc_{i-1})$.
 }
 \end{figure}
 
+Before describing the IVC protocol, we first describe the circuit for the
+IVC relation as it's more complex than for the naive SNARK-based approach. Let:
+
+- $\pi_{i-1} = \vec{q}, \acc_{i-1}, s_{i-1}$ from the previous iteration.
+- $s_i = F(s_{i-1})$
+- $\acc_i = \ASProver(\vec{q}, \acc_{i-1})$
+
+Giving us the public inputs $x$ and witness $w$:
+
+$$
+\begin{aligned}
+  x &= \{ R_{IVC}, s_0, s_i, \acc_i \}\\
+  w &= \{ s_{i-1}, \pi_{i-1} = \vec{q}, \acc_{i-1} \}
+\end{aligned}
+$$
+
+<!-- TODO: previous values as public or private? -->
+<!-- TODO: next values as public or private? -->
+
+That will be used to construct the the IVC circuit $R_{IVC}$:
+
+$$
+\begin{aligned}
+  x_{i-1} &:= \{ R_{IVC}, s_{i-1}, \acc_{i-1} \} \\
+  \Vc_1   &:= \SNARKVerifierFast(R_{IVC}, x_{i-1}, \pi_{i-1}) \meq \top \\
+  \Vc_2   &:= \ASVerifier(\pi_{i-1} = \vec{q}, \acc_{i-1}, \acc_i) \meq \top \\
+  R_{IVC} &:= \text{I.K } w \text{ s.t. } F(s_{i-1}) \meq s_i \land (s_{i-1} \meq s_0 \lor ( \Vc_1 \land \Vc_2 ) ) \\
+\end{aligned}
+$$
+
+Since the circuit is a bit complicated, it is also presented visually below:
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+  % First Layer
+  \node[draw, rectangle] (q) at (6, 6.5) {$\vec{q}$};
+  \node[draw, rectangle] (acc_prev) at (7.5, 6.5) {$\acc_{i-1}$};
+  \node[draw, rectangle] (acc_next) at (9, 6.5) {$\acc_i$};
+
+  \node[draw, rectangle] (R_ivc) at (2.25, 6.5) {$R_{IVC}$};
+  \node[draw, rectangle] (x_prev) at (3.5, 6.5) {$x_{i-1}$};
+  \node[draw, rectangle] (pi_prev) at (4.75, 6.5) {$\pi_{i-1}$};
+
+  \node[draw, rectangle] (s_next) at (-1.5, 6.5) {$s_i$};
+  \node[draw, rectangle] (s_prev) at (-0.25, 6.5) {$s_{i-1}$};
+  \node[draw, rectangle] (s_0) at (1, 6.5) {$s_0$};
+
+  \draw[dashed-arrow] (pi_prev) -- (4.75, 7) -- (6, 7) -- (q);
+
+  \draw[dashed-arrow] (R_ivc) -- (2.25, 7) -- (3.5, 7) -- (x_prev);
+  \draw[dashed-arrow] (s_prev) -- (-0.25, 7.1) -- (3.5, 7.1) -- (x_prev);
+  \draw[dashed-arrow] (acc_prev) -- (7.5, 7.2) -- (3.5, 7.2) -- (x_prev);
+
+
+  % Second Layer
+  \node[draw, rectangle] (svf) at (3.75, 5.5) {$\SNARKVerifierFast$};
+  \node[draw, rectangle] (asv) at (7.5, 5.5) {$\ASVerifier$};
+
+  \draw[arrow] (R_ivc) -- (svf);
+  \draw[arrow] (x_prev) -- (svf);
+  \draw[arrow] (pi_prev) -- (svf);
+
+  \draw[arrow] (q) -- (asv);
+  \draw[arrow] (acc_prev) -- (asv);
+  \draw[arrow] (acc_next) -- (asv);
+
+  % Third Layer
+  \node[draw, rectangle] (asv_svf_and) at (6, 4.5) {$\land$};
+  \node[draw, rectangle] (base_case) at (1, 4.5) {$s_{i-1} \meq s_0$};
+
+  \draw[arrow] (asv) -- (asv_svf_and);
+  \draw[arrow] (svf) -- (asv_svf_and);
+
+  \draw[arrow] (s_prev) -- (base_case);
+  \draw[arrow] (s_0) -- (base_case);
+
+  % Fourth Layer
+  \node[draw, rectangle] (or) at (4, 3.5) {$\lor$};
+  \node[draw, rectangle] (F) at (-1, 3.5) {$F(s_{i-1}) \meq s_i$};
+
+  \draw[arrow] (asv_svf_and) -- (or);
+  \draw[arrow] (base_case) -- (or);
+
+  \draw[arrow] (s_next) -- (F);
+  \draw[arrow] (s_prev) -- (F);
+
+  % Fifth Layer
+  \node[draw, rectangle] (end_and) at (3, 2.5) { $\land$ };
+  \draw[arrow] (or) -- (end_and);
+  \draw[arrow] (F) -- (end_and);
+
+  % Sixth Layer
+  \node[draw, rectangle] (output) at (3, 1.5) { $(\meq) \; \top$ };
+  \draw[arrow] (end_and) -- (output);
+
+\end{tikzpicture}
+\caption{A visualization of $R_{IVC}$}
+\end{figure}
+
+The verifier and prover for the IVC scheme is below:
+
+\begin{algorithm}[H]
+\caption*{\textbf{Algorithm} $\IVCProver$}
+\textbf{Inputs} \\
+  \Desc{$R_{IVC}: \Circuit$}{The IVC circuit as defined above.} \\
+  \Desc{$x: \PublicInputs$}{Public inputs for $R_{IVC}$.} \\
+  \Desc{$w: \Option(\Witness)$}{Private inputs for $R_{IVC}$.} \\
+\textbf{Output} \\
+  \Desc{$(S, \Proof, \Acc)$}{The values for the next IVC iteration.}
+\begin{algorithmic}[1]
+  \Require $x = \{ s_0 \}$
+  \Require $w = \{ s_{i-1}, \pi_{i-1}, \acc_{i-1} \} \lor w = \bot$
+  \State Parse $s_0$ from $x = \{ s_0 \}$.
+  \If{$w = \bot$}
+    \State $w = \{ s_{i-1} = s_0 \}$
+  \Else
+    \State Run the accumulation prover: $\acc_i = \ASProver(\pi_{i-1} = \vec{q}, \acc_{i-1})$.
+    \State Compute the next value: $s_i = F(s_{i-1})$.
+    \State Augment $x$ with $R_{IVC}, s_i, \acc_i$.
+  \EndIf
+  \State Then generate a SNARK proof $\pi_i$ using the circuit $R_{IVC}$: $\pi_i = \SNARKProver(R_{IVC}, x, w)$.
+  \State Output $(s_i, \pi_i, \acc_i)$
+\end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}[H]
+\caption*{\textbf{Algorithm} $\IVCVerifier$}
+\textbf{Inputs} \\
+  \Desc{$R_{IVC}: \Circuit$}{The IVC circuit.} \\
+  \Desc{$x: \PublicInputs$}{Public inputs for $R_{IVC}$.} \\
+\textbf{Output} \\
+  \Desc{$\Result(\top, \bot)$}{Returns $\top$ if the verifier accepts and $\bot$ if the verifier rejects.}
+\begin{algorithmic}[1]
+  \Require $x = \{ s_0, s_i, \acc_i \}$
+  \State Augment $x$ with $R_{IVC}$.
+  \State Verify that the accumulation scheme decider accepts: $\top \meq \ASDecider(\acc_i)$.
+  \State Verify the validity of the IVC proof: $\top \meq \SNARKVerifier(R_{IVC}, x, \pi_i)$.
+  \State If the above two checks pass, then output $\top$, else output $\bot$.
+\end{algorithmic}
+\end{algorithm}
+
+<!-- TODO: verifierFast? -->
+
 Consider the above chain run $n$ times. As in the "simple" SNARK IVC
-construction, if the SNARK verifier accepts at the end, then we get a chain
+construction, if $\IVCVerifier$ accepts at the end, then we get a chain
 of implications:
 
 $$
 \begin{alignedat}[b]{2}
-  &\SNARKVerifierSlow(R_{IVC}, s_n, \pi_{IVC}^{(n)}) = \top                                              &&\then \\
-  &I_F(\vec{q}_{n-1}, s_{n-1}) \land \ASVerifier(\vec{q}_{n-1}, acc_{n-1}, acc_n) = \top            &&\then \\
-  &I_F(\vec{q}_{n-2}, s_{n-2}) \land \ASVerifier(\vec{q}_{n-2}, acc_{n-2}, acc_{n-1}) = \top        &&\then \dots \\
-  &I_F(\vec{q}_1, s_1)         \land \ASVerifier(\vec{q}_1, \bot, acc_1) = \top                     &&\then \\
+  &\IVCVerifier(R_{IVC}, x_n = \{ s_0, s_n, \acc_i \}, \pi_n) = \top     &&\then \\
+  &\forall i \in [n] : \PCDLCheck(\pi_i = \vec{q}) = \top                &&\;\; \land \\
+  &F(s_{n-1}) = s_n     \land (s_{n-1} = s_0 \lor ( \Vc_1 \land \Vc_2 )) &&\then \\
+  &\ASVerifier(\pi_{n-1}, \acc_{n-1}, \acc_n)                            &&\;\; \land \\
+  &\SNARKVerifierFast(R_{IVC}, x_{n-1}, \pi_{n-1})                       &&\then \dots \\
+  &F(s_0) = s_1 \land (s_0 = s_0 \lor ( \Vc_1 \land \Vc_2 ))             &&\then \\
+  &F(s_0) = s_1                                                          &&\then \\
 \end{alignedat}
 $$
 
-And since the above $\SNARKVerifierSlow$ performs the $\ASDecider$ check, on
-the accumulator that contains all $\vec{q}_i$ used for the $\vec{\pi_F^{(i)}}$
-proofs, the opening proofs used for $I_F$ will be valid, which gives us:
+Remember that we assumed that $\ASVerifier$ verifies correctly if $\forall i
+\in [n] : \PCCheck(\pi_i = \vec{q})$, since $\IVCVerifier$ runs $\ASDecider$,
+this precondition holds, as long as all $\ASVerifier$'s accept, which is
+what allows us to recurse through this chain of implications.
 
-$$
-\begin{alignedat}[b]{2}
-  &\SNARKVerifierSlow(\pi_{IVC}^{(i)}) = \top  &&\then \\
-  &s_n = F(s_{n-1})                            &&\then \\
-  &s_{n-1} = F(s_{n-2})                        &&\then \dots \\
-  &s_1 = F(s_0)                                &&\then \\
-\end{alignedat}
-$$
+From this we learn:
 
-Completeness should follow rather trivially using the above argument, but
-we will again loosely argue soundness. We want to show that $s_n = F^n(s_0)$
-which is equivalent to:
+1. $\forall i \in [2, n] : \ASVerifier(\pi_{i-1}, \acc_{i-1}, \acc_i) = \top$, i.e, all accumulators are accumulated correctly.
+2. $\forall i \in [2, n] : \SNARKVerifierFast(R_{IVC}, x_{i-1}, \pi_{i-1})$, i.e, all the proofs are valid. Giving us our precondition for $\ASDecider$.
 
-$$
-\begin{alignedat}[b]{8}
-  &s_n = F(s_{n-1})                            &&\quad \land \; && \\
-  &s_{n-1} = F(s_{n-2})                        &&\quad \land \; && \dots \\
-  &s_1 = F(s_0)                                &&\quad \land \; && \\
-\end{alignedat}
-$$
+These points imply that $\forall i \in [n] : F(s_{i-1}) = s_i$, thus, $s_n = F^n(s_0)$. Thus, the scheme should be complete.
 
-By the soundness property of the Accumulation Scheme, an instance $\vec{q}_i
-\in \Instance^m$ will be valid if $\top = \ASVerifier(\vec{q}_i, acc_{i-1},
-acc_i) = \ASDecider(acc_i)$, so if all the accumulators $\vec{acc} \in \Acc^n$
-are valid, then all the instances will be valid. This is exactly the case
-due to the definition of the decider whereby checking an accumulator $acc_n$
-ensures that every previous instance is valid, provided that all previous
-$\ASVerifier$s accepted. Finally, if the underlying general-purpose
-zero-knowledge proof scheme is sound, then, provided that all PCS openings
-$\vec{q}$ are valid, each $I_F(s_i, \pi_F^{(i)})$ will be true. So the
-soundness of the above protocol should depend on the underlying protocols used[^unsoundness].
+<!-- TODO: the below is a mess, remove if not fixed in time -->
 
-<!-- TODO: This entire section -->
-\begin{quote}
-\color{GbGrey}
+The soundness of the above protocol will not be proved directly, but it will
+briefly be discussed. By the soundness property of the Accumulation Scheme,
+an instance $\vec{q}_i \in \Instance^m$ will be valid if it was accumulated
+correctly into an accumulator, as checked by $\ASVerifier$, and that the
+accumulator is valid, as checked by $\ASDecider$.
 
-\textbf{Sidenote: an example using Plonk and $\PCDL$:}
+Since all the instances has been checked by $\ASVerifier$, we just need all
+the accumulators $\vec{\acc} \in \Acc^n$ to be valid, in order for all the
+instances will be valid. All these accumulators _are valid_ though, due to the
+definition of the decider whereby checking an accumulator $acc_n$ ensures that
+every previous instance, and accumulator, is valid, provided that all previous
+$\ASVerifier$s accepted, which we've already established. Finally, if the
+underlying SNARK is sound, then, provided that all PCS openings $\vec{q}$
+are valid, each $\SNARKVerifier$ will be convinced that each $\pi_i$ is
+valid. So the soundness of the above protocol should mostly just depend on
+the underlying protocols used[^unsoundness].
 
-If we take Plonk as a concrete example, then the verifier receives
-a series of evaluation proofs along with their commitments $\PCDLCommit(C_i, d,
-z_i, v_i, \pi_i)$, evaluation points $v = p(z)$, and since the verifier chose
-the polynomial inputs $z$, the verifier can construct a list of instances:
+As for efficiency, assuming that:
 
-  $$(q_1 = (C_1, d, z_1, v_1, \pi_1), \dots, q_m = (C_m, d, z_m, v_m, \pi_m))$$
+- The runtime of $\SNARKProver$ scales linearly with the degree-bound, $d$, of the polynomial, $p_j$, used for each $q_j \in \vec{q}_m$ ($\Oc(d)$)
+- The runtime of $\SNARKVerifierFast$ scales logarithmically with the degree-bound, $d$, of $p_j$ ($\Oc(\lg(d))$)
+- The runtime of $\SNARKVerifier$ scales linearly with the degree-bound, $d$, of $p_j$ ($\Oc(d)$)
+- The runtime of $F$ is less than $\Oc(d)$, since it needs to be compiled to a circuit of size at most $\approx d$
 
-The verifier will then check all these openings, using the succinct checks
-that must run in sublinear time:
+- The runtime of $\IVCProver$ is:
+  - Step 5: The cost of running $\ASDLProver$, $\Oc(d)$.
+  - Step 6: The cost of computing $F$, $\Oc(F(x))$.
+  - Step 7: The cost of running $\SNARKProver$, $\Oc(d)$.
 
-  $$\PCDLSuccinctCheck(C_1, d, z_1, v_1, \pi_1) \meq \dots \meq \PCDLSuccinctCheck(C_m, d, z_m, v_m, \pi_m) \meq \top$$
+  Totalling $\Oc(F(x) + d)$. So $\Oc(d)$.
+- The runtime of $\IVCVerifier$ is:
+  - Step 2: The cost of running $\ASDLDecider$, $\Oc(d)$ scalar multiplications.
+  - Step 3: The cost of running $\SNARKVerifier$, $\Oc(d)$ scalar multiplications.
 
-And additionally check relations between $\vec{v} \in \Fb^m$ satisfy
-the public circuit $R_F$ using $I_{R_F}$. This will check the validity of
-the computation of a single $s_i$ $(s_i \meq R_F(s_{i-1}))$.
+  Totalling $\Oc(2d)$. So $\Oc(d)$
 
-To modify the plonk protocol slightly, we can make the Plonk Prover
+Notice that the runtime of $\IVCVerifier$ scales with $d$, _not_ $n$. So
+the cost of verifying does not scale with the number of iterations.
 
-These claims $\vec{q}_i \in \Fb^m$ will then be accumulated into the new
-accumulator, $acc_i$, along with the old accumulator, $acc_{i-1}$. Due to
-the soundness properties of $\PCDL$ and the accumulation scheme, performing
-the succinct checks will be sufficient, provided that you run $\ASDecider$
-at the end of the IVC scheme.
-
-\end{quote}
-
-[^IR]: If $I_R$ is not sub-linear in the underlying general-purpose
-zero-knowledge proof scheme, then the above construction will not work for IVC.
 [^unsoundness]: A more thorough soundness discussion would reveal that running
-the extractor on a proof-chain of length $n$ would mean that we don't get the
-desired soundness, as argued by Valiant in his original 2008 paper. Instead
-he constructs a proof tree of size $\Oc(\lg(n))$ size, which gets around the
-issue. In practice however, this is not assumed to be a real security issue,
-and practical applications conjecture that the failure of the extractor does
-not lead to any real-world attack, thus still acheiving constant proof sizes.
+the extractor on a proof-chain of length $n$ actually fails, as argued by
+Valiant in his original 2008 paper. Instead he constructs a proof-tree of
+size $\Oc(\lg(n))$ size, to circumvent this. However, practical applications
+conjecture that the failure of the extractor does not lead to any real-world
+attack, thus still acheiving constant proof sizes, but with an additional
+security assumption added.
 
 ## The Implementation
 
@@ -726,12 +802,12 @@ Since these kinds of proofs can both be used for proving knowledge of a
 large witness to a statement succinctly, and doing so without revealing
 any information about the underlying witness, the zero-knowledgeness
 of the protocol is described as _optional_. This is highlighted in the
-algorithmic specifications as the parts colored \textblue{blue}. In the
-Rust implementation I have chosen to include these parts as they were not
-too cumbersome to implement. However, since the motivation for this project was
-IVC, wherein the primary focus is succinctness, not zero-knowledge, I have
-chosen to omit them from the soundness and completeness discussions in the
-following sections, as well as omitted the proofs of zero-knowledge.
+algorithmic specifications as the parts colored \textblue{blue}. In the Rust
+implementation these parts were included as they were not too cumbersome to
+implement. However, since the motivation for this project was IVC, wherein the
+primary focus is succinctness, not zero-knowledge, these have been omitted
+from the soundness and completeness discussions in the following sections,
+and the proofs of zero-knowledge have also been omitted.
 
 The authors of the paper present additional algorithms for distributing
 public parameters ($\CMTrim$, $\PCDLTrim$, $\ASDLIndexer$), we omit them in
@@ -1055,10 +1131,120 @@ Which corresponds exactly to the check that the verifier makes.
 The honest prover will define $U = G^{(0)}$ as promised and the right-hand
 side will also become $U = G^{(0)}$ by the construction of $h(X)$.
 
-## Soundness
+## Soundness (Knowledge Extractability)
 
-<!-- TODO: Write an "improper" thing here-->
-<!-- TODO: Write an proper thing here, complete with the extraction proof from IPA (probably not this time around) -->
+The knowledge extractability of the protocol is inherited by the IPA
+from bulletproofs. In our case, we only need to extract a single vector
+of the original vectors $\vec{a}, \vec{b} : \ip{\vec{a}}{\vec{b}} = c$,
+since $\vec{a} = \vec{p}^{\mathrm{(coeffs)}}$ and $\vec{b} = \vec{z}$ where
+$\vec{b}$ is public.
+
+The authors, of the paper followed, note that the soundness technically breaks
+down when turning the IPA into a non-interactive protocol (which is the case
+for $\PCDL$), and that transforming $\PCDL$ into a non-interactive protocol
+such that the knowledge extractor does not break down is an open problem:
+
+\begin{quote}
+\color{GbGrey}
+
+\textbf{Security of the resulting non-interactive argument.} It is known
+from folklore that applying the Fiat–Shamir transformation to a public-coin
+$k$-round interactive argument of knowledge with negligible soundness error
+yields a non-interactive argument of knowledge in the random-oracle model
+where the extractor $\Ec$ runs in time exponential in $k$. In more detail,
+to extract from an adversary that makes $t$ queries to the random oracle,
+$\Ec$ runs in time $t^{O(k)}$. In our setting, the inner-product argument has
+$k = \Oc(\log d)$ rounds, which means that if we apply this folklore result, we
+would obtain an extractor that runs in superpolynomial (but subexponential)
+time $t^O(\log d) = 2^{O(log(\l)^2)}$. It remains an interesting open problem
+to construct an extractor that runs in polynomial time.
+
+\end{quote}
+
+This has since been solved in a 2023 paper[^knowledge-extractor-paper]. The
+abstract of the paper describes:
+
+\begin{quote}
+\color{GbGrey}
+
+Unfortunately, the security loss for a $(2\mu + 1)$-move protocol is, in
+general, approximately $Q^\mu$, where $Q$ is the number of oracle queries
+performed by the attacker. In general, this is the best one can hope for,
+as it is easy to see that this loss applies to the $\mu$-fold sequential
+repetition of $\Sigma$-protocols, $\dots$, we show that for $(k^1, \dots,
+k^\mu)$-special-sound protocols (which cover a broad class of use cases),
+the knowledge error degrades linearly in $Q$, instead of $Q^\mu$.
+
+\end{quote}
+
+They furthermore directly state that this result applies to bulletproofs.
+
+<!-- TODO: The above Fiat-Shamir transformation discussion is not good enough! -->
+<!-- TODO: Review this after defining soundness properly for PCS' -->
+
+[^knowledge-extractor-paper]: Paper: [https://ir.cwi.nl/pub/33324/33324.pdf](https://ir.cwi.nl/pub/33324/33324.pdf)
+
+## Efficiency
+
+Given two operations $f(x), g(x)$ where $f(x)$ is more expensive than $g(x)$,
+we only consider $f(x)$, since $\Oc(f(n) + g(n)) = \Oc (f(n))$. For all the
+algorithms, the most expensive operations will be scalar multiplications. We
+also don't bother counting constant operations, that does not scale with
+the input. Also note that:
+$$
+  \Oc\left(\sum_{i=2}^{\lg(n)} \frac{n}{i^2}\right) = \Oc\left(n \sum_{i=2}^{\lg(n)} \frac{1}{i^2}\right)
+                                       = \Oc(n \cdot c)
+                                       = \Oc(n)
+$$
+Remember that in the below contexts $n = d+1$
+
+- $\PCDLCommit$: $n = \Oc(d)$ scalar multiplications and $n = \Oc(d)$ point additions.
+- $\PCDLOpen$:
+  - Step 1: 1 polynomial evaluation, i.e. $n = \Oc(d)$ field multiplications.
+  - Step 13 & 14: Both commit $\lg(n)$ times, i.e. $2 (\sum_{i=2}^{\lg(n)} (n+1)/i) = \Oc(2n)$
+    scalar multiplications. The sum appears since we halve the vector
+    length each loop iteration.
+  - Step 16: $\lg(n)$ vector dot products, i.e. $\sum_{i=2}^{\lg(n)} n/i = \Oc(n)$ scalar multiplications.
+
+  In total, $\Oc(3d)$ scalar multiplications.
+- $\PCDLSuccinctCheck$:
+  - Step 7: $\lg(n)$ hashes.
+  - Step 8: $3 \lg(n)$ point additions and $2 \lg(n)$ scalar multiplications.
+  - step 11: The evaluation of $h(X)$ which takes $\Oc(\lg(n))$ time.
+
+  In total, $\Oc(2 \lg(n)) = \Oc(2 \lg(d))$ scalar multiplications.
+- $\PCDLCheck$:
+  - Step 1: Running $\PCDLSuccinctCheck$ takes $\Oc(2 \lg(d))$ scalar multiplications.
+  - Step 2: Running $\CMCommit(\vec{G}, \vec{h}^{\text{(coeffs)}}, \bot)$ takes $\Oc(d)$ scalar multiplications.
+
+  Since step two dominates, we have $\Oc(d)$ scalar multiplications.
+
+So $\PCDLOpen$, $\PCDLCheck$ and $\PCDLCommit$ is linear and, importantly, $\PCDLSuccinctCheck$ is sublinear.
+
+\begin{quote}
+\color{GbGrey}
+
+\textbf{Sidenote: The runtime of $h(X)$}
+
+Recall the structure of $h(X)$:
+$$h(X) := \prod^{\lg(n)-1}_{i=0} (1 + \xi_{\lg(n) - i} X^{2^i}) \in \Fb_q[X]$$
+First note that $\prod^{\lg(n)-1}_{i=0} a$ leads to $\lg(n)$
+factors. Calculating $X^{2^i}$ can be computed as:
+$$X^{2^0}, X^{2^1} = (X^{2^0})^2, X^{2^2} = (X^{2^1})^2$$
+So that part of the evaluation boils down to the cost of squaring in the
+field. We therefore have $\lg(n)$ squarings (from $X^{2^i}$), and $\lg(n)$
+field multiplications from $\xi_{\lg(n) - i} \cdot X^{2^i}$. Each squaring
+can naively be modelled as a field multiplication ($x^2 = x \cdot x$). We
+therefore end up with $2\lg(n) = \Oc(\lg(n))$ field multiplications
+and $\lg(n)$ field additions. The field additions are ignored as the
+multiplications dominate.
+
+Thus, the evaluation of $h(X)$ requires $\Oc(\lg(n))$ field multiplications,
+which dominate the runtime.
+
+\end{quote}
+
+<!-- TODO: What is the cost of squaring? -->
 
 # $\ASDL$: The Accumulation Scheme
 
@@ -1179,7 +1365,7 @@ this works, refer to the note in the $\ASDLDecider$ section.
   \State \textblue{Sample commitment randomness $\o \in F_q$, and set $\pi_V := (h_0, U_0, \o)$.}
   \State Then, compute the tuple $(\bar{C}, d, z, h(X)) := \ASDLCommonSubroutine(\vec{q} \mathblue{, \pi_V})$.
   \State Compute the evaluation $v := h(z) \in \Fb_q$.
-  \State Generate the hiding evaluation proof $\pi := \PCDLOpen(h(X), \bar{C}, d, z \mathblue{, \o})$.
+  \State Generate the evaluation proof $\pi := \PCDLOpen(h(X), \bar{C}, d, z \mathblue{, \o})$.
   \State Finally, output the accumulator $\acc_i = \mathblue{(}(\bar{C}, d, z, v, \pi)\mathblue{, \pi_V)}$.
 \end{algorithmic}
 \end{algorithm}
@@ -1666,6 +1852,28 @@ adversary can break the soundness property of the $\ASDL$ accumulation scheme
 is negligible.
 
 $\qed$
+
+## Efficiency
+
+- $\ASDLCommonSubroutine$:
+  - Step 6: $m$ calls to $\PCDLSuccinctCheck$, $m \cdot \Oc(2\lg(d)) = \Oc(2m\lg(d))$ scalar multiplications.
+  - Step 11: $m$ scalar multiplications.
+
+  Step 6 dominates with $\Oc(2m\lg(d)) = \Oc(m\lg(d))$ scalar multiplications.
+- $\ASDLProver$:
+  - Step 4: 1 call to $\ASDLCommonSubroutine$, $\Oc(md)$ scalar multiplications.
+  - Step 5: 1 evaluation of $h(X)$, $\Oc(\lg(d))$ scalar multiplications.
+  - Step 6: 1 call to $\PCDLOpen$, $\Oc(3d)$ scalar multiplications.
+
+  Step 6 dominates with $\Oc(3d) = \Oc(d)$ scalar multiplications.
+- $\ASDLVerifier$:
+  - Step 2: 1 call to $\ASDLCommonSubroutine$, $\Oc(2m\lg(d))$ scalar multiplications.
+
+  So $\Oc(2m\lg(d)) = \Oc(m\lg(d))$ scalar multiplications.
+- $\ASDLDecider$:
+  - Step 2: 1 call to $\PCDLCheck$, with $\Oc(d)$ scalar multiplications.
+
+So $\ASDLProver$ and $\ASDLDecider$ are linear and $\ASDLDecider$ is sublinear.
 
 # Benchmarks
 

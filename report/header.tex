@@ -16,8 +16,12 @@
 
 \tikzstyle{process} = [rectangle, minimum width=2cm, minimum height=1cm, text centered, draw=black]
 \tikzstyle{data} = [trapezium, trapezium left angle=70, trapezium right angle=110, minimum width=1.5cm, minimum height=1cm, text centered, draw=black]
-\tikzstyle{arrow} = [thick, ->, >=stealth]
+\tikzstyle{arrow} = [->, >=latex]
+\tikzstyle{thick-arrow} = [thick, ->, >=latex]
+\tikzstyle{dashed-arrow} = [dashed, ->]
 \tikzstyle{node} = [rectangle, draw=black, minimum width=1cm, minimum height=1cm, text centered]
+
+\tikzstyle{box} = [rectangle, draw, rounded corners, text centered, minimum height=1cm]
 
 \usepackage{pgfplots}
 \pgfplotsset{compat=1.18}
@@ -162,6 +166,10 @@
 \newcommand*\Acc{\mathbf{Acc}}
 \newcommand*\Instance{\mathbf{Instance}}
 \newcommand*\Proof{\mathbf{Proof}}
+\newcommand*\Witness{\mathbf{Witness}}
+\newcommand*\PublicInfo{\mathbf{PublicInputs}}
+\newcommand*\PublicInputs{\mathbf{PublicInputs}}
+\newcommand*\Circuit{\mathbf{Circuit}}
 \newcommand*\AccHiding{\mathbf{AccHiding}}
 \newcommand*\EvalProof{\mathbf{EvalProof}}
 
