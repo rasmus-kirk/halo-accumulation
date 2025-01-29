@@ -25,22 +25,25 @@
   shortauthor="AG",
   year="2022",
   title="From Zero (Knowledge) to Bulletproofs",
-  url = {https://github.com/AdamISZ/from0k2bp/blob/8f423712b685246a6be264b7c8081c408e957e67/from0k2bp.pdf}
+  url = {https://github.com/AdamISZ/from0k2bp/blob/8f423712b685246a6be264b7c8081c408e957e67/from0k2bp.pdf},
+  note = "Accessed: 2025-01-29"
 }
 
 @misc{dalek-docs,
-  author="Henry de Valence, Cathie Yun, and Oleg Andreev",
+  author="Henry de Valence and Cathie Yun and and Oleg Andreev",
   shortauthor="Valence, Yun, Andreev",
   year="2023",
   title="Inner product proof",
-  url = {https://doc-internal.dalek.rs/develop/bulletproofs/notes/inner_product_proof/}
+  url = "https://doc-internal.dalek.rs/develop/bulletproofs/notes/inner_product_proof/",
+  note = "Accessed: 2025-01-29"
 }
 
 @misc{hacspec-bulletproofs,
-  author="Rasmus Kirk Jakobsen, Anders Wibrand Larsen",
+  author="Rasmus Kirk Jakobsen and Anders Wibrand Larsen",
   year="2022",
   title="High Assurance Cryptography: Implementing Bulletproofs in Hacspec",
-  url = {https://rasmuskirk.com/documents/high-assurance-cryptography-implementing-bulletproofs-in-hacspec.pdf}
+  url = {https://rasmuskirk.com/documents/high-assurance-cryptography-implementing-bulletproofs-in-hacspec.pdf},
+  note = "Accessed: 2025-01-29"
 }
 
 @misc{sonic,
@@ -68,9 +71,48 @@
 }
 
 @misc{halo,
-      author = {Sean Bowe and Jack Grigg and Daira Hopwood},
-      title = {Recursive Proof Composition without a Trusted Setup},
-      howpublished = {Cryptology {ePrint} Archive, Paper 2019/1021},
+  author = {Sean Bowe and Jack Grigg and Daira Hopwood},
+  title = {Recursive Proof Composition without a Trusted Setup},
+  howpublished = {Cryptology {ePrint} Archive, Paper 2019/1021},
+  year = {2019},
+  url = {https://eprint.iacr.org/2019/1021}
+}
+
+@misc{pcd,
+  author = {Benedikt Bünz and Alessandro Chiesa and Pratyush Mishra and Nicholas Spooner},
+  title = {Proof-Carrying Data from Accumulation Schemes},
+  howpublished = {Cryptology {ePrint} Archive, Paper 2020/499},
+  year = {2020},
+  url = {https://eprint.iacr.org/2020/499}
+}
+
+@misc{attema,
+  author = {Attema, Thomas and Fehr, Serge and Klooß, Michael},
+  title = {Fiat–Shamir Transformation of Multi-Round Interactive Proofs (Extended Version)},
+  abstract="The celebrated Fiat–Shamir transformation turns any public-coin interactive proof into a non-interactive one, which inherits the main security properties (in the random oracle model) of the interactive version. While originally considered in the context of 3-move public-coin interactive proofs, i.e., so-called $$\varSigma $$-protocols, it is now applied to multi-round protocols as well. Unfortunately, the security loss for a $$(2\mu + 1)$$-move protocol is, in general, approximately $$Q^\mu $$, where Q is the number of oracle queries performed by the attacker. In general, this is the best one can hope for, as it is easy to see that this loss applies to the $$\mu $$-fold sequential repetition of $$\varSigma $$-protocols, but it raises the question whether certain (natural) classes of interactive proofs feature a milder security loss. In this work, we give positive and negative results on this question. On the positive side, we show that for $$(k_1, \ldots , k_\mu )$$-special-sound protocols (which cover a broad class of use cases), the knowledge error degrades linearly in Q, instead of $$Q^\mu $$. On the negative side, we show that for t-fold parallel repetitions of typical $$(k_1, \ldots , k_\mu )$$-special-sound protocols with $$t \ge \mu $$(and assuming for simplicity that t and Q are integer multiples of $$\mu $$), there is an attack that results in a security loss of approximately $$\frac{1}{2} Q^\mu /\mu ^{\mu +t}$$.",
+  year = {2023},
+  url = {https://doi.org/10.1007/s00145-023-09478-y}
+}
+
+@misc{mina,
+  title = "The Mina Blockchain",
+  year = "2025",
+  url = "https://minaprotocol.com/",
+  note = "Accessed: 2025-01-29"
+}
+
+@misc{repo,
+  title = "The Project Repository",
+  author = {Rasmus Kirk Jakobsen},
+  year = "2025",
+  url = "https://github.com/rasmus-kirk/halo-accumulation",
+  note = "Accessed: 2025-01-29"
+}
+
+@misc{ipa,
+      author = {Benedikt Bünz and Mary Maller and Pratyush Mishra and Nirvan Tyagi and Psi Vesely},
+      title = {Proofs for Inner Pairing Products and Applications},
+      howpublished = {Cryptology {ePrint} Archive, Paper 2019/1177},
       year = {2019},
-      url = {https://eprint.iacr.org/2019/1021}
+      url = {https://eprint.iacr.org/2019/1177}
 }

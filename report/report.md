@@ -3,18 +3,21 @@ title: Investigating IVC with Accumulation Schemes
 date: \today
 author: 
   - Rasmus Kirk Jakobsen - 201907084
-abstract: Test
+thanks: I would like to express my gratitude to Jesper Buus Nielsen and Hamidreza Khoshakhlagh for their invaluable help in answering many of my questions.
 geometry: margin=2cm
+bibliography: bibliography.bib
+citation-style: acm-siggraph
+link-citations: true
+colorlinks: true
+citecolor: black
+linkcolor: black
+urlcolor: GbBlueDk
+toccolor: black
+toc: true
 ---
 
-<!-- TODO: Thank Hamid and Jesper! -->
-<!-- TODO: Efficiency discussions -->
 <!-- TODO: Add trusted/untrusted setup discussion -->
-<!-- TODO: Bibtex-->
-
-\setcounter{tocdepth}{5}
-\tableofcontents
-\newpage
+<!-- TODO: abstract -->
 
 # Introduction
 
@@ -29,12 +32,11 @@ components:
 - **$\ASDL$**: An Accumulation Scheme in the Discrete Log setting.
 - **Pasta**: A Cycle of Elliptic Curves, namely **Pa**llas and Ve**sta**.
 
-This project is focused on the components of $\PCDL$ and $\ASDL$. IThe
-[2020 paper](https://eprint.iacr.org/2020/499.pdf) _"Proof-Carrying Data
-from Accumulation Schemes"_ was used as a reference. The project covers
-both the theoretical aspects of the scheme described in this document along
-with a rust implementation, both of which can be found in the project's
-[repository](https://github.com/rasmus-kirk/halo-accumulation).
+This project is focused on the components of $\PCDL$ and $\ASDL$ from the
+2020 paper _"Proof-Carrying Data from Accumulation Schemes"_[@pcd]. The
+project covers both the theoretical aspects of the scheme described in this
+document along with a rust implementation, both of which can be found in
+the project's repository[@repo].
 
 ## Prerequisites
 
@@ -43,10 +45,10 @@ in the following text along with familiarity with SNARKs. The polynomial
 commitment scheme also has a heavy reliance on the Inner Product Proof from the
 Bulletproofs protocol, see the following resources on bulletproofs if needed:
 
-- [Section 3 in the original Bulletproofs paper](https://eprint.iacr.org/2017/1066.pdf#section.3)
-- [From Zero (Knowledge) to Bulletproofs writeup](https://github.com/AdamISZ/from0k2bp/blob/master/from0k2bp.pdf)
-- [Rust Dalek Bulletproofs implementation notes](https://doc-internal.dalek.rs/develop/bulletproofs/notes/inner_product_proof/)
-- [Section 4.1 of my bachelors thesis](https://rasmuskirk.com/documents/high-assurance-cryptography-implementing-bulletproofs-in-hacspec.pdf#subsection.4.1)
+- Section 3 in the original Bulletproofs[@bulletproofs] paper
+- From Zero (Knowledge) to Bulletproofs writeup[@from0k2bp]
+- Rust Dalek Bulletproofs implementation notes[@dalek-docs]
+- Section 4.1 of my bachelors thesis[@hacspec-bulletproofs]
 
 ## Background and Motivation
 
@@ -68,12 +70,12 @@ the computationally unbounded Prover, P, and the polynomally time bounded
 Verifier, V. The Prover tries to convince the Verifier of a statement
 $x \in L$ language $L$ in NP. The following properties must be true:
 
-- Completeness: $\forall P \in ITM, x\in L \implies \Pr[V_{out} = \bot] \leq \epsilon(x)$
+- **Completeness:** $\forall P \in ITM, x\in L \implies \Pr[V_{out} = \bot] \leq \epsilon(x)$
 
   For all honest provers, P, where $x$ is true, the probability that the
   verifier remains unconvinced is negligible in the length of $x$.
 
-- Soundness: $\forall P^* \in ITM, x \notin L \implies \Pr[V_{out} = \top] \leq \epsilon(x)$
+- **Soundness:** $\forall P^* \in ITM, x \notin L \implies \Pr[V_{out} = \top] \leq \epsilon(x)$
 
   For all provers, honest or otherwise, $P^*$, that tries to convince the
   verifier of a claim, $x$, that is not true, the probability that the
@@ -82,8 +84,8 @@ $x \in L$ language $L$ in NP. The following properties must be true:
 An Interactive Argument is very similar, but the honest and malicious prover
 is now polynomially bounded and receives a witness, $w$:
 
-- Completeness: $\forall P(w) \in PPT, x\in L \implies \Pr[V_{out} = \bot] \leq \epsilon(x)$
-- Soundness: $\forall P^* \in PPT, x \notin L \implies \Pr[V_{out} = \top] \leq \epsilon(x)$
+- **Completeness**: $\forall P(w) \in PPT, x\in L \implies \Pr[V_{out} = \bot] \leq \epsilon(x)$
+- **Soundness**: $\forall P^* \in PPT, x \notin L \implies \Pr[V_{out} = \top] \leq \epsilon(x)$
 
 Proof of knowledge is another type of Proof System, here the prover claims
 to know a specific _witness_, $w$, for a statement $x$. Let $x \in L$ and
@@ -171,12 +173,11 @@ for _Incrementally Verifiable Computation_.
 
 #### Bulletproofs
 
-In 2017, [the Bulletproofs paper](https://eprint.iacr.org/2017/1066.pdf)
-was released. Bulletproofs relies on the hardness of the Discrete Logarithm
-problem, and allows for an untrusted setup to generate the Common Reference
-String. It has logarithmic proof size, and lends itself well efficient range
-proofs. It's also possible to generate proofs for arbitrary circuits, but
-with less efficiency.
+In 2017, the Bulletproofs paper[@bulletproofs] was released. Bulletproofs
+relies on the hardness of the Discrete Logarithm problem, and allows for an
+untrusted setup to generate the Common Reference String. It has logarithmic
+proof size, and lends itself well efficient range proofs. It's also possible
+to generate proofs for arbitrary circuits, but with less efficiency.
 
 At the heart of Bulletproofs lies the Inner Product Argument (IPA), wherein
 a prover proves he knows two vectors, $\vec{a}, \vec{b} \in \Fb_q^n$,
@@ -188,8 +189,8 @@ from linear verification time, making them unsuitible for IVC.
 
 ### Incrementally Verifiable Computation
 
-Valiant originally described IVC in his 2008 paper[^valiant-paper] in the
-following way:
+Valiant originally described IVC in his 2008 paper[@valiant] in the following
+way:
 
 \begin{quote}
 \color{GbGrey}
@@ -216,7 +217,7 @@ as this concept lends itself well to the structure of blockchains. This
 allows a blockchain node to omit all previous transaction history in
 favour of only a single state, for example, containing all current account
 balances. This is commonly called a _succinct blockchain_, one such blockchain
-is [Mina](https://minaprotocol.com/).
+is Mina[@mina].
 
 In order to acheive IVC, you need a function $F(x) \in S \to S$ along with some
 initial state $s_0 \in S$. Then you can call $F(x)$ to generate a series of
@@ -330,16 +331,15 @@ $$
 
 Thus, by induction $s_n = F^n(s_0)$
 
-[^valiant-paper]: Valiant's original 2008 paper on IVC: [https://iacr.org/archive/tcc2008/49480001/49480001.pdf](https://iacr.org/archive/tcc2008/49480001/49480001.pdf).
 [^ivc-blockchain]: In the blockchain setting, the transition function would also take an additional input representing new transactions, $F(x: S, T: \Pc(T))$.
 
 ### Polynomial Commitment Schemes
 
 In the section SNARKs section, general-purpose proof schemes were
 described. Modern general-purpose (zero-knowledge) proof schemes, such as
-Sonic[^sonic-paper], Plonk[^plonk-paper] and Marlin[^marlin-paper], commonly use _Polynomial Commitment
-Schemes_ (PCSs) for creating their proofs. This means that different PCSs
-can be used to get security under weaker or stronger assumptions.
+Sonic[@sonic], Plonk[@plonk] and Marlin[@marlin], commonly use _Polynomial
+Commitment Schemes_ (PCSs) for creating their proofs. This means that different
+PCSs can be used to get security under weaker or stronger assumptions.
 
 - **KZG PCSs:** Uses a trusted setup, this would give you a traditional SNARK.
 - **Bulletproofs PCSs:** Uses an untrusted setup, assumes secure if the Discrete Log problem is hard, the verifier is linear.
@@ -407,25 +407,25 @@ A PCS of course also has soundness and completeness properties:
 $$
 \Pr \left[
   \begin{array}{c}
-    d \in [d_i]^n_{i=1}, \; \deg(p) \leq d \leq D \\
+    d \in [d_i]^n_{i=1}, \; \deg(p) \leq d \leq D, \\
     \PCCheck^\rho(C, d, z, v, \pi) = 1
   \end{array}
   \middle|
   \begin{array}{r}
-    \pp \leftarrow \PCSetup^\rho(1^\l, D) \\
-    ([d_i]^n_{i=1}, p, d, z, \o) \leftarrow \Ac^\rho(\pp) \\
+    \pp_\PC \leftarrow \PCSetup^\rho(1^\l, D) \\
+    ([d_i]^n_{i=1}, p, d, z, \o) \leftarrow \Ac^\rho(\pp_\PC) \\
     C \leftarrow \PCCommit^\rho(p, d, \o) \\
     v \leftarrow p(z) \\
-    \pi \leftarrow \PCOpen^\rho(p, C, d, z; \o)
+    \pi \leftarrow \PCOpen^\rho(p, C, d, z, \o)
   \end{array}
 \right] = 1.
 $$
 
 I.e. an honest prover will convince an honest verifier.
 
-**Soundness:** For every maximum degree bound $D = \poly(\l) \in \Nb$ and
-polynomial-size adversary $\Ac$, there exists an efficient extractor $\Ec$
-such that the following holds:
+**Knowledge Soundness:** For every maximum degree bound $D = \poly(\l)
+\in \Nb$ and polynomial-size adversary $\Ac$, there exists an efficient
+extractor $\Ec$ such that the following holds:
 
 $$
 \Pr \left[
@@ -438,25 +438,23 @@ $$
   \middle|
   \begin{array}{r}
     \rho \leftarrow \Uc(\l) \\
-    \pp \leftarrow \PCSetup^\rho(1^\l, D) \\
-    ([d_i]^n_{i=1}, (C, d, z, v, \pi)) \leftarrow \Ac^\rho(\pp) \\
-    (p, \o) \leftarrow \Ec^\rho(\pp) \\
+    \pp_\PC \leftarrow \PCSetup^\rho(1^\l, D) \\
+    ([d_i]^n_{i=1}, (C, d, z, v, \pi)) \leftarrow \Ac^\rho(\pp_\PC) \\
+    (p, \o) \leftarrow \Ec^\rho(\pp_\PC) \\
   \end{array}
-\right] \leq \negl(\lambda).
+\right] \geq 1 - \negl(\lambda).
 $$
 
-I.e. any adversary, $\Ac$, will not be able to open on a different polynomial,
-than the one they commited to.
+I.e. for any adversary, $\Ac$, outputting an instance, the following must
+be true: $C$ is a commitment to $p$, $v = p(c)$, and the degree of $p$
+is properly bounded. Note that since this is knowledge soundness $\Ac$,
+must actually have knowledge of $p$, i.e. the $\Ec$ can extract it.
 
-<!-- TODO: Review the above -->
-
-[^sonic-paper]: Sonic Paper: [https://eprint.iacr.org/2019/099](https://eprint.iacr.org/2019/099)
-[^plonk-paper]: Plonk Paper: [https://eprint.iacr.org/2019/953](https://eprint.iacr.org/2019/953)
-[^marlin-paper]: Marlin Paper: [https://eprint.iacr.org/2019/1047](https://eprint.iacr.org/2019/1047)
+<!-- TODO: Review the above, d's -->
 
 ### Accumulation Schemes
 
-The authors of a 2019 paper[^halo-paper] presented _Halo,_ the first practical
+The authors of a 2019 paper[@halo] presented _Halo,_ the first practical
 example of recursive proof composition without a trusted setup. Using a
 modified version of the Bulletproofs-style Inner Product Argument (IPA), they
 present a polynomial commitment scheme. Computing the evaluation of a point $z
@@ -469,13 +467,17 @@ linear $\PCDLCheck$. Using the $\PCDLSuccinctCheck$ we can accumulate $n$
 instances, and only perform the expensive linear check (i.e. $\PCDLCheck$)
 at the end of accumulation.
 
-In the 2020 paper[^pcd-paper] _"Proof-Carrying Data from Accumulation
+In the 2020 paper[@pcd] _"Proof-Carrying Data from Accumulation
 Schemes"_ , that this project heavily relies on, the authors presented a
 generalized version of the previous accumulation structure of Halo that
 they coined _Accumulation Schemes_. Simply put, given a predicate $\Phi:
 \Instance^m \to \{ \top, \bot \}$, where $m$ represents the number of $q$'s
 accumulated for each proof step and may vary for each time $\ASProver$
 is called. An accumulation scheme then consists of the following functions:
+
+- $\ASSetup(\l) \to \pp$
+
+    On input a security parameter $\l$ (in unary), $\ASSetup$ samples and outputs public parameters $\pp$.
 
 - $\ASProver(\vec{q}_i: \Instance^m, acc_{i-1}: \Acc) \to \Acc$
 
@@ -512,11 +514,7 @@ We define completeness and soundness informally for the Accumulation Scheme:
   \ASVerifier(\vec{q}_i, acc_{i-1}, acc_{i+1})$ then, with all but negligible probability,
   $\top = \Phi(\vec{q}_i) = \ASDecider(acc_i)$.
 
-[^halo-paper]: The 2019 Halo paper: [https://eprint.iacr.org/2019/1021.pdf](https://eprint.iacr.org/2019/1021.pdf)
-[^pcd-paper]: The 2020 paper, _"Proof-Carrying Data from Accumulation Schemes",_: [https://eprint.iacr.org/2020/499.pdf](https://eprint.iacr.org/2020/499.pdf)
-
 ### IVC from Accumulation Schemes
-
 
 For simplicity, as in the PCS section, we assume we have an underlying SNARK
 which proof consists of only instances $\pi \in \Proof = \{ \vec{q} \}$. We
@@ -1131,18 +1129,65 @@ Which corresponds exactly to the check that the verifier makes.
 The honest prover will define $U = G^{(0)}$ as promised and the right-hand
 side will also become $U = G^{(0)}$ by the construction of $h(X)$.
 
-## Soundness (Knowledge Extractability)
+## Knowledge Soundness
 
-The knowledge extractability of the protocol is inherited by the IPA
-from bulletproofs. In our case, we only need to extract a single vector
-of the original vectors $\vec{a}, \vec{b} : \ip{\vec{a}}{\vec{b}} = c$,
-since $\vec{a} = \vec{p}^{\mathrm{(coeffs)}}$ and $\vec{b} = \vec{z}$ where
-$\vec{b}$ is public.
+This subsection will not contain a full knowledge soundness proof, but it
+will be briefly argued that the _non-zero-knowledge_ version of $\PCDL$
+should be knowledge sound. The knowledge soundness property of $\PCDL$ states:
 
-The authors, of the paper followed, note that the soundness technically breaks
-down when turning the IPA into a non-interactive protocol (which is the case
-for $\PCDL$), and that transforming $\PCDL$ into a non-interactive protocol
-such that the knowledge extractor does not break down is an open problem:
+$$
+\Pr \left[
+  \begin{array}{c}
+    \PCCheck^\rho(C, d, z, v, \pi) = 1 \\
+    \Downarrow \\
+    C = \PCCommit^\rho(p, d, \o) \\
+    v = p(z), \; d \in [d_i]^n_{i=1}, \; \deg(p) \leq d \leq D
+  \end{array}
+  \middle|
+  \begin{array}{r}
+    \rho \leftarrow \Uc(\l) \\
+    \pp_\PC \leftarrow \PCSetup^\rho(1^\l, D) \\
+    ([d_i]^n_{i=1}, (C, d, z, v, \pi)) \leftarrow \Ac^\rho(\pp_\PC) \\
+    (p, \o) \leftarrow \Ec^\rho(\pp_\PC) \\
+  \end{array}
+\right] \geq 1 - \negl(\lambda).
+$$
+
+So, we need to show that:
+
+1. $C = \PCCommit^\rho(p, d, \o)$
+2. $v = p(z)$
+3. $d \in [d_i]^n_{i=1}$
+4. $\deg(p) \leq d \leq D$
+
+The knowledge extractability of $\PCDL$ is almost identical to the IPA
+from bulletproofs[@bulletproofs], so we assume that we can use the same
+extractor[^ipa-extractor], with only minor modifications. The IPA extractor
+extracts $\vec{a}, \vec{b} \in \Fb_q^n$ s.t:
+
+$$P = \ip{\vec{G}}{\vec{a}} + \ip{\vec{H}}{\vec{b}} \land v = \ip{\vec{c}}{\vec{z}}$$
+
+Running the extractor for $\PCDL$ should yield:
+
+$$P = \ip{\vec{G}}{\vec{c}} + \ip{\vec{G}}{\vec{z}} \land v = \ip{\vec{c}}{\vec{z}}$$
+
+We should be able to remove the extraction of $\vec{z}$ since it's public:
+
+$$C = \ip{\vec{G}}{\vec{c}} \land v = \ip{\vec{c}}{\vec{z}}$$
+
+1. $C = \ip{\vec{G}}{\vec{c}} = \PCCommit(c, G, \bot) = \PCCommit^\rho(p,
+   d, \bot)$, $\o = \bot$ since we don't consider zero-knowledge.
+2. $v = \ip{\vec{c}}{\vec{z}} = \ip{\vec{p}^{\text{(coeffs)}}}{\vec{z}} =
+   p(z)$ by definition of $p$.
+3. $\deg(p) \leq d \leq D$. The first bound holds since the vector committed
+   to is known to have length $n = d+1$, the second bound holds trivially,
+   as it's checked by $\PCDLCheck$
+
+The authors, of the paper followed[@pcd], note that the soundness technically
+breaks down when turning the IPA into a non-interactive protocol (which is
+the case for $\PCDL$), and that transforming the IPA into a non-interactive
+protocol such that the knowledge extractor does not break down is an open
+problem:
 
 \begin{quote}
 \color{GbGrey}
@@ -1151,18 +1196,18 @@ such that the knowledge extractor does not break down is an open problem:
 from folklore that applying the Fiat–Shamir transformation to a public-coin
 $k$-round interactive argument of knowledge with negligible soundness error
 yields a non-interactive argument of knowledge in the random-oracle model
-where the extractor $\Ec$ runs in time exponential in $k$. In more detail,
-to extract from an adversary that makes $t$ queries to the random oracle,
-$\Ec$ runs in time $t^{O(k)}$. In our setting, the inner-product argument has
-$k = \Oc(\log d)$ rounds, which means that if we apply this folklore result, we
+where the extractor $\Ec$ runs in time exponential in $k$. In more detail, to
+extract from an adversary that makes $t$ queries to the random oracle, $\Ec$
+runs in time $t^{\Oc(k)}$. In our setting, the inner-product argument has $k
+= \Oc(\log d)$ rounds, which means that if we apply this folklore result, we
 would obtain an extractor that runs in superpolynomial (but subexponential)
-time $t^O(\log d) = 2^{O(log(\l)^2)}$. It remains an interesting open problem
-to construct an extractor that runs in polynomial time.
+time $t^{\Oc(\log d)} = 2^{\Oc(log(\l)^2)}$. It remains an interesting open
+problem to construct an extractor that runs in polynomial time.
 
 \end{quote}
 
-This has since been solved in a 2023 paper[^knowledge-extractor-paper]. The
-abstract of the paper describes:
+This has since been solved in a 2023 paper[@attema]. The abstract of the
+paper describes:
 
 \begin{quote}
 \color{GbGrey}
@@ -1177,12 +1222,19 @@ the knowledge error degrades linearly in $Q$, instead of $Q^\mu$.
 
 \end{quote}
 
-They furthermore directly state that this result applies to bulletproofs.
+The IPA is exactly such a $(k^1, \dots,k^\mu)$-special-sound protocol, they
+even directly state that this result applies to bulletproofs. As such we get
+a knowledge error that degrades linearly, instead of superpolynomially, in
+number of queries, $t$, that the adversary makes to the random oracle. As such,
+the extractor runs in the required polynomial time ($\Oc(t) = \Oc(\poly(\l))$).
 
-<!-- TODO: The above Fiat-Shamir transformation discussion is not good enough! -->
-<!-- TODO: Review this after defining soundness properly for PCS' -->
-
-[^knowledge-extractor-paper]: Paper: [https://ir.cwi.nl/pub/33324/33324.pdf](https://ir.cwi.nl/pub/33324/33324.pdf)
+[^ipa-extractor]: Admittedly, this assumption is not a very solid one if the
+purpose was to create a proper knowledge soundness proof, but as the section is
+more-so devoted to give a justification for why $\PCDL$ _ought to be_ sound,
+it will do. In fact, the authors of the accumulation scheme paper[@pcd],
+make a similar argument more formally by stating (without direct proof!),
+that the $\PCDL$ protocol is a special case of the IPA presented in another
+paper[@ipa] by mostly the same authors.
 
 ## Efficiency
 
@@ -1263,7 +1315,7 @@ have six main functions:
 
   Outputs $\pp_\AS = \PCDLSetup(1^\l, D)$.
 
-- $\ASDLCommonSubroutine(\vec{q}_{i-1}: \Instance^m \mathblue{, \pi_V: \AccHiding}) \to \Result((\Eb(\Fb_q), \Nb, \Fb_q, \Fb^d_q[X]), \bot)$
+- $\ASDLCommonSubroutine(\vec{q}: \Instance^m \mathblue{, \pi_V: \AccHiding}) \to \Result((\Eb(\Fb_q), \Nb, \Fb_q, \Fb^d_q[X]), \bot)$
 
   $\ASDLCommonSubroutine$ will either succeed if the instances has consistent
   degree and hiding parameters and will otherwise fail. It accumulates
@@ -1273,9 +1325,9 @@ have six main functions:
   $(\bar{C}, d, z, h(X))$ representing the information needed to create the
   polynomial commitment represented by $\acc_i$.
 
-- $\ASDLProver(\vec{q}_{i-1}: \Instance^m) \to \Result(\Acc, \bot)$:
+- $\ASDLProver(\vec{q}: \Instance^m) \to \Result(\Acc, \bot)$:
 
-  Accumulates the instances $\vec{q}_{i-1}$, and an optional previous
+  Accumulates the instances $\vec{q}$, and an optional previous
   accumulator $\acc_{i-1}$, into a new accumulator $\acc_i$. If there is a
   previous accumulator $\acc_{i-1}$ then it is converted into an instance,
   since it has the same form, and prepended to $\vec{q}$, _before calling
@@ -2112,7 +2164,7 @@ The raw benchmarking data provided by Criterion.
 
 ## $\mathrm{CM}$: Pedersen Commitment
 
-As a reference, we include the Pedersen Commitment algorithm we use:
+As a reference, the Pedersen Commitment algorithm used is included:
 
 \begin{algorithm}[H]
 \caption{$\CMCommit$}
@@ -2142,3 +2194,7 @@ And the corresponding setup algorithm:
   \State Output $\pp_\CM = ((\Gb, q, G), \vec{G}, S)$
 \end{algorithmic}
 \end{algorithm}
+
+\newpage
+
+# References

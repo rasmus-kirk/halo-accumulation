@@ -32,13 +32,25 @@
           for filename in ./*.md; do
               pandoc "$filename" \
                 -H header.tex \
-                -V colorlinks=true \
-                -V linkcolor=black \
-                -V urlcolor=GbBlueDk \
-                -V toccolor=gray \
+                --citeproc \
                 --metadata date="$(date -u '+%Y-%m-%d - %H:%M:%S %Z')" \
                 --highlight-style gruvbox.theme \
                 -o "$1/''${filename%.md}.pdf"
+          done
+        '';
+      };
+      debug = pkgs.writeShellApplication {
+        name = "mk-pandoc-debug";
+        runtimeInputs = latexPkgs;
+        text = ''
+          # Loop through each .md file in the folder
+          for filename in ./*.md; do
+              pandoc "$filename" \
+                -H header.tex \
+                --citeproc \
+                --metadata date="$(date -u '+%Y-%m-%d - %H:%M:%S %Z')" \
+                --highlight-style gruvbox.theme \
+                -o "$1/''${filename%.md}.tex"
           done
         '';
       };
@@ -71,6 +83,7 @@
         default = report;
         loop = mk-pandoc-loop;
         mk-pandoc = mk-pandoc;
+        debug = debug;
       });
   };
 }
