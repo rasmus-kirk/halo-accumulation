@@ -186,8 +186,9 @@ must be uniformly random. $\PCDL$ is then sound, provided that no adversary
 knows the $\vec{\a}$ scalars. Extracting $\vec{\a}$ from the URS would
 require solving the Discrete Logarithm problem, which is assumed to be hard.
 
-To generate the URS transparently, a collision-resistant hash function $\Hc : \Bb^* \to \Eb(\Fb_q)$ can be used to produce the generators. The URS can
-then be derived using a genesis string $s$:
+To generate the URS transparently, a collision-resistant hash function
+$\Hc : \Bb^* \to \Eb(\Fb_q)$ can be used to produce the generators. The URS
+can then be derived using a genesis string $s$:
 $$\text{URS} = \{ \Hc(s \cat 1), \Hc(s \cat 2), \dots, \Hc(s \cat D) \}$$
 This is the method used in the implementation, as mentioned in the
 implementation section further down.
@@ -1658,7 +1659,8 @@ $$
   p' &:= f_{pp}(m')
 \end{aligned}
 $$
-By the forking lemma, the probability that $p(z) = p'(z') = 0$ and $C = C'$
+By the Local Forking Lemma[@forking-lemma], the probability that $p(z) =
+p'(z') = 0$ and $C = C'$
 is at least $\frac{\d^2}{t + 1}$. Let's call this event $E$:
 $$E := (p(z) = p'(z') = 0 \land C = C')$$
 Then, by the triangle argument:
