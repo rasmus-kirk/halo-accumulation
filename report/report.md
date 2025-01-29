@@ -16,7 +16,6 @@ toccolor: black
 toc: true
 ---
 
-<!-- TODO: Add trusted/untrusted setup discussion -->
 <!-- TODO: abstract -->
 
 # Introduction
@@ -140,7 +139,6 @@ another proof system. This is the case for the zero-finding game that will
 be used in the soundness discussions of implemented accumulation scheme
 $\ASDL$. In practice one can have a domain specifier, fx. $0, 1$, prepended
 to each message that is hashed using $\rho$:
-
 $$
 \begin{aligned}
   \rho_0(m) &= \rho(0 \cat m) \\
@@ -170,6 +168,29 @@ convinced using the snark verifier ($\SNARKVerifier$).
 Importantly, the succinct part of the name means that the proof size and
 verification time must be sublinear. This allows SNARKs to be directly used
 for _Incrementally Verifiable Computation_.
+
+#### Trusted and Untrusted Setups
+
+Many SNARK constructions, such as the original Plonk specification, depend on
+a Trusted Setup to ensure soundness. For Plonk, this arises from the KZG[@kzg]
+commitments used. These commitments lets the SNARK verifier enjoy sublinear
+verification time, but at the cost of requiring a trusted setup while $\PCDL$
+only relies on an untrusted setup. A trusted setup creates a **Structured
+Reference String** (SRS) with a specific internal structure.
+
+An untrusted setup, however, creates a **Uniform Random String** of the form:
+$$\text{URS} = \{ \a_1G, \a_2G, \dots, \a_DG \}$$
+Where $D$ represents the maximum degree bound of a polynomial and $G$ is a
+generator. The URS must consist of only generators and all the $\vec{\a}$ scalars
+must be uniformly random. $\PCDL$ is then sound, provided that no adversary
+knows the $\vec{\a}$ scalars. Extracting $\vec{\a}$ from the URS would
+require solving the Discrete Logarithm problem, which is assumed to be hard.
+
+To generate the URS transparently, a collision-resistant hash function $\Hc : \Bb^* \to \Eb(\Fb_q)$ can be used to produce the generators. The URS can
+then be derived using a genesis string $s$:
+$$\text{URS} = \{ \Hc(s \cat 1), \Hc(s \cat 2), \dots, \Hc(s \cat D) \}$$
+This is the method used in the implementation, as mentioned in the
+implementation section further down.
 
 #### Bulletproofs
 
@@ -294,9 +315,7 @@ proof $\pi_{i-1}$ for the previous state is valid."}
 
 Or more formally, $\pi_i$ is a proof of the following claim, expressed as
 a circuit $R$:
-
 $$R := \text{I.K.} \; \pi_{n-1} \; \text{ s.t. } \; s_i \meq F(s_{i-1}) \; \land \; (s_{i-1} \meq s_0 \lor \SNARKVerifier(R_F, s_{i-1}, \pi_{i-1}) \meq \top))$$
-
 Note that $R_F, s_{i-1}, s_0$ are not quantified above, but are public values. The
 $\SNARKVerifier$ represents the verification circuit in the proof system
 we're using. This means, that we're taking the verifier, representing it as
@@ -307,7 +326,6 @@ $F^{n+1}(s_0)$ themselves, as $s_0$ and $F(x)$ necessarily must be public.
 
 To see that the above construction works, observe that $\pi_1, \dots,
 \pi_n$ proves:
-
 $$
 \begin{alignedat}{7}
   &\text{I.K.} \; \pi_{n-1} \; &&\text{ s.t. } \; &&s_n     &&= F(s_{n-1}) \; &&\land \; (s_{n-1} = s_0  &&\lor \SNARKVerifier(R, s_{n-1}, \pi_{n-1}) = \top), \\
@@ -315,9 +333,7 @@ $$
   &                            &&              \; &&s_1     &&= F(s_0)     \; &&\land \; (s_0 = s_0      &&\lor \SNARKVerifier(R, s_0, \pi_0) = \top)
 \end{alignedat}
 $$
-
 Which means that:
-
 $$
 \begin{alignedat}{4}
   &\SNARKVerifier(R, s_n, \pi_n) = \top \implies \\
@@ -328,7 +344,6 @@ $$
   &s_1 = F(s_0)
 \end{alignedat}
 $$
-
 Thus, by induction $s_n = F^n(s_0)$
 
 [^ivc-blockchain]: In the blockchain setting, the transition function would also take an additional input representing new transactions, $F(x: S, T: \Pc(T))$.
@@ -380,21 +395,15 @@ $R_X$. This circuit can then be fed to a general-purpose proof scheme prover
 $\Pc_X$ along with the witness $w \in X$, that creates a proof of the statement
 $"R_X(w) = \top"$. Simplifying slightly, they typically consists of a series
 of pairs representing opening proofs:
-
 $$(q_1 = (C_1, d, z_1, v_1, \pi_1), \dots, q_m = (C_m, d, z_m, v_m, \pi_m))$$
-
 These pairs will henceforth be more generally referred to as _instances_,
 $\vec{q} \in \Instance^m$. They can then be verified using $\PCCheck$:
-
 $$\PCCheck(C_1, d, z_1, v_1, \pi_1) \meq \dots \meq \PCCheck(C_m, d, z_m, v_m, \pi_m) \meq \top$$
-
 Along with some checks that the structure of the underlying polynomials
 $\vec{p}$, that $\vec{q}$ was created from, satisfies any desired relations
 associated with the circuit $R_X$. We can model these relations, or _identities_,
 using a function $I_X \in \Instance \to \{ \top, \bot \}$. If,
-
 $$\forall j \in [m] : \PCCheck(C_j, d, z_j, v_j, \pi_j) \meq \top \land I_X(\vec{q}) \meq \top$$
-
 Then the verifier $\Vc_X$ will be convinced that $w$ is a
 valid witness for $X$. In this way, a proof of knowledge of a witness for
 any NP-problem can be represented as a series of PCS evaluation proofs,
@@ -402,55 +411,54 @@ including our desired witness that $s_n = F^n(s_0)$.
 
 A PCS of course also has soundness and completeness properties:
 
-**Completeness:** For every maximum degree bound $D = \poly(\l) \in \Nb$:
-
+**Completeness:** For every maximum degree bound $D = \poly(\l) \in \Nb$
+and publically agreed upon $d$:
 $$
 \Pr \left[
-  \begin{array}{c}
-    d \in [d_i]^n_{i=1}, \; \deg(p) \leq d \leq D, \\
-    \PCCheck^\rho(C, d, z, v, \pi) = 1
-  \end{array}
-  \middle|
-  \begin{array}{r}
-    \pp_\PC \leftarrow \PCSetup^\rho(1^\l, D) \\
-    ([d_i]^n_{i=1}, p, d, z, \o) \leftarrow \Ac^\rho(\pp_\PC) \\
-    C \leftarrow \PCCommit^\rho(p, d, \o) \\
-    v \leftarrow p(z) \\
-    \pi \leftarrow \PCOpen^\rho(p, C, d, z, \o)
+  \begin{array}{c|c}
+    \begin{array}{c}
+      \deg(p) \leq d \leq D, \\
+      \PCCheck^\rho(C, d, z, v, \pi) = 1
+    \end{array}
+  & \quad
+    \begin{aligned}
+      \pp_\PC       &\leftarrow \PCSetup^\rho(1^\l, D), \\
+      (p, d, z, \o) &\leftarrow \Ac^\rho(\pp_\PC), \\
+      v             &\leftarrow p(z), \\
+      C             &\leftarrow \PCCommit^\rho(p, d, \o), \\
+      \pi           &\leftarrow \PCOpen^\rho(p, C, d, z, \o)
+    \end{aligned}
   \end{array}
 \right] = 1.
 $$
-
 I.e. an honest prover will convince an honest verifier.
 
 **Knowledge Soundness:** For every maximum degree bound $D = \poly(\l)
-\in \Nb$ and polynomial-size adversary $\Ac$, there exists an efficient
-extractor $\Ec$ such that the following holds:
-
+\in \Nb$, polynomial-size adversary $\Ac$ and publically agreed upon $d$,
+there exists an efficient extractor $\Ec$ such that the following holds:
 $$
 \Pr \left[
-  \begin{array}{c}
-    \PCCheck^\rho(C, d, z, v, \pi) = 1 \\
-    \Downarrow \\
-    C = \PCCommit^\rho(p, d, \o) \\
-    v = p(z), \; d \in [d_i]^n_{i=1}, \; \deg(p) \leq d \leq D
-  \end{array}
-  \middle|
-  \begin{array}{r}
-    \rho \leftarrow \Uc(\l) \\
-    \pp_\PC \leftarrow \PCSetup^\rho(1^\l, D) \\
-    ([d_i]^n_{i=1}, (C, d, z, v, \pi)) \leftarrow \Ac^\rho(\pp_\PC) \\
-    (p, \o) \leftarrow \Ec^\rho(\pp_\PC) \\
+  \begin{array}{c|c}
+    \begin{array}{c}
+      \PCCheck^\rho(C, d, z, v, \pi) = 1 \\
+      \Downarrow \\
+      C = \PCCommit^\rho(p, d, \o) \\
+      v = p(z), \; \deg(p) \leq d \leq D
+    \end{array}
+  & \quad
+    \begin{aligned}
+      \rho              &\leftarrow \Uc(\l) \\
+      \pp_\PC           &\leftarrow \PCSetup^\rho(1^\l, D) \\
+      (C, d, z, v, \pi) &\leftarrow \Ac^\rho(\pp_\PC) \\
+      (p, \o)           &\leftarrow \Ec^\rho(\pp_\PC) \\
+    \end{aligned}
   \end{array}
 \right] \geq 1 - \negl(\lambda).
 $$
-
 I.e. for any adversary, $\Ac$, outputting an instance, the following must
 be true: $C$ is a commitment to $p$, $v = p(c)$, and the degree of $p$
 is properly bounded. Note that since this is knowledge soundness $\Ac$,
 must actually have knowledge of $p$, i.e. the $\Ec$ can extract it.
-
-<!-- TODO: Review the above, d's -->
 
 ### Accumulation Schemes
 
@@ -467,27 +475,28 @@ linear $\PCDLCheck$. Using the $\PCDLSuccinctCheck$ we can accumulate $n$
 instances, and only perform the expensive linear check (i.e. $\PCDLCheck$)
 at the end of accumulation.
 
-In the 2020 paper[@pcd] _"Proof-Carrying Data from Accumulation
-Schemes"_ , that this project heavily relies on, the authors presented a
-generalized version of the previous accumulation structure of Halo that
-they coined _Accumulation Schemes_. Simply put, given a predicate $\Phi:
-\Instance^m \to \{ \top, \bot \}$, where $m$ represents the number of $q$'s
-accumulated for each proof step and may vary for each time $\ASProver$
-is called. An accumulation scheme then consists of the following functions:
+In the 2020 paper[@pcd] _"Proof-Carrying Data from Accumulation Schemes"_
+, that this project heavily relies on, the authors presented a generalized
+version of the previous accumulation structure of Halo that they coined
+_Accumulation Schemes_. Simply put, given a predicate $\Phi: \Instance \to
+\{ \top, \bot \}$, where $m$ represents the number of instances accumulated
+for each proof step and may vary for each time $\ASProver$ is called. An
+accumulation scheme then consists of the following functions:
 
-- $\ASSetup(\l) \to \pp$
+- $\ASSetup(\l) \to \pp_\AS$
 
-    On input a security parameter $\l$ (in unary), $\ASSetup$ samples and outputs public parameters $\pp$.
+    On input a security parameter $\l$ (in unary), $\ASSetup$ samples and
+    outputs public parameters $\pp_\AS$.
 
-- $\ASProver(\vec{q}_i: \Instance^m, acc_{i-1}: \Acc) \to \Acc$
+- $\ASProver(\vec{q}: \Instance^m, acc_{i-1}: \Acc) \to \Acc$
 
-    The prover accumulates the instances $\{ q_1, \dots, q_m \}$ in $\vec{q}_i$ into the
-    previous accumulator $acc_{i-1}$ into the new accumulator $acc_i$.
+    The prover accumulates the instances $\{ q_1, \dots, q_m \}$ in $\vec{q}$
+    and the previous accumulator $acc_{i-1}$ into the new accumulator $acc_i$.
 
-- $\ASVerifier(\vec{q}_i: \Instance^m, acc_{i-1}: \Option(\Acc), acc_i: \Acc) \to \Result(\top, \bot)$
+- $\ASVerifier(\vec{q}: \Instance^m, acc_{i-1}: \Option(\Acc), acc_i: \Acc) \to \Result(\top, \bot)$
 
     The verifier checks that the instances $\{ q_1, \dots, q_m \}$ in
-    $\vec{q}_i$ was correctly accumulated into the previous accumulator
+    $\vec{q}$ was correctly accumulated into the previous accumulator
     $acc_{i-1}$ to form the new accumulator $acc_i$. The second argument
     $acc_{i-1}$ is modelled as an $\Option$ since in the first accumulation,
     there will be no accumulator $acc_0$. In all other cases, the second
@@ -495,24 +504,66 @@ is called. An accumulation scheme then consists of the following functions:
 
 - $\ASDecider(acc_i: \Acc) \to \Result(\top, \bot)$
 
-    The decider performs a single check that simultaneously ensures that
-    _all_ previous instances accumulated in $acc_{i+1}$ are valid, assuming
-    the $\ASVerifier$ has accepted that every previous accumulator correctly
-    accumulates each $\{ q_1, \dots, q_m \}$ in each previous $\vec{q}_i$.
+    The decider performs a single check that simultaneously ensures that all
+    the instances $\vec{q}$ accumulated in $acc_i$ satisfy the predicate,
+    $\Phi$. Assuming the $\ASVerifier$ has accepted that the accumulator,
+    $\acc_i$ correctly accumulates $\vec{q}$ and the previous accumulator
+    $\acc_{i-1}$.
 
-We define completeness and soundness informally for the Accumulation Scheme:
+The completeness and soundness properties for the Accumulation Scheme is
+defined below:
 
-<!-- TODO: Formalism -->
+**Completeness.** For all (unbounded) adversaries $\Ac$,
+$$
+\Pr \left[
+  \begin{array}{c|c}
+    \begin{array}{c}
+      \ASDecider^\rho(\acc_i) = \top \\
+      \forall j \in [m], \Phi^\rho_{\pp_\Phi}(q_j) = \top \\
+      \Downarrow \\
+      \ASVerifier^\rho(\vec{q}, \acc_{i-1}, \acc_i) = \top \\
+      \ASDecider^\rho(\acc) = \top
+    \end{array}
+    & \quad
+    \begin{aligned}
+      \rho                  &\leftarrow \Uc(\l) \\
+      \pp_\Phi              &\leftarrow \Hc^\rho \\
+      \pp_\AS               &\leftarrow \ASSetup^\rho(1^{\l}) \\
+      (\vec{q}, \acc_{i-1}) &\leftarrow \Ac^\rho(\pp_\AS, \pp_\Phi) \\
+      \acc_i                &\leftarrow \ASProver^{\rho}(\vec{q}, \acc_{i-1})
+    \end{aligned}
+  \end{array}
+\right] = 1.
+$$
+I.e. $\ASVerifier, \ASDecider$ will always accept the accumulation performed
+by an honest prover.
 
-- **Completeness:** For all accumulators $acc_i$ and predicate inputs
-  $\vec{q}_i \in \Instance^m$, if $\top = \ASDecider(acc) = \Phi(\vec{q}_i)$,
-  then for $\ASProver(\vec{q}_i, acc_{i-1}) = acc_i$ it holds that $\top =
-  \ASVerifier(acc_{i-1}, \vec{q}_i, acc_i) = \ASDecider(acc_i)$.
-
-- **Soundness:** For all efficiently-generated accumulators $acc_{i-1}, acc_i
-  \in \Acc$ and predicate inputs $\vec{q}_i \in \Instance^m$, if $\top = \ASDecider(acc_{i+1}) =
-  \ASVerifier(\vec{q}_i, acc_{i-1}, acc_{i+1})$ then, with all but negligible probability,
-  $\top = \Phi(\vec{q}_i) = \ASDecider(acc_i)$.
+**Soundness:** For every polynomial-size adversary $\Ac$,
+$$
+\Pr \left[
+  \begin{array}{c|c}
+    \begin{array}{c}
+      \ASVerifier^\rho(\vec{q}, \acc_{i-1}, \acc_i) = \top \\
+      \ASDecider^\rho(\acc_i) = \top \\
+      \Downarrow \\
+      \ASDecider^\rho(\acc_{i-1}) = \top \\
+      \forall j \in [m], \Phi^{\rho}(\pp_{\Phi}, q_j) = \top
+    \end{array}
+    &\quad
+    \begin{aligned}{c}
+      \rho                          &\leftarrow \mathcal{U}(\l) \\
+      \pp_\AS                       &\leftarrow \ASSetup^\rho(1^{\l}) \\
+      \pp_{\Phi}                    &\leftarrow \mathcal{H}^{\rho} \\
+      (\vec{q}, \acc_{i-1}, \acc_i) &\leftarrow \Ac^\rho(\pp_\AS, \pp_\Phi)
+    \end{aligned}
+  \end{array}
+\right] \geq 1 - \text{negl}(\lambda).
+$$
+I.e. For all efficiently-generated accumulators $acc_{i-1}, acc_i \in \Acc$
+and predicate inputs $\vec{q} \in \Instance^m$, if $\ASDecider(acc_i)
+= \top$ and $\ASVerifier(\vec{q}_i, acc_{i-1}, acc_i) = \top$ then,
+with all but negligible probability, $\forall j \in [m] : \Phi(\pp_\Phi, q_j) = \top$ and
+$\ASDecider(acc_i) = \top$.
 
 ### IVC from Accumulation Schemes
 
@@ -572,20 +623,9 @@ IVC relation as it's more complex than for the naive SNARK-based approach. Let:
 - $s_i = F(s_{i-1})$
 - $\acc_i = \ASProver(\vec{q}, \acc_{i-1})$
 
-Giving us the public inputs $x$ and witness $w$:
-
-$$
-\begin{aligned}
-  x &= \{ R_{IVC}, s_0, s_i, \acc_i \}\\
-  w &= \{ s_{i-1}, \pi_{i-1} = \vec{q}, \acc_{i-1} \}
-\end{aligned}
-$$
-
-<!-- TODO: previous values as public or private? -->
-<!-- TODO: next values as public or private? -->
-
-That will be used to construct the the IVC circuit $R_{IVC}$:
-
+Giving us the public inputs $x = \{ R_{IVC}, s_0, s_i, \acc_i \}$ and witness
+$w = \{ s_{i-1}, \pi_{i-1} = \vec{q}, \acc_{i-1} \}$, which will be used to
+construct the the IVC circuit $R_{IVC}$:
 $$
 \begin{aligned}
   x_{i-1} &:= \{ R_{IVC}, s_{i-1}, \acc_{i-1} \} \\
@@ -594,9 +634,6 @@ $$
   R_{IVC} &:= \text{I.K } w \text{ s.t. } F(s_{i-1}) \meq s_i \land (s_{i-1} \meq s_0 \lor ( \Vc_1 \land \Vc_2 ) ) \\
 \end{aligned}
 $$
-
-Since the circuit is a bit complicated, it is also presented visually below:
-
 \begin{figure}[H]
 \centering
 \begin{tikzpicture}
@@ -618,7 +655,6 @@ Since the circuit is a bit complicated, it is also presented visually below:
   \draw[dashed-arrow] (R_ivc) -- (2.25, 7) -- (3.5, 7) -- (x_prev);
   \draw[dashed-arrow] (s_prev) -- (-0.25, 7.1) -- (3.5, 7.1) -- (x_prev);
   \draw[dashed-arrow] (acc_prev) -- (7.5, 7.2) -- (3.5, 7.2) -- (x_prev);
-
 
   % Second Layer
   \node[draw, rectangle] (svf) at (3.75, 5.5) {$\SNARKVerifierFast$};
@@ -657,15 +693,11 @@ Since the circuit is a bit complicated, it is also presented visually below:
   \draw[arrow] (or) -- (end_and);
   \draw[arrow] (F) -- (end_and);
 
-  % Sixth Layer
-  \node[draw, rectangle] (output) at (3, 1.5) { $(\meq) \; \top$ };
-  \draw[arrow] (end_and) -- (output);
-
 \end{tikzpicture}
 \caption{A visualization of $R_{IVC}$}
 \end{figure}
 
-The verifier and prover for the IVC scheme is below:
+The verifier and prover for the IVC scheme can be seen below:
 
 \begin{algorithm}[H]
 \caption*{\textbf{Algorithm} $\IVCProver$}
@@ -707,54 +739,37 @@ The verifier and prover for the IVC scheme is below:
 \end{algorithmic}
 \end{algorithm}
 
-<!-- TODO: verifierFast? -->
-
 Consider the above chain run $n$ times. As in the "simple" SNARK IVC
 construction, if $\IVCVerifier$ accepts at the end, then we get a chain
 of implications:
-
 $$
 \begin{alignedat}[b]{2}
-  &\IVCVerifier(R_{IVC}, x_n = \{ s_0, s_n, \acc_i \}, \pi_n) = \top     &&\then \\
-  &\forall i \in [n] : \PCDLCheck(\pi_i = \vec{q}) = \top                &&\;\; \land \\
-  &F(s_{n-1}) = s_n     \land (s_{n-1} = s_0 \lor ( \Vc_1 \land \Vc_2 )) &&\then \\
-  &\ASVerifier(\pi_{n-1}, \acc_{n-1}, \acc_n)                            &&\;\; \land \\
-  &\SNARKVerifierFast(R_{IVC}, x_{n-1}, \pi_{n-1})                       &&\then \dots \\
-  &F(s_0) = s_1 \land (s_0 = s_0 \lor ( \Vc_1 \land \Vc_2 ))             &&\then \\
-  &F(s_0) = s_1                                                          &&\then \\
+  &\IVCVerifier(R_{IVC}, x_n = \{ s_0, s_n, \acc_i \}, \pi_n) = \top           &&\then \\
+  &\forall i \in [n], \forall q_j \in \pi_i = \vec{q} : \PCDLCheck(q_j) = \top &&\;\; \land \\
+  &F(s_{n-1}) = s_n     \land (s_{n-1} = s_0 \lor ( \Vc_1 \land \Vc_2 ))       &&\then \\
+  &\ASVerifier(\pi_{n-1}, \acc_{n-1}, \acc_n)                                  &&\;\; \land \\
+  &\SNARKVerifierFast(R_{IVC}, x_{n-1}, \pi_{n-1})                             &&\then \dots \\
+  &F(s_0) = s_1 \land (s_0 = s_0 \lor ( \Vc_1 \land \Vc_2 ))                   &&\then \\
+  &F(s_0) = s_1                                                                &&\then \\
 \end{alignedat}
 $$
-
-Remember that we assumed that $\ASVerifier$ verifies correctly if $\forall i
-\in [n] : \PCCheck(\pi_i = \vec{q})$, since $\IVCVerifier$ runs $\ASDecider$,
-this precondition holds, as long as all $\ASVerifier$'s accept, which is
-what allows us to recurse through this chain of implications.
+Since $\IVCVerifier$ runs $\ASDecider$, the previous accumulator is valid,
+and by recursion, all previous accumulators are valid. Therefore, if a
+$\ASVerifier$'s accept, that means that $\vec{q} = \pi_i$ are valid evaluation
+proofs. We defined $\SNARKVerifierFast$, s.t. it verifies correctly provided
+the $\vec{q}$'s are valid evaluation proofs. This allows us to recurse
+through this chain of implications.
 
 From this we learn:
 
 1. $\forall i \in [2, n] : \ASVerifier(\pi_{i-1}, \acc_{i-1}, \acc_i) = \top$, i.e, all accumulators are accumulated correctly.
 2. $\forall i \in [2, n] : \SNARKVerifierFast(R_{IVC}, x_{i-1}, \pi_{i-1})$, i.e, all the proofs are valid. Giving us our precondition for $\ASDecider$.
 
-These points imply that $\forall i \in [n] : F(s_{i-1}) = s_i$, thus, $s_n = F^n(s_0)$. Thus, the scheme should be complete.
-
-<!-- TODO: the below is a mess, remove if not fixed in time -->
-
-The soundness of the above protocol will not be proved directly, but it will
-briefly be discussed. By the soundness property of the Accumulation Scheme,
-an instance $\vec{q}_i \in \Instance^m$ will be valid if it was accumulated
-correctly into an accumulator, as checked by $\ASVerifier$, and that the
-accumulator is valid, as checked by $\ASDecider$.
-
-Since all the instances has been checked by $\ASVerifier$, we just need all
-the accumulators $\vec{\acc} \in \Acc^n$ to be valid, in order for all the
-instances will be valid. All these accumulators _are valid_ though, due to the
-definition of the decider whereby checking an accumulator $acc_n$ ensures that
-every previous instance, and accumulator, is valid, provided that all previous
-$\ASVerifier$s accepted, which we've already established. Finally, if the
-underlying SNARK is sound, then, provided that all PCS openings $\vec{q}$
-are valid, each $\SNARKVerifier$ will be convinced that each $\pi_i$ is
-valid. So the soundness of the above protocol should mostly just depend on
-the underlying protocols used[^unsoundness].
+These points in turn imply that $\forall i \in [n] : F(s_{i-1}) = s_i$,
+therefore, $s_n = F^n(s_0)$. From this discussion it should be clear that an
+honest prover will convince an honest verifier, i.e. completeness holds. As
+for soundness, it should mostly depend on the soundness of the underlying PCS,
+accumulation scheme and SNARK[^unsoundness].
 
 As for efficiency, assuming that:
 
@@ -762,6 +777,8 @@ As for efficiency, assuming that:
 - The runtime of $\SNARKVerifierFast$ scales logarithmically with the degree-bound, $d$, of $p_j$ ($\Oc(\lg(d))$)
 - The runtime of $\SNARKVerifier$ scales linearly with the degree-bound, $d$, of $p_j$ ($\Oc(d)$)
 - The runtime of $F$ is less than $\Oc(d)$, since it needs to be compiled to a circuit of size at most $\approx d$
+
+Then we can conclude:
 
 - The runtime of $\IVCProver$ is:
   - Step 5: The cost of running $\ASDLProver$, $\Oc(d)$.
@@ -775,8 +792,9 @@ As for efficiency, assuming that:
 
   Totalling $\Oc(2d)$. So $\Oc(d)$
 
-Notice that the runtime of $\IVCVerifier$ scales with $d$, _not_ $n$. So
-the cost of verifying does not scale with the number of iterations.
+Notice that although the runtime of $\IVCVerifier$ is linear, it scales
+with $d$, _not_ $n$. So the cost of verifying does not scale with the number
+of iterations.
 
 [^unsoundness]: A more thorough soundness discussion would reveal that running
 the extractor on a proof-chain of length $n$ actually fails, as argued by
@@ -788,13 +806,13 @@ security assumption added.
 
 ## The Implementation
 
-The authors also define a concrete Accumulation Scheme using the Discrete Log
-assumption $\ASDL$, which uses the same algorithms as in the 2019 Halo
-paper. This accumulation scheme in turn, relies heavily upon a Polynomial
-Commitment Scheme, $\PCDL$, which is also described in the paper. Both of
-these have been implemented as part of this project in Rust and the rest
-of the document will go over these sets of algorithms, their security,
-performance and implementation details.
+The authors of the accumulation scheme paper[@pcd] also define a concrete
+Accumulation Scheme using the Discrete Log assumption $\ASDL$, which uses
+the same algorithms as in the 2019 Halo paper. This accumulation scheme in
+turn, relies heavily upon a Polynomial Commitment Scheme, $\PCDL$, which is
+also described in the paper. Both of these have been implemented as part of
+this project in Rust and the rest of the document will go over these sets
+of algorithms, their security, performance and implementation details.
 
 Since these kinds of proofs can both be used for proving knowledge of a
 large witness to a statement succinctly, and doing so without revealing
@@ -802,10 +820,10 @@ any information about the underlying witness, the zero-knowledgeness
 of the protocol is described as _optional_. This is highlighted in the
 algorithmic specifications as the parts colored \textblue{blue}. In the Rust
 implementation these parts were included as they were not too cumbersome to
-implement. However, since the motivation for this project was IVC, wherein the
-primary focus is succinctness, not zero-knowledge, these have been omitted
-from the soundness and completeness discussions in the following sections,
-and the proofs of zero-knowledge have also been omitted.
+implement. However, since the motivation for this project was IVC, wherein
+the primary focus is succinctness, not zero-knowledge, the zero-knowledge
+parts of the protocol have been omitted from the soundness, completeness
+and efficiency discussions.
 
 The authors of the paper present additional algorithms for distributing
 public parameters ($\CMTrim$, $\PCDLTrim$, $\ASDLIndexer$), we omit them in
@@ -816,47 +834,38 @@ a. The setups has already been run, producing values $N, D \in \Nb, S, H \in_R
    power of two and any random values have been sampled honestly.
 b. All algorithms have global access to the above values.
 
-This more closely models the implementation where the values were
-generated for a computationally viable value of $N$ and $S, H,
-\vec{G}$ were randomly sampled using a hashing algorithm. More
-specifically a genesis string was prepended with an numeric index,
-run through the sha3 hashing algorithm, then used to generate a curve
-point. These values were then added as global constants in the code, see the
+This closely models the implementation where the public parameters were
+randomly sampled using a hashing algorithm for a computationally viable
+value of $N$. As described in the subsection on trusted and untrusted
+setups, a genesis string was prepended with an numeric index, run through
+the sha3 hashing algorithm, then used to generate curve points. These
+must be generators for $\Eb(\Fb_q)$ but since all points (except the
+identity point $\Oc$) of the Pallas curve used are generators, they
+were simply sampled uniformly randomly from all of $\Eb(\Fb_q)$. These
+values were then added as global constants in the code. See the
 [`/code/src/consts.rs`](https://github.com/rasmus-kirk/halo-accumulation/blob/main/code/src/consts.rs)
-in the repo.
-
-The associated rust code for generating the public parameters can be seen below:
+in the repository for more details. The associated rust code for generating
+the public parameters can be seen below:
 
 ```rust {.numberLines}
-// Function to generate a random generator for the Pallas Curve.
-// Since the order of the curve is prime, any non-identity point is a generator.
-fn get_generator_hash(i: usize) -> PallasPoint {
-    let genesis_string = "To understand recursion, one must first understand recursion"
-      .as_bytes();
+fn get_urs_element(i: usize) -> PallasPoint {
+    let genesis_string = "To understand recursion, one must first understand recursion";
 
-    // Hash `genesis_string` concatinated with `i`
+    // Hash `i` concatinated with `genesis_string`
     let mut hasher = Sha3_256::new();
     hasher.update(i.to_le_bytes());
-    hasher.update(genesis_string);
+    hasher.update(genesis_string.as_bytes());
     let hash_result = hasher.finalize();
 
-    // Interpret the hash as a scalar field element
-    let scalar = PallasScalar::from_le_bytes_mod_order(&hash_result);
-
-    // Generate a uniformly sampled point from the uniformly sampled field element
-    PallasPoint::generator() * scalar
+    PallasPoint::generator() * PallasScalar::from_le_bytes_mod_order(&hash_result)
 }
-
-/// Get public parameters
 fn get_pp(n: usize) -> (PallasPoint, PallasPoint, Vec<PallasPoint>) {
-    let S = get_generator_hash(0);
-    let H = get_generator_hash(1);
+    let S = get_urs_element(0);
+    let H = get_urs_element(1);
     let mut Gs = Vec::with_capacity(n);
-
     for i in 2..(n + 2) {
-        Gs.push(get_generator_hash(i))
+        Gs.push(get_urs_element(i))
     }
-
     (S, H, Gs)
 }
 ```
@@ -1055,16 +1064,13 @@ $U = G^{(0)}$, we run $\PCDLSuccinctCheck$, then check that $U \meq (G^{(0)}
 **Check 1** ($C_{lg(n)} \meq cU + v'H'$) **in $\PCDLSuccinctCheck$:**
 
 Let's start by looking at $C_{lg(n)}$. The verifer computes $C_{lg(n)}$ as:
-
 $$
 \begin{aligned}
   C_0        &= C' + vH' = C + vH' \\
   C_{\lg(n)} &= C_0 + \sum^{\lg(n)-1}_{i=0} \xi^{-1}_{i+1} L_i + \xi_{i+1} R_i \\
 \end{aligned}
 $$
-
 Given that the prover is honest, the following invariant should hold:
-
 $$
 \begin{alignedat}[b]{1}
   C_{i+1} &= \ip{\vec{c}_{i+1}}{\vec{G}_{i+1}} + \ip{\vec{c}_{i+1}}{\vec{z}_{i+1}} H'\\ 
@@ -1076,9 +1082,7 @@ $$
             + \xi^{-1}_{i+1} \ip{r(\vec{c}_i)}{l(\vec{z}_i)} + \ip{r(\vec{c}_i)}{l(\vec{z}_i)}) H'
 \end{alignedat}
 $$
-
 If we group these terms:
-
 $$
 \begin{alignedat}[b]{4}
   C_{i+1} &= \ip{l(\vec{c}_i)}{l(\vec{z}_i)}  &&+ \ip{r(\vec{c}_i)}{r(\vec{G}_i)}     &&+ \xi_{i+1} \ip{l(\vec{c}_i)}{r(\vec{G}_i)}    &&+ \xi^{-1}_{i+1} \ip{r(\vec{c}_i)}{l(\vec{G}_i)} \\
@@ -1089,14 +1093,12 @@ $$
   R_i     &= \ip{l(\vec{c}_i)}{r(\vec{G}_i)} &&+ \ip{l(\vec{c}_i)}{r(\vec{z}_i)} H' && && 
 \end{alignedat}
 $$
-
 We see why $\vec{L}, \vec{R}$ is defined the way they are. They help
 the verifier check that the original relation hold, by showing it for the
 compressed form $C_{i+1}$. $\vec{L}, \vec{R}$ is just the minimal information
 needed to communicate this fact.
 
 This leaves us with the following vectors (notice the slight difference in length):
-
 $$
 \begin{alignedat}[b]{1}
   \vec{L}    &= (L_1, \dots, L_{\lg(n)}) \\
@@ -1105,8 +1107,9 @@ $$
   \vec{\xi}  &= (\xi_0, \dots, \xi_{\lg(n)}) \\
 \end{alignedat}
 $$
-
-This means an honest prover will indeed produce $\vec{L}, \vec{R}$ s.t. $C_{\lg(n)} = C_0 + \sum^{\lg(n)-1}_{i=0} \xi^{-1}_{i+1} L_i + \xi_{i+1} R_i$
+This means an honest prover will indeed produce $\vec{L}, \vec{R}$
+s.t. $C_{\lg(n)} = C_0 + \sum^{\lg(n)-1}_{i=0} \xi^{-1}_{i+1} L_i + \xi_{i+1}
+R_i$
 
 Let's finally look at the left-hand side of the verifying check:
 
@@ -1134,45 +1137,37 @@ side will also become $U = G^{(0)}$ by the construction of $h(X)$.
 This subsection will not contain a full knowledge soundness proof, but it
 will be briefly argued that the _non-zero-knowledge_ version of $\PCDL$
 should be knowledge sound. The knowledge soundness property of $\PCDL$ states:
-
 $$
 \Pr \left[
   \begin{array}{c}
     \PCCheck^\rho(C, d, z, v, \pi) = 1 \\
     \Downarrow \\
     C = \PCCommit^\rho(p, d, \o) \\
-    v = p(z), \; d \in [d_i]^n_{i=1}, \; \deg(p) \leq d \leq D
+    v = p(z), \; \deg(p) \leq d \leq D
   \end{array}
   \middle|
   \begin{array}{r}
     \rho \leftarrow \Uc(\l) \\
     \pp_\PC \leftarrow \PCSetup^\rho(1^\l, D) \\
-    ([d_i]^n_{i=1}, (C, d, z, v, \pi)) \leftarrow \Ac^\rho(\pp_\PC) \\
+    (C, d, z, v, \pi) \leftarrow \Ac^\rho(\pp_\PC) \\
     (p, \o) \leftarrow \Ec^\rho(\pp_\PC) \\
   \end{array}
 \right] \geq 1 - \negl(\lambda).
 $$
-
 So, we need to show that:
 
 1. $C = \PCCommit^\rho(p, d, \o)$
 2. $v = p(z)$
-3. $d \in [d_i]^n_{i=1}$
-4. $\deg(p) \leq d \leq D$
+3. $\deg(p) \leq d \leq D$
 
 The knowledge extractability of $\PCDL$ is almost identical to the IPA
 from bulletproofs[@bulletproofs], so we assume that we can use the same
 extractor[^ipa-extractor], with only minor modifications. The IPA extractor
 extracts $\vec{a}, \vec{b} \in \Fb_q^n$ s.t:
-
 $$P = \ip{\vec{G}}{\vec{a}} + \ip{\vec{H}}{\vec{b}} \land v = \ip{\vec{c}}{\vec{z}}$$
-
 Running the extractor for $\PCDL$ should yield:
-
 $$P = \ip{\vec{G}}{\vec{c}} + \ip{\vec{G}}{\vec{z}} \land v = \ip{\vec{c}}{\vec{z}}$$
-
 We should be able to remove the extraction of $\vec{z}$ since it's public:
-
 $$C = \ip{\vec{G}}{\vec{c}} \land v = \ip{\vec{c}}{\vec{z}}$$
 
 1. $C = \ip{\vec{G}}{\vec{c}} = \PCCommit(c, G, \bot) = \PCCommit^\rho(p,
@@ -1232,7 +1227,7 @@ the extractor runs in the required polynomial time ($\Oc(t) = \Oc(\poly(\l))$).
 purpose was to create a proper knowledge soundness proof, but as the section is
 more-so devoted to give a justification for why $\PCDL$ _ought to be_ sound,
 it will do. In fact, the authors of the accumulation scheme paper[@pcd],
-make a similar argument more formally by stating (without direct proof!),
+use a similar argument more formally by stating (without direct proof!),
 that the $\PCDL$ protocol is a special case of the IPA presented in another
 paper[@ipa] by mostly the same authors.
 
@@ -1480,7 +1475,6 @@ $$
   &\Phi_\AS(q^{(i)}_j) = \PCDLCheck(q^{(i)}_j) = \top
 \end{aligned}
 $$
-
 The sidenote below gives an intuition why this is the case.
 
 \begin{quote}
@@ -1492,9 +1486,7 @@ and previous accumulators?}
 The $\ASDLProver$ runs the $\ASDLCommonSubroutine$ that creates an accumulated
 polynomial $h$ from $[h_i]^m$ that is in turn created for each instance $q_j
 \in \vec{q}_i$ by $\PCDLSuccinctCheck$:
-
 $$h_i(X) := \prod^{lg(n)}_{i=0} (1 + \xi_{\lg(n)-i} \cdot X^{2^i}) \in F_q[X]$$
-
 We don't mention the previous accumulator $\acc_{i-1}$ explicitly as it's
 treated as an instance in the protocol. We also only consider the case where
 the protocol does not have zero knowledge, meaning that we omit the blue parts
@@ -1514,10 +1506,8 @@ $\PCDLSuccinctCheck$ on each $q_j \in \vec{q}_i$ of them, getting $(U_1,
 \dots, U_m)$ and $(h_1(X), \dots, h_m(X))$. For each element $U_i$ in the
 vector $\vec{U} \in \Eb(\Fb_q)^m$ and each element $h_i(X)$ in the vector
 $\vec{h} \in (\Fb^{\leq d}_q[X])^m$, the $\ASDLProver$ defines:
-
 $$h(X) := \sum^{m}_{i=1} \a^i \cdot h_i(X)$$
 $$C := \sum^{m}_{i=1} \a^i \cdot U_i$$
-
 Since we know from the $\ASDLVerifier$:
 
 \begin{enumerate}
@@ -1528,7 +1518,7 @@ Since we know from the $\ASDLVerifier$:
   \item $\a := \rho_1(\vec{h}, \vec{U})$
 \end{enumerate}
 
-Which implies that $\Phi(q_j) = \top$ if $U = G^{(0)}$. We then argue that
+Which implies that $\Phi_\AS(q_j) = \top$ if $U = G^{(0)}$. We then argue that
 when the $\ASDLDecider$ checks that $C = \PCDLCommit(h(X), d, \bot)$, then
 that implies that each $U_i$ is a valid commitment to $h_i(X)$, $U_i =
 \PCDLCommit(h_i(X), \bot) = \ip{\vec{G}}{\vec{h_i}}$, thereby performing
@@ -1610,7 +1600,6 @@ That is, for all functions, $f_\pp$, that takes a message, $\Mc$ as input and
 outputs a maximum D-degree polynomial. Also, usually $|F_\pp| \approx F(\l)$.
 For every message format $L$ and computationally unbounded $t$-query oracle
 algorithm $\Ac$, the following holds:
-
 $$
 \Pr\left[
   \begin{array}{c}
@@ -1629,7 +1618,6 @@ $$
   \end{array}
 \right] \leq \sqrt{\frac{D(t+1)}{F(\l)}}
 $$
-
 Intuitively, the above lemma states that for any non-zero polynomial $p$,
 that you can create using the commitment $C$, it will be highly improbable
 that a random evaluation point $z$ be a root of the polynomial $p$, $p(z)
@@ -1640,9 +1628,7 @@ that a random evaluation point $z$ be a root of the polynomial $p$, $p(z)
 We construct a reduction proof, showing that if an adversary $\Ac$ that wins
 with probability $\d$ in the above game, then we construct an adversary $\Bc$
 which breaks the binding of the commitment scheme with probability at least:
-
 $$\frac{\delta^2}{t + 1} - \frac{D}{F(\lambda)}$$
-
 Thus, leading to a contradiction, since $\CM$ is perfectly binding. Note,
 that we may assume that $\Ac$ always queries $C \from \CMCommit(m, \o)$
 for its output $(m, \o)$, by increasing the query bound from $t$ to $t + 1$.
@@ -1672,29 +1658,21 @@ $$
   p' &:= f_{pp}(m')
 \end{aligned}
 $$
-
 By the forking lemma, the probability that $p(z) = p'(z') = 0$ and $C = C'$
 is at least $\frac{\d^2}{t + 1}$. Let's call this event $E$:
-
 $$E := (p(z) = p'(z') = 0 \land C = C')$$
-
 Then, by the triangle argument:
-
 $$
 \Pr[E] \leq \Pr[E \land (p = p')] + \Pr[E \land (p \neq p')]
 $$
-
 And, by Schwartz-Zippel:
-
 $$
 \begin{aligned}
 \Pr[E \land (p = p')] &\leq \frac{D}{|F_\pp|} \implies \\
                       &\leq \frac{D}{F(\lambda)}
 \end{aligned}
 $$
-
 Thus, the probability that $\Bc$ breaks binding is:
-
 $$
 \begin{aligned}
 \Pr[E \land (p = p')] + \Pr[E \land (p \neq p')] &\geq \Pr[E] \\
@@ -1702,10 +1680,8 @@ $$
 \Pr[E \land (p \neq p')] &\geq \frac{\d^2}{t + 1} - \frac{D}{F(\lambda)} \\
 \end{aligned}
 $$
-
 Yielding us the desired probability bound. Isolating $\d$ will give us the
 probability bound for the zero-finding game:
-
 $$
 \begin{aligned}
   0 &= \frac{\delta^2}{t + 1} - \frac{D}{F(\lambda)} \\
@@ -1729,7 +1705,6 @@ With this lemma, we wish to show that given an adversary $\Ac$, that breaks
 the soundess property of $\ASDL$, we can create a reduction proof that then
 breaks the above zero-finding game. We fix $\Ac, D = \poly(\l)$ from the $\AS$
 soundness definition:
-
 $$
 \Pr \left[
   \begin{array}{c|c}
@@ -1737,7 +1712,7 @@ $$
       \ASDLVerifier^{\rho_1}((q_{\acc_{i-1}} \cat \vec{q}), \acc_i) = \top, \\
       \ASDLDecider^{\rho_1}(\acc_i) = \top \\
       \land \\
-      \exists i \in [n] : \Phi_{\PC}(q_i) = \bot
+      \exists i \in [n] : \Phi_\AS(q_i) = \bot
     \end{array}
   & \quad
     \begin{aligned}
@@ -1750,7 +1725,6 @@ $$
   \end{array}
 \right] \leq \negl(\l)
 $$
-
 We call the probability that the adversary $\Ac$ wins the above game
 $\d$. We bound $\d$ by constructing two adversaries, $\Bc_1, \Bc_2$, for
 the zero-finding game. Assuming:
@@ -1830,11 +1804,10 @@ with probability $\d$, s.t. the following holds:
 
 - $\ASDLVerifier^{\rho_1}((q_{\acc_{i-1}} \cat \vec{q}), \acc_i) = \top$
 - $\ASDLDecider^{\rho_1}(\acc_i) = \top$
-- $\exists i \in [n] : \Phi_{\pp_\PC}(q_i) = \bot \implies \PCDLCheck^{\rho_0}(C_i, d_i, z_i, v_i, \pi_i) = \bot$
+- $\exists i \in [n] : \Phi_\AS(q_i) = \bot \implies \PCDLCheck^{\rho_0}(C_i, d_i, z_i, v_i, \pi_i) = \bot$
 
 Let's denote this event as $E_\Dc$. We're interested in the probability $\Pr[E_\Ec
 \land E_\Dc]$. Using the chain rule we get:
-
 $$
 \begin{aligned}
   \Pr[E_\Ec \land E_\Dc] &= \Pr[E_\Ec \; | \; E_\Dc] \cdot \Pr[E_\Ec] \\
@@ -1843,7 +1816,6 @@ $$
                          &= \d - \negl(\l)
 \end{aligned}
 $$
-
 Now, since $\ASDLVerifier^{\rho_1}((q_{\acc_{i-1}} \cat \vec{q}), \acc_i)$ accepts,
 then, by construction, all the following holds:
 
@@ -2006,7 +1978,7 @@ also be seen in the benchmarks.
   }
 ```
 
-The results of the benchmarks, can be seen in the graphs below:
+The results of the benchmarks, can be seen in the subsequent graphs:
 
 \begin{figure}
 \centering
