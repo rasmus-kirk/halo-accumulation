@@ -68,6 +68,16 @@
           fswatch --event Updated ./*.md | xargs -n 1 sh -c 'date "+%Y-%m-%d - %H:%M:%S %Z"; mk-pandoc'
         '';
       };
+      spellcheck = pkgs.writeShellApplication {
+        name = "spellcheck";
+        runtimeInputs = [pkgs.nodePackages_latest.cspell];
+        text = ''cspell "*.md"'';
+      };
+      spellcheck-watch = pkgs.writeShellApplication {
+        name = "spellcheck";
+        runtimeInputs = [pkgs.nodePackages_latest.cspell];
+        text = ''watch --color cspell --color "*.md"'';
+      };
       report = pkgs.stdenv.mkDerivation {
         name = "report";
         src = ./.;
@@ -84,6 +94,8 @@
         loop = mk-pandoc-loop;
         mk-pandoc = mk-pandoc;
         debug = debug;
+        spellcheck = spellcheck;
+        spellcheck-watch = spellcheck-watch;
       });
   };
 }

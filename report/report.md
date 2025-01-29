@@ -20,29 +20,30 @@ toc: true
 
 # Introduction
 
-Halo2 is a powerful, and very recent, proof system that allows for recursive
-proofs. One of the main applications of recursive proofs is Incrementally
-Verifiable Computation, used for example by the Mina blockchain to acheive
-a succinct blockchain. Halo2 can be broken down into the following main
-components:
+Incrementally Verifiable Computation (IVC) has seen increased practical usage,
+notably by the Mina[@mina] blockchain to achieve a succinct blockchain. This
+is enabled by increasingly efficient recursive proof systems, one of the
+most used in practice is based on [@halo], which includes Halo2 by the
+Electric Coin Company (to be used in Zcash) and Kimchi developed and used
+by Mina. Both can be broken down into the following main components:
 
-- **Plonk**: A general-purpose, potentially zero-knowledge, proof scheme.
+- **Plonk**: A general-purpose, potentially zero-knowledge, SNARK.
 - **$\PCDL$**: A Polynomial Commitment Scheme in the Discrete Log setting.
 - **$\ASDL$**: An Accumulation Scheme in the Discrete Log setting.
-- **Pasta**: A Cycle of Elliptic Curves, namely **Pa**llas and Ve**sta**.
+- **Pasta**: A cycle of elliptic curves, Pallas and Vesta, collectively known as Pasta.
 
 This project is focused on the components of $\PCDL$ and $\ASDL$ from the
 2020 paper _"Proof-Carrying Data from Accumulation Schemes"_[@pcd]. The
-project covers both the theoretical aspects of the scheme described in this
-document along with a rust implementation, both of which can be found in
-the project's repository[@repo].
+project explores the theoretical aspects of the scheme described in the paper
+document with a corresponding Rust implementation. Both the report and the
+implementation can be found in the project's repository[@repo].
 
 ## Prerequisites
 
-Basic knowledge on elliptic curves, groups, interactive arguments are assumed
-in the following text along with familiarity with SNARKs. The polynomial
-commitment scheme also has a heavy reliance on the Inner Product Proof from the
-Bulletproofs protocol, see the following resources on bulletproofs if needed:
+Basic knowledge of elliptic curves, groups, interactive arguments is assumed,
+along with familiarity with SNARKs, in the following text. The polynomial
+commitment scheme heavily relies on the Inner Product Proof from the
+Bulletproofs protocol. If needed, refer to the following resources:
 
 - Section 3 in the original Bulletproofs[@bulletproofs] paper
 - From Zero (Knowledge) to Bulletproofs writeup[@from0k2bp]
@@ -52,162 +53,161 @@ Bulletproofs protocol, see the following resources on bulletproofs if needed:
 ## Background and Motivation
 
 The following subsections introduce the concept of Incrementally Verifiable
-Computation (IVC) along with some priors. These concepts motivate the
-introduction of accumulation schemes and polynomial commitment schemes, which
-are the main focus of this paper. Accumulation schemes, in particular, will be
-demonstrated as a means to construct more flexible IVC constructions compared
+Computation (IVC) along with some background concepts. These concepts lead to
+the introduction of accumulation schemes and polynomial commitment schemes,
+the main focus of this paper. Accumulation schemes, in particular, will be
+demonstrated as a means to create more flexible IVC constructions compared
 to previous approaches, allowing IVC that does not depend on a trusted setup.
 
-As such, these subsections aim to provide an overview of the evolving field of IVC,
-the succinct proof systems that lead to their construction, and the role of accumulation
-schemes as an important cryptographic primitive with practical applications.
+As such, these subsections aim to provide an overview of the evolving field
+of IVC, the succinct proof systems that lead to its construction, and the
+role of accumulation schemes as an important cryptographic primitive with
+practical applications.
 
 ### Proof Systems
 
-In an Interactive Proof System we have two Interactive Turing machines
-the computationally unbounded Prover, P, and the polynomally time bounded
-Verifier, V. The Prover tries to convince the Verifier of a statement
-$x \in L$ language $L$ in NP. The following properties must be true:
+An Interactive Proof System consists of two Interactive Turing Machines:
+a computationally unbounded Prover, $\Pc$, and a polynomial-time bounded
+Verifier, $\Vc$. The Prover tries to convince the Verifier of a statement
+$x \in L$, with language $L$ in NP. The following properties must be true:
 
-- **Completeness:** $\forall P \in ITM, x\in L \implies \Pr[V_{out} = \bot] \leq \epsilon(x)$
+- **Completeness:** $\forall \Pc \in ITM, x\in L \implies \Pr[\Vc_{out} = \bot] \leq \epsilon(x)$
 
-  For all honest provers, P, where $x$ is true, the probability that the
+  For all honest provers, $\Pc$, where $x$ is true, the probability that the
   verifier remains unconvinced is negligible in the length of $x$.
 
-- **Soundness:** $\forall P^* \in ITM, x \notin L \implies \Pr[V_{out} = \top] \leq \epsilon(x)$
+- **Soundness:** $\forall \Pc^* \in ITM, x \notin L \implies \Pr[\Vc_{out} = \top] \leq \epsilon(x)$
 
-  For all provers, honest or otherwise, $P^*$, that tries to convince the
+  For all provers, honest or otherwise, $\Pc^*$, that try to convince the
   verifier of a claim, $x$, that is not true, the probability that the
   verifier will be convinced is negligible in the length of $x$.
 
 An Interactive Argument is very similar, but the honest and malicious prover
-is now polynomially bounded and receives a witness, $w$:
+are now polynomially bounded and receives a witness, $w$:
 
-- **Completeness**: $\forall P(w) \in PPT, x\in L \implies \Pr[V_{out} = \bot] \leq \epsilon(x)$
-- **Soundness**: $\forall P^* \in PPT, x \notin L \implies \Pr[V_{out} = \top] \leq \epsilon(x)$
+- **Completeness**: $\forall \Pc(w) \in PPT, x\in L \implies \Pr[\Vc_{out} = \bot] \leq \epsilon(x)$
+- **Soundness**: $\forall \Pc^* \in PPT, x \notin L \implies \Pr[\Vc_{out} = \top] \leq \epsilon(x)$
 
-Proof of knowledge is another type of Proof System, here the prover claims
-to know a specific _witness_, $w$, for a statement $x$. Let $x \in L$ and
-and $W(x)$ the set of witnesses for $x$ that should be accepted in the
-proof. This allows us to define the following relation: $R = \{ (x,w) :
-x \in L , w \in W(x) \}$
+Proofs of knowledge are another type of Proof System, here the prover
+claims to know a specific _witness_, $w$, for a statement $x$. Let $x \in
+L$ and $W(x)$ be the set of witnesses for $x$ that should be accepted in
+the proof. This allows us to define the following relation: $R = \{ (x,w)
+: x \in L , w \in W(x) \}$
 
-A proof of knowledge for relation $R$ with is a two party protocol $(P, V)$
+A proof of knowledge for relation $R$ with is a two party protocol $(P, \Vc)$
 with the following two properties:
 
-- **Knowledge Completeness:** $\Pr[P(w) \iff V_{out} = 1] = 1$, i.e. as in
+- **Knowledge Completeness:** $\Pr[\Pc(w) \iff \Vc_{out} = 1] = 1$, i.e. as in
   Interactive Proof Systems, after an interaction between the prover and
   verifier the verifier should be convinced with certainty.  
-- **Knowledge Soundness:** Loosely speaking, in Knowledge Soundness we have
-  an efficient extractor $E$, that when given a possibly malicious prover $P^*$
-  as a turing machine has at least as high as the probability that $P^*$
-  convinces $V$
+- **Knowledge Soundness:** Loosely speaking, Knowledge Soundness requires
+  the existence of an efficient extractor $\Ec$ that, when given a possibly
+  malicious prover $\Pc^*$ as input, can extract a valid witness with
+  probability at least as high as the probability that $\Pc^*$ convinces the
+  verifier $\Vc$.
 
 The above proof systems may be _zero-knowledge_, which in loose terms means
 that anyone looking at the transcript, that is the interaction between
 prover and verifier, will not be able to tell the difference between a real
-transcript and one that is simulated. This means that an adversary will not
-learn any new information, that they could not have gathered themselves. We
-can define the property more formally:
+transcript and one that is simulated. This ensures that an adversary gains
+no new information beyond what they could have computed on their own. We
+now define the property more formally:
 
-- **Zero-knowledge:** $\forall V^*(\delta). \exists S_{V^*}(x) \in PPT. S_{V^*} \sim^C (P,V^*)$
+- **Zero-knowledge:** $\forall \Vc^*(\delta). \exists S_{\Vc^*}(x) \in PPT. S_{\Vc^*} \sim^C (\Pc,\Vc^*)$
 
-$V^*$ denotes a prover, honest or otherwise, $\d$ represents information
-that $V^*$ may have from previous executions of the protocol and $(P,V^*)$
-denotes the transcript between the honest prover and (possibly) malicious verifier. There are three kinds
-of zero-knowledge:
+$\Vc^*$ denotes a prover, honest or otherwise, $\d$ represents information
+that $\Vc^*$ may have from previous executions of the protocol and $(\Pc,\Vc^*)$
+denotes the transcript between the honest prover and (possibly) malicious
+verifier. There are three kinds of zero-knowledge:
 
-- **Perfect Zero-knowledge:** $\forall V^*(\delta). \exists S_{V^*}(x) \in PPT. S_{V^*} \sim^P (P,V^*)$,
-  the transcripts $S_{V^*}(x)$ and $(P,V^*)$ are perfectly indistinguishable.
-- **Statistical Zero-knowledge:** $\forall V^*(\delta). \exists S_{V^*}(x) \in PPT. S_{V^*} \sim^S (P,V^*)$,
-  the transcripts $S_{V^*}(x)$ and $(P,V^*)$ are statistically indistinguishable.
-- **Computational Zero-knowledge:** $\forall V^*(\delta). \exists S_{V^*}(x) \in PPT. S_{V^*} \sim^C (P,V^*)$,
-  the transcripts $S_{V^*}(x)$ and $(P,V^*)$ are computationally
+- **Perfect Zero-knowledge:** $\forall \Vc^*(\delta). \exists S_{\Vc^*}(x) \in PPT. S_{\Vc^*} \sim^\Pc (\Pc,\Vc^*)$,
+  the transcripts $S_{\Vc^*}(x)$ and $(\Pc,\Vc^*)$ are perfectly indistinguishable.
+- **Statistical Zero-knowledge:** $\forall \Vc^*(\delta). \exists S_{\Vc^*}(x) \in PPT. S_{\Vc^*} \sim^S (\Pc,\Vc^*)$,
+  the transcripts $S_{\Vc^*}(x)$ and $(\Pc,\Vc^*)$ are statistically indistinguishable.
+- **Computational Zero-knowledge:** $\forall \Vc^*(\delta). \exists S_{\Vc^*}(x) \in PPT. S_{\Vc^*} \sim^C (\Pc,\Vc^*)$,
+  the transcripts $S_{\Vc^*}(x)$ and $(\Pc,\Vc^*)$ are computationally
   indistinguishable, i.e. no polynomially bounded adversary $\Ac$ can
   distinguish them.
 
 #### Fiat-Shamir Heuristic
 
-The standard Fiat-Shamir heuristic is used to make turn interactive protocols
+The standard Fiat-Shamir heuristic is used to turn interactive protocols
 non-interactive. The Fiat-Shamir heuristic turns a public-coin interactive
-proof into a into a non-interactive interactive proof, by replacing all
-uniformly random values sent from the verifier to the prover with calls to a
-non-interactive random oracle. In practice, a cryptographic hash function, $\rho$,
-is used. Composing proof systems will sometimes require *domain-seperation*,
-whereby random oracles used by one proof system cannot be accessed by
-another proof system. This is the case for the zero-finding game that will
-be used in the soundness discussions of implemented accumulation scheme
-$\ASDL$. In practice one can have a domain specifier, fx. $0, 1$, prepended
-to each message that is hashed using $\rho$:
-$$
-\begin{aligned}
-  \rho_0(m) &= \rho(0 \cat m) \\
-  \rho_1(m) &= \rho(1 \cat m)
-\end{aligned}
-$$
+proof into a non-interactive proof, by replacing all uniformly random
+values sent from the verifier to the prover with calls to a non-interactive
+random oracle. In practice, a cryptographic hash function, $\rho$, is
+used. Composing proof systems will sometimes require *domain-separation*,
+whereby random oracles used by one proof system cannot be accessed by another
+proof system. This is the case for the zero-finding game that will be used
+in the soundness discussions of implemented accumulation scheme $\ASDL$. In
+practice one can have a domain specifier, for example $0, 1$, prepended to
+each message that is hashed using $\rho$:
+$$ \rho_0(m) = \rho(0 \cat m), \quad \rho_1(m) = \rho(1 \cat m)$$
 
 #### SNARKS
 
 SNARKs - **S**uccinct **N**on-interactive **AR**guments of **K**nowledge
 - have seen increased usage due to their application in blockchains and
-cryptocurrencies. They usually also function as so-called general-purpose
-proof schemes. This means that, given any solution to an NP-problem, it will
-produce a proof that the prover knows the solution to said NP-problem. Most
+cryptocurrencies. They also typically function as general-purpose proof
+schemes. This means that, given any solution to an NP-problem, the SNARK prover
+will produce a proof that they know the solution to said NP-problem. Most
 SNARKs also allow for zero-knowledge arguments, making them zk-SNARKs.
 
-More concretely, imagine that Alice has todays sudoku problem $x$: She
-claims to have a solution to this problem, her witness, $w$, and want to
-convince Bob without having to send all of it. She could then use a SNARK to
-create a proof to convince Bob. To do this she must first encode the sudoku
-verifier as a circuit $R_x$, which includes public inputs, such as today's
-sudoku values/positions, etc, and then give the SNARK prover ($\SNARKProver$)
-$R_x(w,w')$. Finally she can send this proof, $\pi$, to Bob along with the
-public sudoku verifying circuit, $R_x$, and he can check the proof and be
-convinced using the snark verifier ($\SNARKVerifier$).
+More concretely, imagine that Alice has today's Sudoku problem $x$: She
+claims to have a solution to this problem, her witness, $w$, and wants to
+convince Bob without having to reveal the entire solution. She could then
+use a SNARK to generate a proof for Bob. To do this she must first
+encode the Sudoku verifier as a circuit $R_x$, which includes public inputs,
+such as today's Sudoku values/positions, etc, and then give the SNARK prover
+($\SNARKProver$) $R_x(w,w')$. Finally she sends this proof, $\pi$, to Bob
+along with the public Sudoku verifying circuit, $R_x$, and he can check the
+proof and be convinced using the SNARK verifier ($\SNARKVerifier$).
 
-Importantly, the succinct part of the name means that the proof size and
-verification time must be sublinear. This allows SNARKs to be directly used
+Importantly, the 'succinct' property means that the proof size and
+verification time must be sub-linear. This allows SNARKs to be directly used
 for _Incrementally Verifiable Computation_.
 
 #### Trusted and Untrusted Setups
 
-Many SNARK constructions, such as the original Plonk specification, depend on
-a Trusted Setup to ensure soundness. For Plonk, this arises from the KZG[@kzg]
-commitments used. These commitments lets the SNARK verifier enjoy sublinear
-verification time, but at the cost of requiring a trusted setup while $\PCDL$
-only relies on an untrusted setup. A trusted setup creates a **Structured
-Reference String** (SRS) with a specific internal structure.
+Many SNARK constructions, such as the original Plonk specification, depend
+on a Trusted Setup to ensure soundness. For Plonk, this arises from the
+KZG[@kzg] commitments used. These commitments allow the SNARK verifier to
+achieve sublinear verification time. However, this comes at the cost of
+requiring a trusted setup, whereas $\PCDL$ relies only on an untrusted
+setup. A trusted setup generates a **Structured Reference String** (SRS)
+with a specific internal structure.
 
 An untrusted setup, however, creates a **Uniform Random String** of the form:
 $$\text{URS} = \{ \a_1G, \a_2G, \dots, \a_DG \}$$
 Where $D$ represents the maximum degree bound of a polynomial and $G$ is a
-generator. The URS must consist of only generators and all the $\vec{\a}$ scalars
-must be uniformly random. $\PCDL$ is then sound, provided that no adversary
-knows the $\vec{\a}$ scalars. Extracting $\vec{\a}$ from the URS would
-require solving the Discrete Logarithm problem, which is assumed to be hard.
+generator. The URS must consist solely of generators and all the $\vec{\a}$
+scalars must be uniformly random. $\PCDL$ is then sound, provided that no
+adversary knows the $\vec{\a}$ scalars. Extracting $\vec{\a}$ from the URS
+would require solving the Discrete Logarithm problem (DL), which is assumed
+to be hard.
 
 To generate the URS transparently, a collision-resistant hash function
 $\Hc : \Bb^* \to \Eb(\Fb_q)$ can be used to produce the generators. The URS
 can then be derived using a genesis string $s$:
 $$\text{URS} = \{ \Hc(s \cat 1), \Hc(s \cat 2), \dots, \Hc(s \cat D) \}$$
-This is the method used in the implementation, as mentioned in the
-implementation section further down.
+This method is used in our implementation, as detailed in the implementation
+section
 
 #### Bulletproofs
 
 In 2017, the Bulletproofs paper[@bulletproofs] was released. Bulletproofs
-relies on the hardness of the Discrete Logarithm problem, and allows for an
+rely on the hardness of the Discrete Logarithm problem, and allows for an
 untrusted setup to generate the Common Reference String. It has logarithmic
-proof size, and lends itself well efficient range proofs. It's also possible
-to generate proofs for arbitrary circuits, but with less efficiency.
+proof size, and lends itself well to efficient range proofs. It's also possible
+to generate proofs for arbitrary circuits, though less efficiently.
 
-At the heart of Bulletproofs lies the Inner Product Argument (IPA), wherein
-a prover proves he knows two vectors, $\vec{a}, \vec{b} \in \Fb_q^n$,
-with commitment $C \in \Eb(\Fb_q)$, and their corresponding inner product,
-$c = \ip{\vec{a}}{\vec{b}}$. It creates this non-interactive proof,
-with only $\lg(n)$ size, by compressing the point and vectors $\lg(n)$
-times. Unfortunately, the IPA, and by extension Bulletproofs, suffer
-from linear verification time, making them unsuitible for IVC.
+At the heart of Bulletproofs lies the Inner Product Argument (IPA),
+wherein a prover demonstrates knowledge of two vectors, $\vec{a}, \vec{b}
+\in \Fb_q^n$, with commitment $C \in \Eb(\Fb_q)$, and their corresponding
+inner product, $c = \ip{\vec{a}}{\vec{b}}$. It creates this non-interactive
+proof, with only $\lg(n)$ size, by compressing the point and vectors $\lg(n)$
+times. Unfortunately, the IPA, and by extension Bulletproofs, suffers from
+linear verification time, making them unsuitable for IVC.
 
 ### Incrementally Verifiable Computation
 
@@ -227,12 +227,11 @@ be done?}
 
 \end{quote}
 
-That is, if we run a computation for 100's of years only for it to output 42,
-is there a way for us to know that the ouput of said computation is correct,
-without taking the time to redo all that computation? In order to do this,
-the verification of the final output of the computation must be much smaller
-than simply running the computation again. Valiant creates the concepts of
-IVC and argues that IVC can be used to acheive the above goal.
+If a computation runs for hundreds of years and ultimately outputs 42, how can
+we check its correctness without re-executing the entire process? In order
+to do this, the verification of the final output of the computation must be
+much smaller than simply running the computation again. Valiant creates the
+concepts of IVC and argues that IVC can be used to achieve the above goal.
 
 Recently the concept of IVC has seen renewed interest with cryptocurrencies,
 as this concept lends itself well to the structure of blockchains. This
@@ -241,7 +240,7 @@ favour of only a single state, for example, containing all current account
 balances. This is commonly called a _succinct blockchain_, one such blockchain
 is Mina[@mina].
 
-In order to acheive IVC, you need a function $F(x) \in S \to S$ along with some
+In order to achieve IVC, you need a function $F(x) \in S \to S$ along with some
 initial state $s_0 \in S$. Then you can call $F(x)$ to generate a series of
 $s$'s, $\vec{s} \in S^{n+1}$:
 
@@ -264,7 +263,7 @@ $s$'s, $\vec{s} \in S^{n+1}$:
 
 \end{tikzpicture}
 \caption{
-  A visualisation of the relationship between $F(x)$ and $\vec{s}$ in a non-IVC setting.
+  A visualization of the relationship between $F(x)$ and $\vec{s}$ in a non-IVC setting.
 }
 \end{figure}
 
@@ -321,8 +320,8 @@ Note that $R_F, s_{i-1}, s_0$ are not quantified above, but are public values. T
 $\SNARKVerifier$ represents the verification circuit in the proof system
 we're using. This means, that we're taking the verifier, representing it as
 a circuit, and then feeding it to the prover. This is not a trivial task
-in practice! Note also, that the verification time must be sublinear
-to acheive an IVC scheme, otherwise the verifier could just have computed
+in practice! Note also, that the verification time must be sub-linear
+to achieve an IVC scheme, otherwise the verifier could just have computed
 $F^{n+1}(s_0)$ themselves, as $s_0$ and $F(x)$ necessarily must be public.
 
 To see that the above construction works, observe that $\pi_1, \dots,
@@ -347,7 +346,9 @@ $$
 $$
 Thus, by induction $s_n = F^n(s_0)$
 
-[^ivc-blockchain]: In the blockchain setting, the transition function would also take an additional input representing new transactions, $F(x: S, T: \Pc(T))$.
+[^ivc-blockchain]: In the blockchain setting, the transition function would
+also take an additional input representing new transactions, $F(x: S, T:
+\Pc(T))$.
 
 ### Polynomial Commitment Schemes
 
@@ -357,15 +358,18 @@ Sonic[@sonic], Plonk[@plonk] and Marlin[@marlin], commonly use _Polynomial
 Commitment Schemes_ (PCSs) for creating their proofs. This means that different
 PCSs can be used to get security under weaker or stronger assumptions.
 
-- **KZG PCSs:** Uses a trusted setup, this would give you a traditional SNARK.
-- **Bulletproofs PCSs:** Uses an untrusted setup, assumes secure if the Discrete Log problem is hard, the verifier is linear.
+- **KZG PCSs:** Uses a trusted setup, which involves generating a Structured
+  Reference String for the KZG commitment scheme[@kzg]. This would give you
+  a traditional SNARK.
+- **Bulletproofs PCSs:** Uses an untrusted setup, assumes secure if the
+  Discrete Log problem is hard, the verifier is linear.
 - **FRI PCSs:** Also uses an untrusted setup, assumes secure one way functions
   exist. It has a higher overhead than PCSs based on the Discrete Log
   assumption, but since it's not based on the Discrete Log assumption, and
   instead assumes that secure one-way functions exist, you end up with a
   quantum secure PCS.
 
-A PCS allows a prover to prove to a verifier that a commited polynomial
+A PCS allows a prover to prove to a verifier that a committed polynomial
 evaluates to a certain value, $v$, given an evaluation input $z$.There are
 four main functions used to prove this ($\PCTrim$ omitted as it's unnecessary):
 
@@ -404,7 +408,7 @@ Along with some checks that the structure of the underlying polynomials
 $\vec{p}$, that $\vec{q}$ was created from, satisfies any desired relations
 associated with the circuit $R_X$. We can model these relations, or _identities_,
 using a function $I_X \in \Instance \to \{ \top, \bot \}$. If,
-$$\forall j \in [m] : \PCCheck(C_j, d, z_j, v_j, \pi_j) \meq \top \land I_X(\vec{q}) \meq \top$$
+$$\forall j \in [m] : \PCCheck(C_j, d, z_j, v_j, \pi_j) \meq \top \land I_X(q_j) \meq \top$$
 Then the verifier $\Vc_X$ will be convinced that $w$ is a
 valid witness for $X$. In this way, a proof of knowledge of a witness for
 any NP-problem can be represented as a series of PCS evaluation proofs,
@@ -413,7 +417,7 @@ including our desired witness that $s_n = F^n(s_0)$.
 A PCS of course also has soundness and completeness properties:
 
 **Completeness:** For every maximum degree bound $D = \poly(\l) \in \Nb$
-and publically agreed upon $d$:
+and publicly agreed upon $d$:
 $$
 \Pr \left[
   \begin{array}{c|c}
@@ -423,6 +427,7 @@ $$
     \end{array}
   & \quad
     \begin{aligned}
+      \rho          &\leftarrow \Uc(\l) \\
       \pp_\PC       &\leftarrow \PCSetup^\rho(1^\l, D), \\
       (p, d, z, \o) &\leftarrow \Ac^\rho(\pp_\PC), \\
       v             &\leftarrow p(z), \\
@@ -432,10 +437,10 @@ $$
   \end{array}
 \right] = 1.
 $$
-I.e. an honest prover will convince an honest verifier.
+I.e. an honest prover will always convince an honest verifier.
 
 **Knowledge Soundness:** For every maximum degree bound $D = \poly(\l)
-\in \Nb$, polynomial-size adversary $\Ac$ and publically agreed upon $d$,
+\in \Nb$, polynomial-size adversary $\Ac$ and publicly agreed upon $d$,
 there exists an efficient extractor $\Ec$ such that the following holds:
 $$
 \Pr \left[
@@ -456,23 +461,24 @@ $$
   \end{array}
 \right] \geq 1 - \negl(\lambda).
 $$
-I.e. for any adversary, $\Ac$, outputting an instance, the following must
-be true: $C$ is a commitment to $p$, $v = p(c)$, and the degree of $p$
-is properly bounded. Note that since this is knowledge soundness $\Ac$,
-must actually have knowledge of $p$, i.e. the $\Ec$ can extract it.
+I.e. for any adversary, $\Ac$, outputting an instance, the knowledge extractor
+can recover $p$ such that the following holds: $C$ is a commitment to $p$,
+$v = p(c)$, and the degree of $p$ is properly bounded. Note that for this
+protocol, we have _knowledge soundness_, meaning that $\Ac$, must actually
+have knowledge of $p$ (i.e. the $\Ec$ can extract it).
 
 ### Accumulation Schemes
 
 The authors of a 2019 paper[@halo] presented _Halo,_ the first practical
 example of recursive proof composition without a trusted setup. Using a
-modified version of the Bulletproofs-style Inner Product Argument (IPA), they
-present a polynomial commitment scheme. Computing the evaluation of a point $z
-\in \Fb_q$ on polynomial $p(X) \in \Fb^d_q[X]$ as $v = \ip{\vec{p}}{\vec{z}}$
-where $\vec{z} = (z^0, z^1, \dots, z^{d})$ and $\vec{p} \in \Fb^{d+1}$
-is the coefficient vector of $p(X)$, using the IPA. However, since the the
-vector $\vec{z}$ is not private, and has a certain structure, we can split
-the verification algorithm in two: A sublinear $\PCDLSuccinctCheck$ and
-linear $\PCDLCheck$. Using the $\PCDLSuccinctCheck$ we can accumulate $n$
+modified version of the Bulletproofs-style Inner Product Argument (IPA),
+they present a polynomial commitment scheme. Computing the evaluation of
+a polynomial $p(z)$ as $v = \ip{\vec{\vec{p}^{\text{(coeffs)}}}}{\vec{z}}$
+where $\vec{z} = (z^0, z^1, \dots, z^{d})$ and $\vec{p}^{\text{(coeffs)}}
+\in \Fb^{d+1}$ is the coefficient vector of $p(X)$, using the IPA. However,
+since the the vector $\vec{z}$ is not private, and has a certain structure, we
+can split the verification algorithm in two: A sub-linear $\PCDLSuccinctCheck$
+and linear $\PCDLCheck$. Using the $\PCDLSuccinctCheck$ we can accumulate $n$
 instances, and only perform the expensive linear check (i.e. $\PCDLCheck$)
 at the end of accumulation.
 
@@ -514,7 +520,8 @@ accumulation scheme then consists of the following functions:
 The completeness and soundness properties for the Accumulation Scheme is
 defined below:
 
-**Completeness.** For all (unbounded) adversaries $\Ac$,
+**Completeness.** For all (unbounded) adversaries $\Ac$, where $f$ represents
+an algorithm producing any necessary public parameters for $\Phi$:
 $$
 \Pr \left[
   \begin{array}{c|c}
@@ -528,7 +535,7 @@ $$
     & \quad
     \begin{aligned}
       \rho                  &\leftarrow \Uc(\l) \\
-      \pp_\Phi              &\leftarrow \Hc^\rho \\
+      \pp_\Phi              &\leftarrow f^\rho \\
       \pp_\AS               &\leftarrow \ASSetup^\rho(1^{\l}) \\
       (\vec{q}, \acc_{i-1}) &\leftarrow \Ac^\rho(\pp_\AS, \pp_\Phi) \\
       \acc_i                &\leftarrow \ASProver^{\rho}(\vec{q}, \acc_{i-1})
@@ -536,10 +543,10 @@ $$
   \end{array}
 \right] = 1.
 $$
-I.e. $\ASVerifier, \ASDecider$ will always accept the accumulation performed
+I.e, ($\ASVerifier, \ASDecider$) will always accept the accumulation performed
 by an honest prover.
 
-**Soundness:** For every polynomial-size adversary $\Ac$,
+**Soundness:** For every polynomial-size adversary $\Ac$:
 $$
 \Pr \left[
   \begin{array}{c|c}
@@ -548,23 +555,23 @@ $$
       \ASDecider^\rho(\acc_i) = \top \\
       \Downarrow \\
       \ASDecider^\rho(\acc_{i-1}) = \top \\
-      \forall j \in [m], \Phi^{\rho}(\pp_{\Phi}, q_j) = \top
+      \forall j \in [m], \Phi^{\rho}_{\pp_{\Phi}}(q_j) = \top
     \end{array}
     &\quad
-    \begin{aligned}{c}
-      \rho                          &\leftarrow \mathcal{U}(\l) \\
+    \begin{aligned}
+      \rho                          &\leftarrow \Uc(\l) \\
+      \pp_\Phi                      &\leftarrow f^{\rho} \\
       \pp_\AS                       &\leftarrow \ASSetup^\rho(1^{\l}) \\
-      \pp_{\Phi}                    &\leftarrow \mathcal{H}^{\rho} \\
       (\vec{q}, \acc_{i-1}, \acc_i) &\leftarrow \Ac^\rho(\pp_\AS, \pp_\Phi)
     \end{aligned}
   \end{array}
 \right] \geq 1 - \text{negl}(\lambda).
 $$
-I.e. For all efficiently-generated accumulators $acc_{i-1}, acc_i \in \Acc$
-and predicate inputs $\vec{q} \in \Instance^m$, if $\ASDecider(acc_i)
-= \top$ and $\ASVerifier(\vec{q}_i, acc_{i-1}, acc_i) = \top$ then,
-with all but negligible probability, $\forall j \in [m] : \Phi(\pp_\Phi, q_j) = \top$ and
-$\ASDecider(acc_i) = \top$.
+I.e, For all efficiently-generated accumulators $acc_{i-1}, acc_i \in \Acc$
+and predicate inputs $\vec{q} \in \Instance^m$, if $\ASDecider(acc_i) =
+\top$ and $\ASVerifier(\vec{q}_i, acc_{i-1}, acc_i) = \top$ then, with all
+but negligible probability, $\forall j \in [m] : \Phi(\pp_\Phi, q_j) = \top$
+and $\ASDecider(acc_i) = \top$.
 
 ### IVC from Accumulation Schemes
 
@@ -713,7 +720,7 @@ The verifier and prover for the IVC scheme can be seen below:
   \Require $w = \{ s_{i-1}, \pi_{i-1}, \acc_{i-1} \} \lor w = \bot$
   \State Parse $s_0$ from $x = \{ s_0 \}$.
   \If{$w = \bot$}
-    \State $w = \{ s_{i-1} = s_0 \}$
+    \State $w = \{ s_{i-1} = s_0 \}$ (base-case).
   \Else
     \State Run the accumulation prover: $\acc_i = \ASProver(\pi_{i-1} = \vec{q}, \acc_{i-1})$.
     \State Compute the next value: $s_i = F(s_{i-1})$.
@@ -748,8 +755,8 @@ $$
   &\IVCVerifier(R_{IVC}, x_n = \{ s_0, s_n, \acc_i \}, \pi_n) = \top           &&\then \\
   &\forall i \in [n], \forall q_j \in \pi_i = \vec{q} : \PCDLCheck(q_j) = \top &&\;\; \land \\
   &F(s_{n-1}) = s_n     \land (s_{n-1} = s_0 \lor ( \Vc_1 \land \Vc_2 ))       &&\then \\
-  &\ASVerifier(\pi_{n-1}, \acc_{n-1}, \acc_n)                                  &&\;\; \land \\
-  &\SNARKVerifierFast(R_{IVC}, x_{n-1}, \pi_{n-1})                             &&\then \dots \\
+  &\ASVerifier(\pi_{n-1}, \acc_{n-1}, \acc_n) = \top                           &&\;\; \land \\
+  &\SNARKVerifierFast(R_{IVC}, x_{n-1}, \pi_{n-1}) = \top                      &&\then \dots \\
   &F(s_0) = s_1 \land (s_0 = s_0 \lor ( \Vc_1 \land \Vc_2 ))                   &&\then \\
   &F(s_0) = s_1                                                                &&\then \\
 \end{alignedat}
@@ -802,7 +809,7 @@ the extractor on a proof-chain of length $n$ actually fails, as argued by
 Valiant in his original 2008 paper. Instead he constructs a proof-tree of
 size $\Oc(\lg(n))$ size, to circumvent this. However, practical applications
 conjecture that the failure of the extractor does not lead to any real-world
-attack, thus still acheiving constant proof sizes, but with an additional
+attack, thus still achieving constant proof sizes, but with an additional
 security assumption added.
 
 ## The Implementation
@@ -817,7 +824,7 @@ of algorithms, their security, performance and implementation details.
 
 Since these kinds of proofs can both be used for proving knowledge of a
 large witness to a statement succinctly, and doing so without revealing
-any information about the underlying witness, the zero-knowledgeness
+any information about the underlying witness, the zero-knowledge property
 of the protocol is described as _optional_. This is highlighted in the
 algorithmic specifications as the parts colored \textblue{blue}. In the Rust
 implementation these parts were included as they were not too cumbersome to
@@ -852,7 +859,7 @@ the public parameters can be seen below:
 fn get_urs_element(i: usize) -> PallasPoint {
     let genesis_string = "To understand recursion, one must first understand recursion";
 
-    // Hash `i` concatinated with `genesis_string`
+    // Hash `i` concatenated with `genesis_string`
     let mut hasher = Sha3_256::new();
     hasher.update(i.to_le_bytes());
     hasher.update(genesis_string.as_bytes());
@@ -896,7 +903,7 @@ have five main functions:
 - $\PCDLCommit(p: \Fb^d_q[X]{, \o: \Option(\Fb_q)}) \to \Eb(\Fb_q)$:
 
   Creates a commitment to the coefficients of the polynomial $p$ of degree
-  $d$ with optional hiding $\o$, using pedersen commitments.
+  $d$ with optional hiding $\o$, using Pedersen commitments.
 
 - $\PCDLOpen^{\rho_0}(p: \Fb^d_q[X], C: \Eb(\Fb_q), z: \Fb_q\mathblue{, \o: \Option(\Fb_q)}) \to \EvalProof$:
 
@@ -923,7 +930,7 @@ The following subsections will describe them in pseudo-code, except for $\PCDLSe
   \Desc{$p: \Fb^d_q[X]$}{The univariate polynomial that we wish to commit to.} \\
   \Desc{$\mathblue{\o: \Option(\Fb_q)}$}{Optional hiding factor for the commitment.} \\
 \textbf{Output} \\
-  \Desc{$C: \Eb(\Fb_q)$}{The pedersen commitment to the coefficients of polynomial $p$.}
+  \Desc{$C: \Eb(\Fb_q)$}{The Pedersen commitment to the coefficients of polynomial $p$.}
 \begin{algorithmic}[1]
   \Require $d \leq D$
   \Require $(d+1)$ is a power of 2.
@@ -933,7 +940,7 @@ The following subsections will describe them in pseudo-code, except for $\PCDLSe
 \end{algorithm}
 
 $\PCDLCommit$ is rather simple, we just take the coefficients of the polynomial and
-commit to them using a pedersen commitment.
+commit to them using a Pedersen commitment.
 
 ### $\PCDLOpen$
 
@@ -1064,7 +1071,7 @@ $U = G^{(0)}$, we run $\PCDLSuccinctCheck$, then check that $U \meq (G^{(0)}
 
 **Check 1** ($C_{lg(n)} \meq cU + v'H'$) **in $\PCDLSuccinctCheck$:**
 
-Let's start by looking at $C_{lg(n)}$. The verifer computes $C_{lg(n)}$ as:
+Let's start by looking at $C_{lg(n)}$. The verifier computes $C_{lg(n)}$ as:
 $$
 \begin{aligned}
   C_0        &= C' + vH' = C + vH' \\
@@ -1196,7 +1203,7 @@ where the extractor $\Ec$ runs in time exponential in $k$. In more detail, to
 extract from an adversary that makes $t$ queries to the random oracle, $\Ec$
 runs in time $t^{\Oc(k)}$. In our setting, the inner-product argument has $k
 = \Oc(\log d)$ rounds, which means that if we apply this folklore result, we
-would obtain an extractor that runs in superpolynomial (but subexponential)
+would obtain an extractor that runs in superpolynomial (but sub-exponential)
 time $t^{\Oc(\log d)} = 2^{\Oc(log(\l)^2)}$. It remains an interesting open
 problem to construct an extractor that runs in polynomial time.
 
@@ -1267,7 +1274,7 @@ Remember that in the below contexts $n = d+1$
 
   Since step two dominates, we have $\Oc(d)$ scalar multiplications.
 
-So $\PCDLOpen$, $\PCDLCheck$ and $\PCDLCommit$ is linear and, importantly, $\PCDLSuccinctCheck$ is sublinear.
+So $\PCDLOpen$, $\PCDLCheck$ and $\PCDLCommit$ is linear and, importantly, $\PCDLSuccinctCheck$ is sub-linear.
 
 \begin{quote}
 \color{GbGrey}
@@ -1440,7 +1447,8 @@ Simply accumulates the the instances, $\vec{q}$, into new accumulator $\acc_i$, 
 \end{algorithmic}
 \end{algorithm}
 
-The verifier also runs $\ASDLCommonSubroutine$, therefore verifying that $\acc_i$ correctly accumulats $\vec{q}$, which means:
+The verifier also runs $\ASDLCommonSubroutine$, therefore verifying that
+$\acc_i$ correctly accumulates $\vec{q}$, which means:
 
 - $\bar{C} = C + \o S = \sum_{i=1}^m \a^i U_i + \o S$
 - $\forall (\_, d_i, \_, \_, \_) \in \vec{q} : d_i = d$
@@ -1699,12 +1707,12 @@ For the above Lemma to hold, the algorithms of $\CM$ must not have access to
 the random oracle $\rho$ used to generate the challenge point $z$, but
 $\CM$ may use other oracles. The lemma still holds even when $\Ac$ has
 access to the additional oracles. This is a concrete reason why domain
-seperation, as mentioned in the Fiat-Shamir subsection, is important.
+separation, as mentioned in the Fiat-Shamir subsection, is important.
 
 ---
 
 With this lemma, we wish to show that given an adversary $\Ac$, that breaks
-the soundess property of $\ASDL$, we can create a reduction proof that then
+the soundness property of $\ASDL$, we can create a reduction proof that then
 breaks the above zero-finding game. We fix $\Ac, D = \poly(\l)$ from the $\AS$
 soundness definition:
 $$
@@ -1899,7 +1907,7 @@ $\qed$
 - $\ASDLDecider$:
   - Step 2: 1 call to $\PCDLCheck$, with $\Oc(d)$ scalar multiplications.
 
-So $\ASDLProver$ and $\ASDLDecider$ are linear and $\ASDLDecider$ is sublinear.
+So $\ASDLProver$ and $\ASDLDecider$ are linear and $\ASDLDecider$ is sub-linear.
 
 # Benchmarks
 
@@ -2078,7 +2086,7 @@ as possible during runtime, but this was not done due to time constraints.
 | $\dotp{\vec{a}}{\vec{b}}$ where $\vec{a} \in \Fb^n_q, \vec{b} \in \Fb^n_q$      | The dot product of vectors $\vec{a}$ and $\vec{b}$.                                                       |
 | $l(\vec{a})$                                                                    | Gets the left half of $\vec{a}$.                                                                          |
 | $r(\vec{a})$                                                                    | Gets the right half of $\vec{a}$.                                                                         |
-| $\vec{a} \cat \vec{b}$ where $\vec{a} \in \Fb^n_q, \vec{b} \in \Fb^m_q$         | Concatinate vectors to create $\vec{c} \in \Fb^{n+m}_q$.                                                  |
+| $\vec{a} \cat \vec{b}$ where $\vec{a} \in \Fb^n_q, \vec{b} \in \Fb^m_q$         | Concatenate vectors to create $\vec{c} \in \Fb^{n+m}_q$.                                                  |
 | $a \cat b$ where $a \in \Fb_q$                                                  | Create vector $\vec{c} = (a, b)$.                                                                         |
 | I.K $w$                                                                         | "I Know", Used in the context of proof claims, meaning I have knowledge of the witness $w$                |
 | $\Option(T)$                                                                    | $\{ T, \bot \}$                                                                                           |
@@ -2147,7 +2155,7 @@ As a reference, the Pedersen Commitment algorithm used is included:
   \Desc{$\vec{G}: \Eb(\Fb)^n$}{The generators we use to create the commitment. From $\pp$.} \\
   \Desc{$\mathblue{\o}: \Option(\Fb_q)$}{Optional hiding factor for the commitment.} \\
 \textbf{Output} \\
-  \Desc{$C: \Eb(\Fb_q)$}{The pedersen commitment.}
+  \Desc{$C: \Eb(\Fb_q)$}{The Pedersen commitment.}
 \begin{algorithmic}[1]
   \State Output $C := \ip{\vec{m}}{\vec{G}} \mathblue{+ \o S}$.
 \end{algorithmic}
