@@ -22,7 +22,7 @@ jobs:
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@main
 
-      - run: nix run .#spellcheck -c check-fmt
+      - run: nix run .#spellcheck
         working-directory: ./report
 
   fmt:
