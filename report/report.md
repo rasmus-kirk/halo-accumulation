@@ -85,7 +85,7 @@ $X \in L$, with language $L$ in NP. The following properties must be true:
   verifier will be convinced is negligible in the length of $X$.
 
 An Interactive Argument is very similar, but the honest and malicious prover
-are now polynomially bounded and receives a Private Axuilliary Input, $w$,
+are now polynomially bounded and receives a Private Auxiliary Input, $w$,
 not known by $\Vc$. This is such that $\Vc$ don't just compute the answer
 themselves. Definitions follow:
 
@@ -1857,15 +1857,15 @@ constructed, to win the zero-finding game for $\CM_1, \CM_2$ respectively,
 with non-negligible probability:
 
 \begin{algorithm}[H]
-\caption*{\textbf{The Adversary} $\Bc_j^{\rho_1}(\pp_\AS)$}
+\caption*{\textbf{The Adversary} $\Bc_k^{\rho_1}(\pp_\AS)$}
 \begin{algorithmic}[1]
   \State Compute $(D, \acc_i, \vec{q}) \leftarrow C^{\rho_1}(\pp_\AS)$.
   \State Compute $p \leftarrow \Ec_C^\rho(\pp_\AS)$.
   \State For each $q_j \in \vec{q}$ : $(h_j, U_j) \from \PCDLSuccinctCheck(q_j)$.
   \State Compute $\a := \rho_1([(h_j, U_j)]^m)$.
-  \If{$j = 1$}
+  \If{$k = 1$}
     \State Output $((n, D), (p, h := ([h_j]^m)))$
-  \ElsIf{$j = 2$}
+  \ElsIf{$k = 2$}
     \State Output $((n, D), ([(h_j, U_j)]^m))$
   \EndIf
 \end{algorithmic}
@@ -1917,6 +1917,8 @@ $\qed$
   So $\Oc(2m\lg(d)) = \Oc(m\lg(d))$ scalar multiplications.
 - $\ASDLDecider$:
   - Step 2: 1 call to $\PCDLCheck$, with $\Oc(d)$ scalar multiplications.
+
+  $\Oc(d)$ scalar multiplications.
 
 So $\ASDLProver$ and $\ASDLDecider$ are linear and $\ASDLDecider$ is sub-linear.
 
@@ -2090,7 +2092,8 @@ as possible during runtime, but this was not done due to time constraints.
 | $\vec{a} \in S^n_q$                                                             | A vector of length $n$ consisting of elements from set $S$                                                |
 | $G \in \Eb(\Fb_q)$                                                              | An elliptic Curve point, defined over field $\Fb_q$                                                       |
 | $(a_1, \dots, a_n) = [x_i]^n = [x_i]_{i=1}^n = \vec{a} \in S^n_q$               | A vector of length $n$                                                                                    |
-| $v^{(0)}$                                                                       | The singular element of a fully compressed vector $\vec{v_{\lg(n)}}$ from $\PCDLOpen$.                    |
+| $v^{(0)}$                                                                       | The singular element of a fully compressed vector $\vec{v}_{\lg(n)}$ from $\PCDLOpen$.                    |
+| $\vec{p}^{\text{(coeffs)}}$                                                     | The coefficient vector of $p$.                                                                            |
 | $a \in_R S$                                                                     | $a$ is a uniformly randomly sampled element of $S$                                                        |
 | $(S_1, \dots, S_n)$                                                             | In the context of sets, the same as $S_1 \times \dots \times S_n$                                         |
 | $\dotp{\vec{a}}{\vec{G}}$ where $\vec{a} \in \Fb^n_q, \vec{G} \in \Eb^n(\Fb_q)$ | The dot product of $\vec{a}$ and $\vec{G}$ ($\sum^n_{i=0} a_i G_i$).                                      |
