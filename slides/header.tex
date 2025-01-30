@@ -1,0 +1,210 @@
+% Syntax highlighting:
+\usepackage[normalem]{ulem}
+\usepackage{xcolor}
+\usepackage{listings}
+\definecolor{bg}{HTML}{fbf1c7}
+\definecolor{bgt}{HTML}{fbf1c7}
+\definecolor{bge}{HTML}{fbf8e4}
+\definecolor{bg0}{HTML}{f9f5d7}
+\definecolor{fg0}{HTML}{282828}
+\definecolor{ltred}{HTML}{cc241d}
+\definecolor{ltgreen}{HTML}{98971a}
+\definecolor{ltyellow}{HTML}{d79921}
+\definecolor{ltblue}{HTML}{458588}
+\definecolor{ltpurple}{HTML}{b16286}
+\definecolor{ltaqua}{HTML}{689da6}
+\definecolor{ltorange}{HTML}{d65d0e}
+\definecolor{ltgrey}{HTML}{7c6f64}
+\definecolor{dkred}{HTML}{9d0006}
+\definecolor{dkgreen}{HTML}{79740e}
+\definecolor{dkyellow}{HTML}{b57614}
+\definecolor{dkblue}{HTML}{076678}
+\definecolor{dkpurple}{HTML}{8f3f71}
+\definecolor{dkaqua}{HTML}{427b58}
+\definecolor{dkgrey}{HTML}{3c3836}
+
+
+% Set texttt color
+%\NewCommandCopy\oldtexttt\texttt
+%\renewcommand{\texttt}[1]{\textcolor{dkred}{\oldtexttt{#1}}}
+
+% Beamer Color modification
+
+%\usepackage{stmaryrd}
+\renewcommand{\insertnavigation}[1]{}
+\newcommand{\cb}[1]{\texttt{\textcolor{ltblue}{#1}}}
+\newcommand{\cg}[1]{\texttt{\textcolor{ltgreen}{#1}}}
+\newcommand{\co}[1]{\texttt{\textcolor{ltorange}{#1}}}
+\newcommand{\cre}[1]{\texttt{\textcolor{ltred}{#1}}}
+\newcommand{\cdkre}[1]{\texttt{\textcolor{dkred}{#1}}}
+
+% Add slide numbers
+\addtobeamertemplate{navigation symbols}{}{%
+    \usebeamerfont{footline}%
+    \usebeamercolor[ltblue]{footline}%
+    \hspace{1em}%
+    \insertframenumber/\inserttotalframenumber
+}
+
+% Set gruvbox inspired colors
+\setbeamercolor{block title}{bg=ltblue!30!bge, fg=dkblue!40!fg0}
+\setbeamercolor{block body}{bg=ltblue!15!bge, fg=fg0}
+\setbeamercolor{section number projected}{bg=dkblue,fg=bge}
+\setbeamercolor{structure}{fg=dkblue}% to modify  immediately all palettes
+\setbeamercolor{title}{fg=bge}
+\setbeamercolor{title in head/foot}{fg=bge}
+\setbeamercolor{author}{bg=dkblue, fg=bge}
+\setbeamercolor{author in head/foot}{bg=ltblue,fg=bge}
+\setbeamercolor{institute in head/foot}{fg=bge}
+\setbeamercolor{date}{fg=fg0}
+\setbeamercolor{institute}{fg=fg0}
+\setbeamercolor{background canvas}{bg=bge}
+\setbeamercolor{normal text}{fg=fg0}
+\setbeamercolor{titlelike}{fg=bge}
+\setbeamercolor{seperation line}{fg=bge}
+
+%\setbeamercolor{date}{bg=yellow!10,fg=red!70!black}
+
+
+% lstlisting coq style (inspired from a file of Assia Mahboubi)
+\lstdefinelanguage{Coq}{ 
+    % Anything betweeen $ becomes LaTeX math mode
+    mathescape=true,
+    % Comments may or not include Latex commands
+    texcl=false, 
+    frame=single,
+    % background
+    backgroundcolor = \color{bgt},
+    % Vernacular commands
+    morekeywords=[1]{Section, Module, End, Require, Import, Export,
+        Variable, Variables, Parameter, Parameters, Axiom, Hypothesis,
+        Hypotheses, Notation, Local, Tactic, Reserved, Scope, Open, Close,
+        Bind, Delimit, Definition, Let, Ltac, Fixpoint, CoFixpoint, Add,
+        Morphism, Relation, Implicit, Arguments, Unset, Contextual,
+        Strict, Prenex, Implicits, Inductive, CoInductive, Record,
+        Structure, Canonical, Coercion, Context, Class, Global, Instance,
+        Program, Infix, Theorem, Lemma, Corollary, Proposition, Fact,
+        Remark, Example, Proof, Goal, Save, Qed, Defined, Hint, Resolve,
+        Rewrite, View, Search, Show, Print, Printing, All, Eval, Check,
+        Projections, inside, outside, Def},
+    % Gallina
+    morekeywords=[2]{forall, exists, exists2, fun, fix, cofix, struct,
+        match, with, end, as, in, return, let, if, is, then, else, for, of,
+        nosimpl, when},
+    % Sorts
+    morekeywords=[3]{Type, Prop, Set, true, false, option},
+    % Various tactics, some are std Coq subsumed by ssr, for the manual purpose
+    morekeywords=[4]{pose, set, move, case, elim, apply, clear, hnf,
+        intro, intros, generalize, rename, pattern, after, destruct,
+        induction, using, refine, inversion, injection, rewrite, congr,
+        unlock, compute, ring, field, fourier, replace, fold, unfold,
+        change, cutrewrite, simpl, have, suff, wlog, suffices, without,
+        loss, nat_norm, assert, cut, trivial, revert, bool_congr, nat_congr,
+        symmetry, transitivity, auto, split, left, right, autorewrite},
+    % Terminators
+    morekeywords=[5]{by, done, exact, reflexivity, tauto, romega, omega,
+        assumption, solve, contradiction, discriminate},
+    % Control
+    morekeywords=[6]{do, last, first, try, idtac, repeat},
+    % Control
+    morekeywords=[7]{admit, Admitted},
+    % Comments delimiters, we do turn this off for the manual
+    morecomment=[s]{(*}{*)},
+    % Spaces are not displayed as a special character
+    showstringspaces=false,
+    % String delimiters
+    morestring=[b]",
+    morestring=[d]’,
+    % Size of tabulations
+    tabsize=3,
+    % Enables ASCII chars 128 to 255
+    extendedchars=false,
+    % Case sensitivity
+    sensitive=true,
+    numbers=left,
+    % Automatic breaking of long lines
+    breaklines=false,
+    % Default style fors listings
+    basicstyle=\scriptsize,
+    % Position of captions is bottom
+    captionpos=b,
+    % flexible columns
+    columns=[l]flexible,
+    % Style for (listings') identifiers
+    identifierstyle={\ttfamily\color{fg0}},
+    % Style for declaration keywords
+    keywordstyle=[1]{\ttfamily\color{dkpurple}},
+    % Style for gallina keywords
+    keywordstyle=[2]{\ttfamily\color{ltgreen}},
+    % Style for sorts keywords
+    keywordstyle=[3]{\ttfamily\color{ltred}},
+    % Style for tactics keywords
+    keywordstyle=[4]{\ttfamily\color{dkblue}},
+    % Style for terminators keywords
+    keywordstyle=[5]{\ttfamily\color{ltred}},
+    %Style for iterators
+    keywordstyle=[6]{\ttfamily\color{ltaqua}},
+    %Style for admits
+    keywordstyle=[7]{\ttfamily\color{dkred}},
+    % Style for strings
+    stringstyle=\ttfamily,
+    % Style for comments
+    commentstyle={\ttfamily\color{ltgrey}},
+    %moredelim=**[is][\ttfamily\color{red}]{/&}{&/},
+    literate=
+    {/forall}{{\color{dkgreen}{$\forall\;$}}}1
+    {exists}{{$\exists\;$}}1
+    {<-}{{$\leftarrow\;$}}1
+    {=>}{{$\Rightarrow\;$}}1
+    {==}{{\code{==}\;}}1
+    {==>}{{\code{==>}\;}}1
+    %    {:>}{{\code{:>}\;}}1
+    {->}{{$\rightarrow\;$}}1
+    {<->}{{$\leftrightarrow\;$}}1
+    {<==}{{$\leq\;$}}1
+    {\#}{{$^\star$}}1 
+    {\\o}{{$\circ\;$}}1 
+    {\@}{{$\cdot$}}1 
+    {\/\\}{{$\wedge\;$}}1
+    {\\\/}{{$\vee\;$}}1
+    {++}{{\code{++}}}1
+    {~}{{$\sim$}}1
+    {\@\@}{{$@$}}1
+    {\\mapsto}{{$\mapsto\;$}}1
+    {\\hline}{{\rule{\linewidth}{0.5pt}}}1
+    %
+}[keywords,comments,strings]
+
+% lstlisting coq style (inspired from a file of Assia Mahboubi)
+\lstdefinelanguage{CoqGoal}{ 
+    % Anything betweeen $ becomes LaTeX math mode
+    mathescape=true,
+    % Comments may or not include Latex commands
+    texcl=false, 
+    frame=single,
+    % background
+    backgroundcolor = \color{bgt},
+    % Spaces are not displayed as a special character
+    showstringspaces=false,
+    % String delimiters
+    morestring=[b]",
+    morestring=[d]’,
+    % Size of tabulations
+    tabsize=2,
+    % Enables ASCII chars 128 to 255
+    extendedchars=false,
+    % Case sensitivity
+    sensitive=true,
+    %numbers=left,
+    % Automatic breaking of long lines
+    breaklines=false,
+    % Default style fors listings
+    basicstyle=\scriptsize,
+    % Position of captions is bottom
+    captionpos=b,
+    % flexible columns
+    columns=[l]flexible,
+    % Style for comments
+    %moredelim=**[is][\ttfamily\color{red}]{/&}{&/},
+    %
+}[strings]
