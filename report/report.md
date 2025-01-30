@@ -27,7 +27,7 @@ most used in practice is based on [@halo], which includes Halo2 by the
 Electric Coin Company (to be used in Zcash) and Kimchi developed and used
 by Mina. Both can be broken down into the following main components:
 
-- **Plonk**: A general-purpose, potentially zero-knowledge, SNARK.
+- **Plonk**: A general-purpose, potentially zero-knowledge, a SNARK.
 - **$\PCDL$**: A Polynomial Commitment Scheme in the Discrete Log setting.
 - **$\ASDL$**: An Accumulation Scheme in the Discrete Log setting.
 - **Pasta**: A cycle of elliptic curves, Pallas and Vesta, collectively known as Pasta.
@@ -859,24 +859,24 @@ the public parameters can be seen below:
 
 ```rust {.numberLines}
 fn get_urs_element(i: usize) -> PallasPoint {
-    let genesis_string = "To understand recursion, one must first understand recursion";
+  let genesis_string = "To understand recursion, one must first understand recursion";
 
-    // Hash `i` concatenated with `genesis_string`
-    let mut hasher = Sha3_256::new();
-    hasher.update(i.to_le_bytes());
-    hasher.update(genesis_string.as_bytes());
-    let hash_result = hasher.finalize();
+  // Hash `i` concatenated with `genesis_string`
+  let mut hasher = Sha3_256::new();
+  hasher.update(i.to_le_bytes());
+  hasher.update(genesis_string.as_bytes());
+  let hash_result = hasher.finalize();
 
-    PallasPoint::generator() * PallasScalar::from_le_bytes_mod_order(&hash_result)
+  PallasPoint::generator() * PallasScalar::from_le_bytes_mod_order(&hash_result)
 }
 fn get_pp(n: usize) -> (PallasPoint, PallasPoint, Vec<PallasPoint>) {
-    let S = get_urs_element(0);
-    let H = get_urs_element(1);
-    let mut Gs = Vec::with_capacity(n);
-    for i in 2..(n + 2) {
-        Gs.push(get_urs_element(i))
-    }
-    (S, H, Gs)
+  let S = get_urs_element(0);
+  let H = get_urs_element(1);
+  let mut Gs = Vec::with_capacity(n);
+  for i in 2..(n + 2) {
+    Gs.push(get_urs_element(i))
+  }
+  (S, H, Gs)
 }
 ```
 
@@ -1026,7 +1026,7 @@ verifies the correctness of $U$.
   \Require $d \leq D$
   \Require $(d+1)$ is a power of 2.
   \State Parse $\pi$ as $(\vec{L},\vec{R}, U := G^{(0)}, c := c^{(0)}, \mathblue{\bar{C}, \o'})$ and let $n = d + 1$.
-  \State \textblue{Compute the challenge $\alpha := \rho_0(C, z, v, \bar{C}) \in F^{*}_q$.}
+  \State \textblue{Compute the challenge $\a := \rho_0(C, z, v, \bar{C}) \in \Fb_q$.}
   \State Compute the non-hiding commitment $C' := C \mathblue{+ \a \bar{C} - \o'S} \in \Eb(\Fb_q)$.
   \State Compute the 0-th challenge: $\xi_0 := \rho_0(C', z, v)$, and set $H' := \xi_0 H \in \Eb(\Fb_q)$.
   \State Compute the group element $C_0 := C' + vH' \in \Eb(\Fb_q)$.
@@ -1387,7 +1387,7 @@ pseudo-code, except $\ASDLSetup$.
     \State Check that $d_j \meq d$
   \EndFor
   \State Compute the challenge $\a := \rho_1(\vec{h}, \vec{U}) \in \Fb_q$
-  \State Let the polynomial $h(X) := \mathblue{h_0 +} \sum^m_{j=1} \a^j h_j \in \Fb_q[X]$
+  \State Let the polynomial $h(X) := \mathblue{h_0 +} \sum^m_{j=1} \a^j h_j(X) \in \Fb_q[X]$
   \State Compute the accumulated commitment $C := \mathblue{U_0 +} \sum^m_{j=1} \a^j U_j$
   \State Compute the challenge $z := \rho_1(C, h) \in \Fb_q$.
   \State Randomize $C$: $\bar{C} := C \mathblue{+ \o S} \in \Eb(\Fb_q)$.
@@ -1398,7 +1398,7 @@ pseudo-code, except $\ASDLSetup$.
 The $\ASDLCommonSubroutine$ does most of the work of the $\ASDL$ accumulation
 scheme. It takes the given instances and runs the $\PCDLSuccinctCheck$
 on them to acquire $[(h_j(X), U_j)]^m_{i=0}$ for each of them. It then creates a
-linear combination of $h_j$ using a challenge point $\a$ and computes the
+linear combination of $h_j(X)$ using a challenge point $\a$ and computes the
 claimed commitment for this polynomial $C = \sum^m_{j=1} \a^j U_j$, possibly
 along with hiding information. This routine is run by both $\ASDLProver$
 and $\ASDLVerifier$ in order to ensure that the accumulator, generated from
@@ -1498,7 +1498,7 @@ The sidenote below gives an intuition why this is the case.
 and previous accumulators?}
 
 The $\ASDLProver$ runs the $\ASDLCommonSubroutine$ that creates an accumulated
-polynomial $h$ from $[h_j]^m$ that is in turn created for each instance $q_j
+polynomial $h$ from $[h_j(X)]^m$ that is in turn created for each instance $q_j
 \in \vec{q}_i$ by $\PCDLSuccinctCheck$:
 $$h_j(X) := \prod^{lg(n)}_{i=0} (1 + \xi_{\lg(n)-i} \cdot X^{2^i}) \in F_q[X]$$
 We don't mention the previous accumulator $\acc_{i-1}$ explicitly as it's
@@ -1548,7 +1548,7 @@ the second check of $\PCDLCheck$, on all $q_j$ instances at once. We know that:
     $h_{\acc_i}(X) = h'(X)$.
   \item
     Define $B_j = \ip{\vec{G}}{\vec{h_j}^{(\text{coeffs})}}$. If $\exists j
-    \in [m]$ $B_j \neq U_j$ then $U_j$ is not a valid commitment to $h_j$ and
+    \in [m]$ $B_j \neq U_j$ then $U_j$ is not a valid commitment to $h_j(X)$ and
     $\sum_{j=1}^m \a_j B_j \neq \sum_{j=1}^m \a_j U_j$. As such $C_{\acc_i}$
     will not be a valid commitment to $h_{\acc_i}(X)$. Unless,
   \item
@@ -1568,7 +1568,7 @@ to $h_{\acc_{i-1}}(X)$. Since $\acc_{i-1}$ is represented as an instance,
 and we showed that as long as each instance is checked by $\ASVerifier$
 (which $\acc_{i-1}$ also is), running $\PCDLCheck(\acc_i)$ on the corresponding
 accumulation polynomial $h_{\acc_i}(X)$ is equivalent to performing the second
-check $U_j = \PCDLCommit(h_j(X), \bot)$ on all the $h_j$ that $h_{\acc_i}(X)$
+check $U_j = \PCDLCommit(h_j(X), \bot)$ on all the $h_j(X)$ that $h_{\acc_i}(X)$
 consists of. Intuitively, if any of the previous accumulators were invalid,
 then their commitment will be invalid, and the next accumulator will also
 be invalid. Therefore, we will also check the previous set of instances
@@ -1780,7 +1780,7 @@ the zero-finding game:
 Note that the $\CM_1, \CM_2$ above are perfectly binding, since they either
 return a Pedersen commitment, without binding, or simply return their
 input. $\Mc_{\CM_1}$ consists of pairs of polynomials of a maximum
-degree $D$, where $\forall j \in [m] : h(X) = \a^j h_j(x)$. $\Mc_{\CM_2}$
+degree $D$, where $\forall j \in [m] : h(X) = \a^j h_j(X)$. $\Mc_{\CM_2}$
 consists of a list of pairs of a maximum degree $D$ polynomial, $h_j(X)$,
 and $U_j$ is a group element. Notice that $z_{\CM_1} = z_\acc$ and $z_{\CM_1}
 = \a$ where $z_\acc, \a$ are from the $\ASDL$ protocol.
@@ -1788,8 +1788,8 @@ and $U_j$ is a group element. Notice that $z_{\CM_1} = z_\acc$ and $z_{\CM_1}
 We define the corresponding functions $f^{(1)}_{\pp}, f^{(2)}_{\pp}$ for
 $\CM_1, \CM_2$ below:
 
-- $f^{(1)}_\pp(p(X), h(X) = [h_j(X)]^n) := a(X) = p(X) - \sum_{i} \alpha^i h_j(X)$,
-- $f^{(2)}_\pp(p = [(h_j, U_j)]^n) := b(Z) = \sum_{i=0}^n a_i Z^i$ where for each $i \in [n]$:
+- $f^{(1)}_\pp(p(X), h(X) = [h_j(X)]^n) := a(X) = p(X) - \sum_{j=0}^m \a^j h_j(X)$,
+- $f^{(2)}_\pp(p = [(h_j(X), U_j)]^n) := b(Z) = \sum_{j=0}^m a_j Z^j$ where for each $j \in [m]$:
   - $B_j \leftarrow \PCDLCommit(h_j, \bot)$
   - Compute $b_j : b_j G = U_j - B_j$
 
@@ -1839,8 +1839,8 @@ then, by construction, all the following holds:
 1. For each $j \in [m]$, $\PCDLSuccinctCheck$ accepts.
 2. Parsing $\acc_i = (C_\acc, d_\acc, z_\acc, v_\acc)$ and setting $\a := \rho_1([(h_j(X), U_j)]^m)$, we have that:
     - $z_\acc = \rho_1(C_\acc, [h_j(X)]^m)$
-    - $C_\acc = \sum_{i=1}^m \alpha^i U_j$
-    - $v_\acc = \sum_{i=1}^m \alpha^i h_j(z)$
+    - $C_\acc = \sum_{j=1}^m \a^j U_j$
+    - $v_\acc = \sum_{j=1}^m \a^j h_j(z)$
 
 Also by construction, this implies that either:
 
