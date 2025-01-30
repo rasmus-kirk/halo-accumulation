@@ -2018,8 +2018,12 @@ The results of the benchmarks, can be seen in the subsequent graphs:
       symbolic x coords={512, 1024, 2048, 4096, 8196, 16384},
       enlarge x limits=0.2
     ]
-    \addplot coordinates {(512, 94.834) (1024, 151.25) (2048, 258.92) (4096, 453.55) (8196, 838.05) (16384, 1522.7)};
-    \addplot coordinates {(512, 67.098) (1024, 77.597) (2048, 99.973) (4096, 139.35) (8196, 186.34) (16384, 299.49)};
+    \addplot[color=GbBlueDk, mark=*] plot coordinates {
+      (512, 94.834) (1024, 151.25) (2048, 258.92) (4096, 453.55) (8196, 838.05) (16384, 1522.7)
+    };
+    \addplot[color=GbRedNt, mark=square*] plot coordinates {
+      (512, 67.098) (1024, 77.597) (2048, 99.973) (4096, 139.35) (8196, 186.34) (16384, 299.49)
+    };
     \legend{acc\_cmp\_s, acc\_cmp\_f}
     \end{axis}
     \end{tikzpicture}
@@ -2037,8 +2041,8 @@ The results of the benchmarks, can be seen in the subsequent graphs:
         symbolic x coords={512, 1024, 2048, 4096, 8196, 16384},
         enlarge x limits=0.2
       ]
-      \addplot coordinates {(512, 0.941) (1024, 1.504) (2048, 2.558) (4096, 4.495) (8196, 8.372) (16384, 15.253)};
-      \addplot coordinates {(512, 0.607) (1024, 0.662) (2048, 0.798) (4096, 1.014) (8196, 1.161) (16384, 1.648)};
+      \addplot[color=GbBlueDk, mark=*] coordinates {(512, 0.941) (1024, 1.504) (2048, 2.558) (4096, 4.495) (8196, 8.372) (16384, 15.253)};
+      \addplot[color=GbRedNt, mark=square*] coordinates {(512, 0.607) (1024, 0.662) (2048, 0.798) (4096, 1.014) (8196, 1.161) (16384, 1.648)};
       \legend{acc\_cmp\_s, acc\_cmp\_f}
       \end{axis}
     \end{tikzpicture}
@@ -2059,8 +2063,8 @@ The results of the benchmarks, can be seen in the subsequent graphs:
       symbolic x coords={512, 1024, 2048, 4096, 8196, 16384},
       enlarge x limits=0.2
     ]
-    \addplot coordinates {(512, 9.4381) (1024, 15.087) (2048, 25.621) (4096, 44.970) (8196, 82.643) (16384, 152.63)};
-    \addplot coordinates {(512, 6.0183) (1024, 6.5114) (2048, 7.7752) (4096, 9.7851) (8196, 10.899) (16384, 15.176)};
+    \addplot[color=GbBlueDk, mark=*] coordinates {(512, 9.4381) (1024, 15.087) (2048, 25.621) (4096, 44.970) (8196, 82.643) (16384, 152.63)};
+    \addplot[color=GbRedNt, mark=square*] coordinates {(512, 6.0183) (1024, 6.5114) (2048, 7.7752) (4096, 9.7851) (8196, 10.899) (16384, 15.176)};
     \legend{acc\_cmp\_s, acc\_cmp\_f}
     \end{axis}
     \end{tikzpicture}
