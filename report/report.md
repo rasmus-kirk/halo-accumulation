@@ -159,7 +159,7 @@ More concretely, imagine that Alice has today's Sudoku problem $X \in
 and wants to convince Bob without having to reveal the entire solution. She
 could then use a SNARK to generate a proof for Bob. To do this she must first
 encode the Sudoku verifier as a circuit $R_X$, then let $x$ represent public
-inputs to the circtuit, such as today's Sudoku values/positions, etc, and then
+inputs to the circuit, such as today's Sudoku values/positions, etc, and then
 give the SNARK prover the public inputs and her witness, $\SNARKProver(R_X,
 x, w) = \pi$. Finally she sends this proof, $\pi$, to Bob along with the
 public Sudoku verifying circuit, $R_X$, and he can check the proof and be
@@ -366,7 +366,7 @@ to get security under weaker or stronger assumptions.
   Discrete Log problem is hard, the verifier is linear.
 - **FRI PCSs:** Also uses an untrusted setup, assumes secure one way functions
   exist. It has a higher constant overhead than PCSs based on the Discrete
-  Log assumption, but becuase it instead assumes that secure one-way functions
+  Log assumption, but because it instead assumes that secure one-way functions
   exist, you end up with a quantum secure PCS.
 
 A PCS allows a prover to prove to a verifier that a committed polynomial
