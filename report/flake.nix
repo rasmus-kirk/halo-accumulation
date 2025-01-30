@@ -92,7 +92,7 @@
       in {
         default = report;
         loop = mk-pandoc-loop;
-        mk-pandoc = mk-pandoc;
+        pandoc = mk-pandoc;
         debug = debug;
         spellcheck = spellcheck;
         spellcheck-watch = spellcheck-watch;
