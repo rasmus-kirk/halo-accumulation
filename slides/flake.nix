@@ -81,7 +81,7 @@
         text = ''watch --color cspell --color "*.md"'';
       };
       slides = pkgs.stdenv.mkDerivation {
-        name = "report";
+        name = "slides";
         src = ./.;
         buildInputs = latexPkgs;
         phases = ["unpackPhase" "buildPhase"];

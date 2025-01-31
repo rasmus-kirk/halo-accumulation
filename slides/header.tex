@@ -1,28 +1,38 @@
-% Syntax highlighting:
 \usepackage[normalem]{ulem}
 \usepackage{xcolor}
-\usepackage{listings}
-\definecolor{bg}{HTML}{fbf1c7}
-\definecolor{bgt}{HTML}{fbf1c7}
-\definecolor{bge}{HTML}{fbf8e4}
-\definecolor{bg0}{HTML}{f9f5d7}
-\definecolor{fg0}{HTML}{282828}
-\definecolor{ltred}{HTML}{cc241d}
-\definecolor{ltgreen}{HTML}{98971a}
-\definecolor{ltyellow}{HTML}{d79921}
-\definecolor{ltblue}{HTML}{458588}
-\definecolor{ltpurple}{HTML}{b16286}
-\definecolor{ltaqua}{HTML}{689da6}
-\definecolor{ltorange}{HTML}{d65d0e}
-\definecolor{ltgrey}{HTML}{7c6f64}
-\definecolor{dkred}{HTML}{9d0006}
-\definecolor{dkgreen}{HTML}{79740e}
-\definecolor{dkyellow}{HTML}{b57614}
-\definecolor{dkblue}{HTML}{076678}
-\definecolor{dkpurple}{HTML}{8f3f71}
-\definecolor{dkaqua}{HTML}{427b58}
-\definecolor{dkgrey}{HTML}{3c3836}
+\definecolor{GbBg}{HTML}{fbf1c7}
+\definecolor{GbBg0}{HTML}{f9f5d7}
+\definecolor{GbBg00}{HTML}{fbf8e4}
+\definecolor{GbFg0}{HTML}{282828}
+\definecolor{GbRedNt}{HTML}{cc241d}
+\definecolor{GbGreenNt}{HTML}{98971a}
+\definecolor{GbyellowNt}{HTML}{d79921}
+\definecolor{GbBlueNt}{HTML}{458588}
+\definecolor{GbPurpleNt}{HTML}{b16286}
+\definecolor{GbAquaNt}{HTML}{689da6}
+\definecolor{GbOrangeNt}{HTML}{d65d0e}
+\definecolor{GbGreyNt}{HTML}{7c6f64}
+\definecolor{GbRedDk}{HTML}{9d0006}
+\definecolor{GbGreenDk}{HTML}{79740e}
+\definecolor{GbYellowDk}{HTML}{b57614}
+\definecolor{GbBlueDk}{HTML}{076678}
+\definecolor{GbPurpleDk}{HTML}{8f3f71}
+\definecolor{GbAquaDk}{HTML}{427b58}
+\definecolor{GbGreyDk}{HTML}{3c3836}
 
+\definecolor{Gray}{HTML}{504945}
+
+
+% Change math font
+\usefonttheme[onlymath]{serif}
+
+% Algorithm
+
+\usepackage{caption}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+\newcommand{\Desc}[2]{\hspace*{\algorithmicindent} \makebox[14.5em][l]{#1}\parbox[t]{32em}{#2}}
 
 % Set texttt color
 %\NewCommandCopy\oldtexttt\texttt
@@ -30,181 +40,173 @@
 
 % Beamer Color modification
 
-%\usepackage{stmaryrd}
-\renewcommand{\insertnavigation}[1]{}
-\newcommand{\cb}[1]{\texttt{\textcolor{ltblue}{#1}}}
-\newcommand{\cg}[1]{\texttt{\textcolor{ltgreen}{#1}}}
-\newcommand{\co}[1]{\texttt{\textcolor{ltorange}{#1}}}
-\newcommand{\cre}[1]{\texttt{\textcolor{ltred}{#1}}}
-\newcommand{\cdkre}[1]{\texttt{\textcolor{dkred}{#1}}}
-
 % Add slide numbers
 \addtobeamertemplate{navigation symbols}{}{%
     \usebeamerfont{footline}%
-    \usebeamercolor[ltblue]{footline}%
+    \usebeamercolor[GbBlueNt]{footline}%
     \hspace{1em}%
     \insertframenumber/\inserttotalframenumber
 }
 
 % Set gruvbox inspired colors
-\setbeamercolor{block title}{bg=ltblue!30!bge, fg=dkblue!40!fg0}
-\setbeamercolor{block body}{bg=ltblue!15!bge, fg=fg0}
-\setbeamercolor{section number projected}{bg=dkblue,fg=bge}
-\setbeamercolor{structure}{fg=dkblue}% to modify  immediately all palettes
-\setbeamercolor{title}{fg=bge}
-\setbeamercolor{title in head/foot}{fg=bge}
-\setbeamercolor{author}{bg=dkblue, fg=bge}
-\setbeamercolor{author in head/foot}{bg=ltblue,fg=bge}
-\setbeamercolor{institute in head/foot}{fg=bge}
-\setbeamercolor{date}{fg=fg0}
-\setbeamercolor{institute}{fg=fg0}
-\setbeamercolor{background canvas}{bg=bge}
-\setbeamercolor{normal text}{fg=fg0}
-\setbeamercolor{titlelike}{fg=bge}
-\setbeamercolor{seperation line}{fg=bge}
-
+\setbeamercolor{block title}{bg=GbBlueNt!30!GbBg00, fg=GbBlueDk!40!GbFg0}
+\setbeamercolor{block body}{bg=GbBlueNt!15!GbBg00, fg=GbFg0}
+\setbeamercolor{section number projected}{bg=GbBlueDk,fg=GbBg00}
+\setbeamercolor{structure}{fg=GbBlueDk}% to modify  immediately all palettes
+\setbeamercolor{title}{fg=GbBg00}
+\setbeamercolor{title in head/foot}{fg=GbBg00}
+\setbeamercolor{author}{bg=GbBlueDk, fg=GbBg00}
+\setbeamercolor{author in head/foot}{bg=GbBlueNt,fg=GbBg00}
+\setbeamercolor{institute in head/foot}{fg=GbBg00}
+\setbeamercolor{date}{fg=GbFg0}
+\setbeamercolor{institute}{fg=GbFg0}
+\setbeamercolor{background canvas}{bg=GbBg00}
+\setbeamercolor{normal text}{fg=GbFg0}
+\setbeamercolor{titlelike}{fg=GbBg00}
+\setbeamercolor{seperation line}{fg=GbBg00}
 %\setbeamercolor{date}{bg=yellow!10,fg=red!70!black}
 
+% Tikz
 
-% lstlisting coq style (inspired from a file of Assia Mahboubi)
-\lstdefinelanguage{Coq}{ 
-    % Anything betweeen $ becomes LaTeX math mode
-    mathescape=true,
-    % Comments may or not include Latex commands
-    texcl=false, 
-    frame=single,
-    % background
-    backgroundcolor = \color{bgt},
-    % Vernacular commands
-    morekeywords=[1]{Section, Module, End, Require, Import, Export,
-        Variable, Variables, Parameter, Parameters, Axiom, Hypothesis,
-        Hypotheses, Notation, Local, Tactic, Reserved, Scope, Open, Close,
-        Bind, Delimit, Definition, Let, Ltac, Fixpoint, CoFixpoint, Add,
-        Morphism, Relation, Implicit, Arguments, Unset, Contextual,
-        Strict, Prenex, Implicits, Inductive, CoInductive, Record,
-        Structure, Canonical, Coercion, Context, Class, Global, Instance,
-        Program, Infix, Theorem, Lemma, Corollary, Proposition, Fact,
-        Remark, Example, Proof, Goal, Save, Qed, Defined, Hint, Resolve,
-        Rewrite, View, Search, Show, Print, Printing, All, Eval, Check,
-        Projections, inside, outside, Def},
-    % Gallina
-    morekeywords=[2]{forall, exists, exists2, fun, fix, cofix, struct,
-        match, with, end, as, in, return, let, if, is, then, else, for, of,
-        nosimpl, when},
-    % Sorts
-    morekeywords=[3]{Type, Prop, Set, true, false, option},
-    % Various tactics, some are std Coq subsumed by ssr, for the manual purpose
-    morekeywords=[4]{pose, set, move, case, elim, apply, clear, hnf,
-        intro, intros, generalize, rename, pattern, after, destruct,
-        induction, using, refine, inversion, injection, rewrite, congr,
-        unlock, compute, ring, field, fourier, replace, fold, unfold,
-        change, cutrewrite, simpl, have, suff, wlog, suffices, without,
-        loss, nat_norm, assert, cut, trivial, revert, bool_congr, nat_congr,
-        symmetry, transitivity, auto, split, left, right, autorewrite},
-    % Terminators
-    morekeywords=[5]{by, done, exact, reflexivity, tauto, romega, omega,
-        assumption, solve, contradiction, discriminate},
-    % Control
-    morekeywords=[6]{do, last, first, try, idtac, repeat},
-    % Control
-    morekeywords=[7]{admit, Admitted},
-    % Comments delimiters, we do turn this off for the manual
-    morecomment=[s]{(*}{*)},
-    % Spaces are not displayed as a special character
-    showstringspaces=false,
-    % String delimiters
-    morestring=[b]",
-    morestring=[d]’,
-    % Size of tabulations
-    tabsize=3,
-    % Enables ASCII chars 128 to 255
-    extendedchars=false,
-    % Case sensitivity
-    sensitive=true,
-    numbers=left,
-    % Automatic breaking of long lines
-    breaklines=false,
-    % Default style fors listings
-    basicstyle=\scriptsize,
-    % Position of captions is bottom
-    captionpos=b,
-    % flexible columns
-    columns=[l]flexible,
-    % Style for (listings') identifiers
-    identifierstyle={\ttfamily\color{fg0}},
-    % Style for declaration keywords
-    keywordstyle=[1]{\ttfamily\color{dkpurple}},
-    % Style for gallina keywords
-    keywordstyle=[2]{\ttfamily\color{ltgreen}},
-    % Style for sorts keywords
-    keywordstyle=[3]{\ttfamily\color{ltred}},
-    % Style for tactics keywords
-    keywordstyle=[4]{\ttfamily\color{dkblue}},
-    % Style for terminators keywords
-    keywordstyle=[5]{\ttfamily\color{ltred}},
-    %Style for iterators
-    keywordstyle=[6]{\ttfamily\color{ltaqua}},
-    %Style for admits
-    keywordstyle=[7]{\ttfamily\color{dkred}},
-    % Style for strings
-    stringstyle=\ttfamily,
-    % Style for comments
-    commentstyle={\ttfamily\color{ltgrey}},
-    %moredelim=**[is][\ttfamily\color{red}]{/&}{&/},
-    literate=
-    {/forall}{{\color{dkgreen}{$\forall\;$}}}1
-    {exists}{{$\exists\;$}}1
-    {<-}{{$\leftarrow\;$}}1
-    {=>}{{$\Rightarrow\;$}}1
-    {==}{{\code{==}\;}}1
-    {==>}{{\code{==>}\;}}1
-    %    {:>}{{\code{:>}\;}}1
-    {->}{{$\rightarrow\;$}}1
-    {<->}{{$\leftrightarrow\;$}}1
-    {<==}{{$\leq\;$}}1
-    {\#}{{$^\star$}}1 
-    {\\o}{{$\circ\;$}}1 
-    {\@}{{$\cdot$}}1 
-    {\/\\}{{$\wedge\;$}}1
-    {\\\/}{{$\vee\;$}}1
-    {++}{{\code{++}}}1
-    {~}{{$\sim$}}1
-    {\@\@}{{$@$}}1
-    {\\mapsto}{{$\mapsto\;$}}1
-    {\\hline}{{\rule{\linewidth}{0.5pt}}}1
-    %
-}[keywords,comments,strings]
+\usepackage{subcaption} 
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows, positioning}
 
-% lstlisting coq style (inspired from a file of Assia Mahboubi)
-\lstdefinelanguage{CoqGoal}{ 
-    % Anything betweeen $ becomes LaTeX math mode
-    mathescape=true,
-    % Comments may or not include Latex commands
-    texcl=false, 
-    frame=single,
-    % background
-    backgroundcolor = \color{bgt},
-    % Spaces are not displayed as a special character
-    showstringspaces=false,
-    % String delimiters
-    morestring=[b]",
-    morestring=[d]’,
-    % Size of tabulations
-    tabsize=2,
-    % Enables ASCII chars 128 to 255
-    extendedchars=false,
-    % Case sensitivity
-    sensitive=true,
-    %numbers=left,
-    % Automatic breaking of long lines
-    breaklines=false,
-    % Default style fors listings
-    basicstyle=\scriptsize,
-    % Position of captions is bottom
-    captionpos=b,
-    % flexible columns
-    columns=[l]flexible,
-    % Style for comments
-    %moredelim=**[is][\ttfamily\color{red}]{/&}{&/},
-    %
-}[strings]
+\tikzstyle{process} = [rectangle, minimum width=2cm, minimum height=1cm, text centered, draw=black]
+\tikzstyle{data} = [trapezium, trapezium left angle=70, trapezium right angle=110, minimum width=1.5cm, minimum height=1cm, text centered, draw=black]
+\tikzstyle{arrow} = [->, >=latex]
+\tikzstyle{thick-arrow} = [thick, ->, >=latex]
+\tikzstyle{dashed-arrow} = [dashed, ->]
+\tikzstyle{node} = [rectangle, draw=black, minimum width=1cm, minimum height=1cm, text centered]
+
+\tikzstyle{box} = [rectangle, draw, rounded corners, text centered, minimum height=1cm]
+
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepackage{pgfplotstable}
+
+% From the report:
+
+\newcommand*\Bb{\mathbb{B}}
+\newcommand*\Zb{\mathbb{Z}}
+\newcommand*\Fb{\mathbb{F}}
+\newcommand*\Nb{\mathbb{N}}
+\newcommand*\Rb{\mathbb{R}}
+\newcommand*\Eb{\mathbb{E}}
+\newcommand*\Gb{\mathbb{G}}
+\newcommand*\Ac{\mathcal{A}}
+\newcommand*\Bc{\mathcal{B}}
+\newcommand*\Cc{\mathcal{C}}
+\newcommand*\Dc{\mathcal{D}}
+\newcommand*\Ec{\mathcal{E}}
+\newcommand*\Rc{\mathcal{R}}
+\newcommand*\Oc{\mathcal{O}}
+\newcommand*\Uc{\mathcal{U}}
+\newcommand*\Mc{\mathcal{M}}
+\newcommand*\Pc{\mathcal{P}}
+\newcommand*\Vc{\mathcal{V}}
+\newcommand*\Sc{\mathcal{S}}
+\newcommand*\Hc{\mathcal{H}}
+
+\renewcommand*\a{\alpha}
+\renewcommand*\b{\beta}
+\renewcommand*\d{\delta}
+\newcommand*\e{\epsilon}
+\renewcommand*\l{\lambda}
+\newcommand*\p{\phi}
+\renewcommand*\o{\omega}
+\newcommand*\ps{\psi}
+\renewcommand*\S{\Sigma}
+
+\renewcommand*\mod{\bmod}
+\newcommand*\cat{\mathbin{+\mkern-10mu+}}
+\newcommand*\bor{\mathbin{\&\mkern-7mu\&}}
+\newcommand*\xor{\oplus}
+\newcommand*\meq{\stackrel{?}{=}}
+\newcommand*\iso{\cong}
+\renewcommand{\qed}{\hfill \ensuremath{\Box}}
+\newcommand{\defend}{\hfill \ensuremath{\triangle}}
+\newcommand*{\then}{\implies}
+
+\newcommand*\algind{\hspace*{\algorithmicindent}}
+\newcommand*\algindd{\algind \algind}
+
+\newcommand{\textblue}[1]{\textcolor{GbBlueDk}{#1}}
+\newcommand{\mathblue}[1]{\mathcolor{GbBlueDk}{#1}}
+\newcommand{\textgrey}[1]{\textcolor{GbGrey}{#1}}
+\newcommand{\mathgrey}[1]{\mathcolor{GbGrey}{#1}}
+\newcommand{\floor}[1]{\left \lfloor #1 \right \rfloor }
+\newcommand{\ceil}[1]{\left \lceil #1 \right \rceil }
+\renewcommand{\vec}[1]{ \boldsymbol{#1} }
+\newcommand{\ran}[1]{ \mathrm{#1} }
+\newcommand{\ranvec}[1]{ \boldsymbol{\ran{#1}} }
+\newcommand{\dotp}[2]{ \langle #1, #2 \rangle }
+\newcommand{\ip}[2]{ \langle #1, #2 \rangle }
+\newcommand{\IK}[2]{ \mathrm{I.K} }
+
+\newcommand*{\negl}{\text{negl}}
+\newcommand*{\poly}{\text{poly}}
+\newcommand*{\from}{\gets}
+\newcommand*{\pp}{\mathrm{pp}}
+\newcommand*{\acc}{\mathrm{acc}}
+\newcommand*{\ToInstance}{\mathrm{\text{T\scriptsize O}\text{I\scriptsize NSTANCE}}}
+\newcommand*{\Prover}{\mathrm{\text{P\scriptsize ROVER}}}
+\newcommand*{\Verifier}{\mathrm{\text{V\scriptsize ERIFIER}}}
+\newcommand*{\Setup}{\mathrm{\text{S{\scriptsize ETUP}}}}
+\newcommand*{\Generator}{\mathrm{\text{G{\scriptsize ENERATOR}}}}
+\newcommand*{\Trim}{\mathrm{\text{T{\scriptsize RIM}}}}
+\newcommand*{\Commit}{\mathrm{\text{C{\scriptsize OMMIT}}}}
+\newcommand*{\Decider}{\mathrm{\text{D{\scriptsize ECIDER}}}}
+\newcommand*{\SNARKProver}{\mathrm{\text{SNARK}}.\Prover}
+\newcommand*{\SNARKVerifier}{\mathrm{\text{SNARK}}.\Verifier}
+\newcommand*{\SNARKVerifierSlow}{\mathrm{\text{SNARK}}.\mathrm{\text{V\scriptsize ERIFIER}\text{S\scriptsize LOW}}}
+\newcommand*{\SNARKVerifierFast}{\mathrm{\text{SNARK}}.\mathrm{\text{V\scriptsize ERIFIER}\text{F\scriptsize AST}}}
+\newcommand*{\NARKProver}{\mathrm{\text{NARK}}.\Prover}
+\newcommand*{\NARKVerifier}{\mathrm{\text{NARK}}.\Verifier}
+\newcommand*{\NARKVerifierSlow}{\mathrm{\text{NARK}}.\mathrm{\text{V\scriptsize ERIFIER}\text{S\scriptsize LOW}}}
+\newcommand*{\NARKVerifierFast}{\mathrm{\text{NARK}}.\mathrm{\text{V\scriptsize ERIFIER}\text{F\scriptsize AST}}}
+\newcommand*{\IVCProver}{\mathrm{\text{IVC}}.\Prover}
+\newcommand*{\IVCVerifier}{\mathrm{\text{IVC}}.\Verifier}
+\newcommand*{\AS}{\text{AS}}
+\newcommand*{\ASGenerator}{\AS.\Generator}
+\newcommand*{\ASSetup}{\AS.\Setup}
+\newcommand*{\ASProver}{\AS.\Prover}
+\newcommand*{\ASVerifier}{\AS.\Verifier}
+\newcommand*{\ASDecider}{\AS.\Decider}
+\newcommand*{\PC}{\text{PC}}
+\newcommand*{\PCSetup}{\PC.\Setup}
+\newcommand*{\PCTrim}{\PC.\Trim}
+\newcommand*{\PCCommit}{\PC.\Commit}
+\newcommand*{\PCOpen}{\PC.\mathrm{\text{O\scriptsize PEN}}}
+\newcommand*{\PCCheck}{\PC.\mathrm{\text{C\scriptsize HECK}}}
+\newcommand*{\PCDL}{\text{PC}_{\text{DL}}}
+\newcommand*{\PCDLSetup}{\PCDL.\Setup}
+\newcommand*{\PCDLTrim}{\PCDL.\Trim}
+\newcommand*{\PCDLCommit}{\PCDL.\Commit}
+\newcommand*{\PCDLOpen}{\PCDL.\mathrm{\text{O\scriptsize PEN}}}
+\newcommand*{\PCDLSuccinctCheck}{\PCDL.\mathrm{\text{S{\scriptsize UCCINCT}C{\scriptsize HECK}}}}
+\newcommand*{\PCDLCheck}{\PCDL.\mathrm{\text{C\scriptsize HECK}}}
+\newcommand*{\ASDL}{\text{AS}_{\text{DL}}}
+\newcommand*{\ASDLSetup}{\ASDL.\Setup}
+\newcommand*{\ASDLIndexer}{\ASDL.\mathrm{\text{I\scriptsize NDEXER}}}
+\newcommand*{\ASDLCommonSubroutine}{\ASDL.\mathrm{\text{C{\scriptsize OMMON}S{\scriptsize UBROUTINE}}}}
+\newcommand*{\ASDLProver}{\ASDL.\mathrm{\text{P\scriptsize ROVER}}}
+\newcommand*{\ASDLVerifier}{\ASDL.\mathrm{\text{V\scriptsize ERIFIER}}}
+\newcommand*{\ASDLDecider}{\ASDL.\mathrm{\text{D\scriptsize ECIDER}}}
+\newcommand*{\CM}{\mathrm{\text{CM}}}
+\newcommand*{\CMSetup}{\CM.\Setup}
+\newcommand*{\CMTrim}{\CM.\Trim}
+\newcommand*{\CMCommit}{\CM.\Commit}
+
+\newcommand*\Result{\mathbf{Result}}
+\newcommand*\Option{\mathbf{Option}}
+\newcommand*\Acc{\mathbf{Acc}}
+\newcommand*\Instance{\mathbf{Instance}}
+\renewcommand*\Proof{\mathbf{Proof}}
+\newcommand*\Witness{\mathbf{Witness}}
+\newcommand*\PublicInfo{\mathbf{PublicInputs}}
+\newcommand*\PublicInputs{\mathbf{PublicInputs}}
+\newcommand*\Circuit{\mathbf{Circuit}}
+\newcommand*\AccHiding{\mathbf{AccHiding}}
+\newcommand*\EvalProof{\mathbf{EvalProof}}
+

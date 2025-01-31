@@ -25,6 +25,9 @@ jobs:
       - run: nix run .#spellcheck
         working-directory: ./report
 
+      - run: nix run .#spellcheck
+        working-directory: ./slides
+
   fmt:
     runs-on: ubuntu-24.04
     steps:

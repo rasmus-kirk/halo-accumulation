@@ -1563,6 +1563,8 @@ the second check of $\PCDLCheck$, on all $q_j$ instances at once. We know that:
     in a malicious way, which is hard, since they're from the random oracle.
 \end{enumerate}
 
+<!-- TODO: This is wrong -->
+
 To sum up, this means that running the $\ASDLDecider$ corresponds to checking
 all $U_j$'s.
 

@@ -10,6 +10,9 @@
     # report
     report.url = "./report";
     report.inputs.nixpkgs.follows = "nixpkgs";
+    # slides
+    slides.url = "./slides";
+    slides.inputs.nixpkgs.follows = "nixpkgs";
 
     website-builder.url = "github:rasmus-kirk/website-builder";
     website-builder.inputs.nixpkgs.follows = "nixpkgs";
@@ -19,6 +22,7 @@
     nixpkgs,
     website-builder,
     report,
+    slides,
     ...
   }: let
     supportedSystems = ["x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin"];
@@ -29,12 +33,14 @@
         });
   in {
     packages = forAllSystems ({pkgs}: let
-      reportPkg = report.outputs.packages."${pkgs.system}".default;
       website = website-builder.lib {
         pkgs = pkgs;
         src = ./.;
         headerTitle = "Halo Accumulation Scheme";
-        includedDirs = [ reportPkg ];
+        includedDirs = [
+          report.outputs.packages."${pkgs.system}".default
+          slides.outputs.packages."${pkgs.system}".default
+        ];
         standalonePages = [{
           title = "Investigating IVC with Accumulation Schemes";
           inputFile = ./README.md;
@@ -48,6 +54,10 @@
           {
             title = "Report";
             location = "/report/report.pdf";
+          }
+          {
+            title = "Slides";
+            location = "/slides/slides.pdf";
           }
           {
             title = "Github";
