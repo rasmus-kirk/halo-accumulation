@@ -32,11 +32,9 @@
           for filename in ./*.md; do
               pandoc "$filename" \
                 -H header.tex \
-                -t beamer \
-                --slide-level 2 \
-                --citeproc \
-                --metadata date="$(date -u '+%Y-%m-%d - %H:%M:%S %Z')" \
                 --highlight-style gruvbox.theme \
+                -t beamer \
+                --metadata date="$(date -u '+%Y-%m-%d - %H:%M:%S %Z')" \
                 -o "$1/''${filename%.md}.pdf"
           done
         '';

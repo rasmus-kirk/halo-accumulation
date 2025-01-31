@@ -1,12 +1,12 @@
 ---
-title: Proving Type Preservation of $\beta$-reduction in System F
+title: Investigating IVC with Accumulation Schemes
 author:
   - Rasmus Kirk Jakobsen
 theme: Berlin
-date: 2024-01-08
 institute: Computer Science Aarhus
 fontsize: 9pt
 lang: en-US
+slide-levels: 2
 section-titles: true
 toc: true
 ---
@@ -100,7 +100,7 @@ $$
 \end{alignedat}
 $$
 
-# Accumulation Scheme based on the Discrete Log assumption
+# Accumulation Scheme based DL
 
 ## In general
 
@@ -287,7 +287,6 @@ $$
 
 ## Soundness Proof (3/?)
 
-
 $$
 \begin{aligned}
   \Pr[\Bc_1 \text{ wins} \lor \Bc_2 \text{ wins}] &= \Pr[\Bc_1 \text{ wins}] + \Pr[\Bc_2\text{ wins}] - \Pr[\Bc_1 \text{ wins} \land \Bc_2 \text{ wins}]\\
@@ -303,9 +302,327 @@ in $\l$.
 
 ## Soundness Proof (3/?)
 
+- $\CM_1$:
+  - $\CM_1.\Setup^{\rho_0}(1^\l, D) := \pp_\PC \from \PCDLSetup^{\rho_0}(1^\lambda, D)$
+  - $\CM_1.\Commit((p(X), h(X)), \_) := (C \from \PCDLCommit(p(X), d, \bot), h)$
+  - $\Mc_{\CM_1} := \{(p(X), h(X) = \a^j h_j(X))\} \in \Pc((\Fb_q^{\leq D}[X])^2)$
+  - $z_{\CM_1} := \rho_1(\CM_1.\Commit((p(X), h(X)), \_)) = \rho_1((C \from \PCDLCommit(p(X), d, \bot), h)) = z_\acc$
+- $\CM_2$:
+  - $\CM_2.\Setup^{\rho_0}(1^\l, D) := \pp_\PC \from \PCDLSetup^{\rho_0}(1^\lambda, D)$
+  - $\CM_2.\Commit([(h_j(X), U_j)]^m, \_) := [(h_j(X), U_j)]^m$:
+  - $\Mc_{\CM_2} := \{[(h_j(X), U_j)]^m\} \in \Pc((\Fb_q^{\leq D}[X] \times \Eb(\Fb_q))^m)$
+  - $z_{\CM_2} := \rho_1(\CM_2.\Commit([(h_j(X), U_j)]^m, \_)) = \rho_1([(h_j(X), U_j)]^m) = \a$
+
+\vspace{1em}
+
+- $f^{(1)}_\pp(p(X), h(X) = [h_j(X)]^m) := a(X) = p(X) - \sum_{j=1}^m \a^j h_j(X)$,
+- $f^{(2)}_\pp(p = [(h_j(X), U_j)]^m) := b(Z) = \sum_{j=1}^m a_j Z^j$ where for each $j \in [m]$:
+  - $B_j \leftarrow \PCDLCommit(h_j, d, \bot)$
+  - Compute $b_j : b_j G = U_j - B_j$
+
+## Soundness Proof (3/?)
+
+\begin{algorithm}[H]
+\caption*{\textbf{The Adversary} $\Cc^{\rho_1}(\pp_\PC)$}
+\begin{algorithmic}[1]
+  \State Parse $\pp_\PC$ to get the security parameter $1^\l$ and set $\AS$ public parameters $\pp_{\AS} := 1^\l$.
+  \State Compute $(\vec{q}, \acc_{i-1}, \acc_i) \leftarrow \Ac^{\rho_1}(\pp_\AS)$.
+  \State Parse $\pp_\PC$ to get the degree bound $D$.
+  \State Output $(D, \acc_i = (C_\acc, d_\acc, z_\acc, v_\acc), \vec{q})$.
+\end{algorithmic}
+\end{algorithm}
+
+- Running $\Ec_\Cc^{\rho_1}$ on $\Cc$ gives $p$, given $\ASDLDecider$ accepts, with $\Pr[1 - \negl]$:
+  - $C_\acc$ is a deterministic commitment to $p(X)$.
+  - $p(z_\acc) = v_\acc$
+  - $\deg(p) \leq d_\acc \leq D$
+
+## Soundness Proof (3/?)
+
+The $\ASDLDecider$ (and $\ASDLVerifier$'s) will accept
+with probability $\d$, s.t. the following holds:
+
+- $\ASDLVerifier^{\rho_1}((q_{\acc_{i-1}} \cat \vec{q}), \acc_i) = \top$
+- $\ASDLDecider^{\rho_1}(\acc_i) = \top$
+- $\exists i \in [n] : \Phi_\AS(q_i) = \bot \implies \PCDLCheck^{\rho_0}(C_i, d_i, z_i, v_i, \pi_i) = \bot$
+
+Let's denote this event as $E_\Dc$. We're interested in the probability $\Pr[E_\Ec
+\land E_\Dc]$. Using the chain rule we get:
+$$
+\begin{aligned}
+  \Pr[E_\Ec \land E_\Dc] &= \Pr[E_\Ec \; | \; E_\Dc] \cdot \Pr[E_\Ec] \\
+                         &= \d \cdot (1 - \negl(\l)) \\
+                         &= \d - \d \cdot \negl(\l) \\
+                         &= \d - \negl(\l)
+\end{aligned}
+$$
+
+## Soundness proof
+
+- Since $\ASDLVerifier^{\rho_1}((q_{\acc_{i-1}} \cat \vec{q}), \acc_i)$ accepts,
+  then, by construction, all the following holds:
+
+  1. For each $j \in [m]$, $\PCDLSuccinctCheck$ accepts.
+  2. Parsing $\acc_i = (C_\acc, d_\acc, z_\acc, v_\acc)$ and setting $\a := \rho_1([(h_j(X), U_j)]^m)$, we have that:
+      - $z_\acc = \rho_1(C_\acc, [h_j(X)]^m)$
+      - $C_\acc = \sum_{j=1}^m \a^j U_j$
+      - $v_\acc = \sum_{j=1}^m \a^j h_j(z)$
+
+- By construction, this implies that either:
+  - $\PCDLSuccinctCheck$ rejects, which we showed above is not the case, so therefore,
+  - The group element $U_j$ is not a commitment to $h_j(X)$.
+
+## Soundness Proof
+
+\begin{algorithm}[H]
+\caption*{\textbf{The Adversary} $\Bc_k^{\rho_1}(\pp_\AS)$}
+\begin{algorithmic}[1]
+  \State Compute $(D, \acc_i, \vec{q}) \leftarrow C^{\rho_1}(\pp_\AS)$.
+  \State Compute $p \leftarrow \Ec_C^\rho(\pp_\AS)$.
+  \State For each $q_j \in \vec{q}$ : $(h_j, U_j) \from \PCDLSuccinctCheck(q_j)$.
+  \State Compute $\a := \rho_1([(h_j, U_j)]^m)$.
+  \If{$k = 1$}
+    \State Output $((n, D), (p, h := ([h_j]^m)))$
+  \ElsIf{$k = 2$}
+    \State Output $((n, D), ([(h_j, U_j)]^m))$
+  \EndIf
+\end{algorithmic}
+\end{algorithm}
+
+## Soundness Proof
+
+1. $C_\acc \neq \sum_{j=1}^m \a^j B_j$: This means that for some $j \in [m]$,
+   $U_j \neq B_j$. Since $C_\acc$ is a commitment to $p(X)$, $p(X) - h(X)$ is
+   not identically zero, but $p(z_\acc) = h(z_\acc)$. Thusly, $a(X) \neq 0$
+   and $a(z_\acc) = 0$. Because $z_\acc = z_a$ is sampled using the random
+   oracle $\rho_1$, $\Bc_1$ wins the zero-finding game against $(\CM_1,
+   \{f_\pp^{(1)}\}_\pp)$.
+
+2. $C = \sum_{j=1}^n \a^j B_j$. Which means that for all $j \in [m]$, $U_j =
+   B_j$. Since $C = \sum_{j=1}^n \a^j U_j$, $\a$ is a root of the
+   polynomial $a(Z)$, $a(\a) = 0$. Because $\a$ is sampled using the random
+   oracle $\rho_1$, $\Bc_2$ wins the zero-finding game against $(CM_2,
+   \{f_\pp^{(2)}\}_\pp)$.
+
+\vspace{1em}
+
+- Either $\Bc_1, \Bc_2$ win if $E_\Ec \land E_\Dc$, so $\Pr[\Bc_1 \text{ wins} \lor \Bc_2 \text{wins}] = \delta - \negl(\l)$.
+- Since the above cases are mutually exclusive $\Pr[\Bc_1 \text{ wins} \lor \Bc_2 \text{wins}]$.
+- Thus, the probability that $\Ac$ breaks the soundness of $\ASDL$ is negligible.
+
+
 ## Efficiency analysis
 
-## Accumulation Scheme IVC
+### Analysis
+
+- $\ASDLCommonSubroutine$:
+  - Step 6: $m$ calls to $\PCDLSuccinctCheck$, $\Oc(2m\lg(d))$ scalar muls.
+  - Step 11: $m$ scalar muls.
+
+  Step 6 dominates with $\Oc(2m\lg(d)) = \Oc(m\lg(d))$ scalar muls.
+- $\ASDLProver$:
+  - Step 4: Call to $\ASDLCommonSubroutine$, $\Oc(md)$ scalar muls.
+  - Step 5: Evaluation of $h(X)$, $\Oc(\lg(d))$ scalar muls.
+  - Step 6: Call to $\PCDLOpen$, $\Oc(3d)$ scalar muls.
+
+  Step 6 dominates with $\Oc(3d) = \Oc(d)$ scalar muls.
+- $\ASDLVerifier$:
+  - Step 2: Call to $\ASDLCommonSubroutine$, $\Oc(2m\lg(d))$ scalar muls.
+- $\ASDLDecider$:
+  - Step 2: Call to $\PCDLCheck$, with $\Oc(d)$ scalar muls.
+
+\vspace{0.3em}
+
+- So $\ASDLProver$ and $\ASDLDecider$ are linear and $\ASDLDecider$ is sub-linear.
+
+<!-- TODO: steps -->
+
+# IVC based on Accumulation
+
+## test
+
+- We assume we have an underlying NARK which proof consists of only instances
+  $\pi \in \Proof = \{ \vec{q} \}$. We assume this NARK has three algorithms:
+  - $\NARKProver(R: \Circuit, x: \PublicInfo, w: \Witness) \to \Proof$
+  - $\NARKVerifier(R: \Circuit, x: \PublicInfo, \pi) \to \Result(\top, \bot)$
+  - $\NARKVerifierFast(R: \Circuit, x: \PublicInfo) \to \Result(\top, \bot)$
+
+\centering
+\begin{tikzpicture}[node distance=2cm]
+
+  % Nodes
+  \node (s0) [node] {$s_0$};
+  \node (s1) [node, right=of s0] {$(s_1, \pi_1, \acc_1)$};
+  \node (dots) [right=2.25cm of s1] {$\dots$};
+  \node (sn) [node, right=0.5cm of dots] {$(s_n, \pi_n, \acc_n)$};
+
+  % Arrows with labels
+  \draw[thick-arrow] (s0) -- node[above] {$\Pc(s_0, \bot, \bot)$} (s1);
+  \draw[thick-arrow] (s1) -- node[above] {$\Pc(s_1, \pi_1, \acc_1)$} (dots);
+  \draw[thick-arrow] (dots) -- (sn);
+
+\end{tikzpicture}
+
+## test
+
+- $\pi_{i-1} = \vec{q}, \acc_{i-1}, s_{i-1}$ from the previous iteration.
+- $s_i = F(s_{i-1})$
+- $\acc_i = \ASProver(\vec{q}, \acc_{i-1})$
+- $x = \{ R_{IVC}, s_0, s_i, \acc_i \}$
+- $w = \{ s_{i-1}, \pi_{i-1} = \vec{q}, \acc_{i-1} \}$
+
+$$
+\begin{aligned}
+  x_{i-1} &:= \{ R_{IVC}, s_{i-1}, \acc_{i-1} \} \\
+  \Vc_1   &:= \NARKVerifierFast(R_{IVC}, x_{i-1}, \pi_{i-1}) \meq \top \\
+  \Vc_2   &:= \ASVerifier(\pi_{i-1} = \vec{q}, \acc_{i-1}, \acc_i) \meq \top \\
+  R_{IVC} &:= \text{I.K } w \text{ s.t. } F(s_{i-1}) \meq s_i \land (s_{i-1} \meq s_0 \lor ( \Vc_1 \land \Vc_2 ) ) \\
+\end{aligned}
+$$
+
+## test
+
+\centering
+\begin{tikzpicture}
+  % First Layer
+  \node[draw, rectangle] (q) at (6, 6.5) {$\vec{q}$};
+  \node[draw, rectangle] (acc_prev) at (7.5, 6.5) {$\acc_{i-1}$};
+  \node[draw, rectangle] (acc_next) at (9, 6.5) {$\acc_i$};
+
+  \node[draw, rectangle] (R_ivc) at (2.25, 6.5) {$R_{IVC}$};
+  \node[draw, rectangle] (x_prev) at (3.5, 6.5) {$x_{i-1}$};
+  \node[draw, rectangle] (pi_prev) at (4.75, 6.5) {$\pi_{i-1}$};
+
+  \node[draw, rectangle] (s_next) at (-1.5, 6.5) {$s_i$};
+  \node[draw, rectangle] (s_prev) at (-0.25, 6.5) {$s_{i-1}$};
+  \node[draw, rectangle] (s_0) at (1, 6.5) {$s_0$};
+
+  \draw[dashed-arrow] (pi_prev) -- (4.75, 7) -- (6, 7) -- (q);
+
+  \draw[dashed-arrow] (R_ivc) -- (2.25, 7) -- (3.5, 7) -- (x_prev);
+  \draw[dashed-arrow] (s_prev) -- (-0.25, 7.1) -- (3.5, 7.1) -- (x_prev);
+  \draw[dashed-arrow] (acc_prev) -- (7.5, 7.2) -- (3.5, 7.2) -- (x_prev);
+
+  % Second Layer
+  \node[draw, rectangle] (svf) at (3.5, 5.5) {$\NARKVerifierFast$};
+  \node[draw, rectangle] (asv) at (7.5, 5.5) {$\ASVerifier$};
+
+  \draw[arrow] (R_ivc) -- (svf);
+  \draw[arrow] (x_prev) -- (svf);
+  \draw[arrow] (pi_prev) -- (svf);
+
+  \draw[arrow] (q) -- (asv);
+  \draw[arrow] (acc_prev) -- (asv);
+  \draw[arrow] (acc_next) -- (asv);
+
+  % Third Layer
+  \node[draw, rectangle] (asv_svf_and) at (5.75, 4.5) {$\land$};
+  \node[draw, rectangle] (base_case) at (1, 4.5) {$s_{i-1} \meq s_0$};
+
+  \draw[arrow] (asv) -- (asv_svf_and);
+  \draw[arrow] (svf) -- (asv_svf_and);
+
+  \draw[arrow] (s_prev) -- (base_case);
+  \draw[arrow] (s_0) -- (base_case);
+
+  % Fourth Layer
+  \node[draw, rectangle] (or) at (4, 3.5) {$\lor$};
+  \node[draw, rectangle] (F) at (-1, 3.5) {$F(s_{i-1}) \meq s_i$};
+
+  \draw[arrow] (asv_svf_and) -- (or);
+  \draw[arrow] (base_case) -- (or);
+
+  \draw[arrow] (s_next) -- (F);
+  \draw[arrow] (s_prev) -- (F);
+
+  % Fifth Layer
+  \node[draw, rectangle] (end_and) at (3, 2.5) { $\land$ };
+  \draw[arrow] (or) -- (end_and);
+  \draw[arrow] (F) -- (end_and);
+
+\end{tikzpicture}
+
+## test
+
+\begin{algorithm}[H]
+\caption*{\textbf{Algorithm} $\IVCProver$}
+\textbf{Inputs} \\
+  \Desc{$R_{IVC}: \Circuit$}{The IVC circuit as defined above.} \\
+  \Desc{$x: \PublicInputs$}{Public inputs for $R_{IVC}$.} \\
+  \Desc{$w: \Option(\Witness)$}{Private inputs for $R_{IVC}$.} \\
+\textbf{Output} \\
+  \Desc{$(S, \Proof, \Acc)$}{The values for the next IVC iteration.}
+\begin{algorithmic}[1]
+  \Require $x = \{ s_0 \}, \; \; w = \{ s_{i-1}, \pi_{i-1}, \acc_{i-1} \} \lor w = \bot$
+  \State \textbf{If} $w = \bot$ \textbf{Then} $w = \{ s_{i-1} = s_0 \}$ (base-case) \textbf{Else}:
+    \State \algind Run the accumulation prover: $\acc_i = \ASProver(\pi_{i-1} = \vec{q}, \acc_{i-1})$.
+    \State \algind Compute the next value: $s_i = F(s_{i-1})$.
+    \State \algind Define $x' = x \cup \{ R_{IVC}, s_i, \acc_i \}$.
+  \State Generate a NARK proof using $R_{IVC}$: $\pi_i = \NARKProver(R_{IVC}, x', w)$.
+  \State Output $(s_i, \pi_i, \acc_i)$
+\end{algorithmic}
+\end{algorithm}
+
+## test
+
+\begin{algorithm}[H]
+\caption*{\textbf{Algorithm} $\IVCVerifier$}
+\textbf{Inputs} \\
+  \Desc{$R_{IVC}: \Circuit$}{The IVC circuit.} \\
+  \Desc{$x: \PublicInputs$}{Public inputs for $R_{IVC}$.} \\
+\textbf{Output} \\
+  \Desc{$\Result(\top, \bot)$}{Returns $\top$ or $\bot$.}
+\begin{algorithmic}[1]
+  \Require $x = \{ s_0, s_i, \acc_i \}$
+  \State Define $x' = x \cup \{ R_{IVC} \}$.
+  \State Verify that the accumulation scheme decider accepts: $\top \meq \ASDecider(\acc_i)$.
+  \State Verify the validity of the IVC proof: $\top \meq \NARKVerifier(R_{IVC}, x', \pi_i)$.
+  \State If the above two checks pass, then output $\top$, else output $\bot$.
+\end{algorithmic}
+\end{algorithm}
+
+## test
+
+$$
+\begin{alignedat}[b]{2}
+  &\IVCVerifier(R_{IVC}, x_n = \{ s_0, s_n, \acc_i \}, \pi_n) = \top           &&\then \\
+  &\forall i \in [n], \forall q_j \in \pi_i = \vec{q} : \PCDLCheck(q_j) = \top &&\;\; \land \\
+  &F(s_{n-1}) = s_n     \land (s_{n-1} = s_0 \lor ( \Vc_1 \land \Vc_2 ))       &&\then \\
+  &\ASVerifier(\pi_{n-1}, \acc_{n-1}, \acc_n) = \top                           &&\;\; \land \\
+  &\NARKVerifierFast(R_{IVC}, x_{n-1}, \pi_{n-1}) = \top                       &&\then \dots \\
+  &F(s_0) = s_1 \land (s_0 = s_0 \lor ( \Vc_1 \land \Vc_2 ))                   &&\then \\
+  &F(s_0) = s_1                                                                &&\then \\
+\end{alignedat}
+$$
+
+1. $\forall i \in [2, n] : \ASVerifier(\pi_{i-1}, \acc_{i-1}, \acc_i) = \top$, i.e, all accumulators are accumulated correctly.
+2. $\forall i \in [2, n] : \NARKVerifierFast(R_{IVC}, x_{i-1}, \pi_{i-1})$, i.e, all the proofs are valid.
+
+## test
+
+- The $\NARKProver$ runtime scales linearly with the $d$ ($\Oc(d)$)
+- The $\NARKVerifierFast$ runtime scales logarithmically with $d$ ($\Oc(\lg(d))$)
+- The $\NARKVerifier$ runtime scales linearly with the degree-bound $d$ ($\Oc(d)$)
+- The $F$ runtime is less than $\Oc(d)$, since $|R_F| \approx d$
+
+Then we can conclude:
+
+- The runtime of $\IVCProver$ is:
+  - Step 5: The cost of running $\ASDLProver$, $\Oc(d)$.
+  - Step 6: The cost of computing $F$, $\Oc(F(x))$.
+  - Step 7: The cost of running $\NARKProver$, $\Oc(d)$.
+
+  Totalling $\Oc(F(x) + d)$. So $\Oc(d)$.
+- The runtime of $\IVCVerifier$ is:
+  - Step 2: The cost of running $\ASDLDecider$, $\Oc(d)$ scalar muls.
+  - Step 3: The cost of running $\NARKVerifier$, $\Oc(d)$ scalar muls.
+
+  Totalling $\Oc(2d)$. So $\Oc(d)$
+
+Notice that although the runtime of $\IVCVerifier$ is linear, it scales
+with $d$, _not_ $n$. So the cost of verifying does not scale with the number
+of iterations.
+
 
 # Conclusion & Benchmarks
 
