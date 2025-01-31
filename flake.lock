@@ -8,14 +8,15 @@
         "rust-overlay": "rust-overlay"
       },
       "locked": {
-        "path": "./code",
+        "lastModified": 1,
+        "narHash": "sha256-h9jRc0LkpMXB+z4KnepKuX9Papst3+h906R9Ntnh/Do=",
+        "path": "/nix/store/yxknwk8mdxmc3fiihcyzl2k26vc4448g-source/code",
         "type": "path"
       },
       "original": {
-        "path": "./code",
+        "path": "/nix/store/yxknwk8mdxmc3fiihcyzl2k26vc4448g-source/code",
         "type": "path"
-      },
-      "parent": []
+      }
     },
     "nixpkgs": {
       "locked": {
@@ -40,14 +41,15 @@
         ]
       },
       "locked": {
-        "path": "./report",
+        "lastModified": 1,
+        "narHash": "sha256-tdQw23Y0VGrrGRBbtOvTAEEU4IXJ5Dns8U6GwZnZQkI=",
+        "path": "/nix/store/yxknwk8mdxmc3fiihcyzl2k26vc4448g-source/report",
         "type": "path"
       },
       "original": {
-        "path": "./report",
+        "path": "/nix/store/yxknwk8mdxmc3fiihcyzl2k26vc4448g-source/report",
         "type": "path"
-      },
-      "parent": []
+      }
     },
     "root": {
       "inputs": {
@@ -86,14 +88,15 @@
         ]
       },
       "locked": {
-        "path": "./slides",
+        "lastModified": 1,
+        "narHash": "sha256-5xhg0ZegCEAW3GY6KKkw34UOiH4mz9z9wJ2SkXsoJak=",
+        "path": "/nix/store/yxknwk8mdxmc3fiihcyzl2k26vc4448g-source/slides",
         "type": "path"
       },
       "original": {
-        "path": "./slides",
+        "path": "/nix/store/yxknwk8mdxmc3fiihcyzl2k26vc4448g-source/slides",
         "type": "path"
-      },
-      "parent": []
+      }
     },
     "website-builder": {
       "inputs": {

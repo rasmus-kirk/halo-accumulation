@@ -224,7 +224,84 @@ As for the $\ASDLDecider$, it just runs $\PCDLCheck$ on the provided
 accumulator, which represents a evaluation proof i.e. an instance. This
 check will always pass, as the prover constructed it honestly.
 
-## Soundness proof
+## Soundness proof (1/?)
+
+Let $\CM = (\CMSetup, \CMCommit)$ be a perfectly binding commitment scheme. Fix
+a maximum degree $D \in \Nb$ and a random oracle $\rho$ that takes commitments
+from $\CM$ to $F_\pp$. Then for every family of functions $\{f_\pp\}_\pp$
+and fields $\{F_\pp\}_\pp$ where:
+
+- $f_\pp \in \Mc \to F_\pp^{\leq D}[X]$
+- $F \in \Nb \to \Nb$
+- $|F_\pp| \geq F(\l)$
+
+That is, for all functions, $f_\pp$, that takes a message, $\Mc$ as input and
+outputs a maximum D-degree polynomial. Also, usually $|F_\pp| \approx F(\l)$.
+For every message format $L$ and computationally unbounded $t$-query oracle
+algorithm $\Ac$, the following holds:
+$$
+\Pr\left[
+  \begin{array}{c}
+    p \neq 0 \\
+    \land \\
+    p(z) = 0
+  \end{array}
+  \middle|
+  \begin{array}{c}
+    \rho \from \mathcal{U}(\l) \\
+    \pp_\CM \gets \CMSetup(1^\l, L) \\
+    (m, \omega) \gets \Ac^\rho(\pp_\CM) \\
+    C \gets \CMCommit(m, \o) \\
+    z \in F_{\pp} \from \rho(C) \\
+    p := f_{\pp}(m)
+  \end{array}
+\right] \leq \sqrt{\frac{D(t+1)}{F(\l)}}
+$$
+
+## Soundness proof (1/?)
+
+$$
+\Pr \left[
+  \begin{array}{c}
+    \ASDLVerifier^{\rho_1}((q_{\acc_{i-1}} \cat \vec{q}), \acc_i) = \top, \\
+    \ASDLDecider^{\rho_1}(\acc_i) = \top \\
+    \land \\
+    \exists i \in [n] : \Phi_\AS(q_i) = \bot
+  \end{array}
+\right] \leq \negl(\l)
+$$
+Given:
+$$
+\begin{alignedat}{4}
+  &\rho_0 &&\leftarrow \Uc(\l),                                               &&\quad \rho_1  &&\leftarrow \Uc(\l), \\
+  &\pp_\PC &&\leftarrow \PCDLSetup^{\rho_0}(1^\l, D),                         &&\quad \pp_\AS &&\leftarrow \ASDLSetup^{\rho_1}(1^\l, \pp_\PC), \\
+  &(\vec{q}, \acc_{i-1}, \acc_i) &&\leftarrow \Ac^{\rho_1}(\pp_\AS, \pp_\PC), &&\quad q_{acc_{i-1}} &&\leftarrow \ToInstance(\acc_{i-1})
+\end{alignedat}
+$$
+
+- We call the probability that the adversary $\Ac$ wins the above game
+  $\d$. We bound $\d$ by constructing two adversaries, $\Bc_1, \Bc_2$, for
+  the zero-finding game. Assuming:
+  - $\Pr[\Bc_1 \text{ wins} \lor \Bc_2 \text{wins}] = \delta - \negl(\l)$
+  - $\Pr[\Bc_1 \text{ wins} \lor \Bc_2 \text{wins}] = 0$
+
+## Soundness Proof (3/?)
+
+
+$$
+\begin{aligned}
+  \Pr[\Bc_1 \text{ wins} \lor \Bc_2 \text{ wins}] &= \Pr[\Bc_1 \text{ wins}] + \Pr[\Bc_2\text{ wins}] - \Pr[\Bc_1 \text{ wins} \land \Bc_2 \text{ wins}]\\
+  \Pr[\Bc_1 \text{ wins} \lor \Bc_2 \text{ wins}] &= \Pr[\Bc_1 \text{ wins}] + \Pr[\Bc_2\text{ wins}] - 0 \\
+  \delta - \negl(\l)                              &\leq  \sqrt{\frac{D(t+1)}{F(\l)}} + \sqrt{\frac{D(t+1)}{F(\l)}} \\
+  \delta - \negl(\l)                              &\leq  2 \cdot \sqrt{\frac{D(t+1)}{|\Fb_q|}}                     \\
+  \delta                                          &\leq  2 \cdot \sqrt{\frac{D(t+1)}{|\Fb_q|}} + \negl(\l)         \\
+\end{aligned}
+$$
+
+Meaning that $\delta$ is negligible, since $q = |\Fb_q|$ is superpolynomial
+in $\l$.
+
+## Soundness Proof (3/?)
 
 ## Efficiency analysis
 
