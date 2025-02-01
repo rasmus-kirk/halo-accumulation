@@ -33,6 +33,11 @@ jobs:
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@main
 
+      - uses: actions/cache@v4
+        with:
+          path: /nix/store
+          key: cache-${{ hashFiles('**/*.lock') }}
+
       - run: nix build
 
       - run: mkdir -p out && cp -r ./result/* out
