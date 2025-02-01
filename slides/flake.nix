@@ -34,6 +34,7 @@
                 -H header.tex \
                 --highlight-style gruvbox.theme \
                 -t beamer \
+                --slide-level 2 \
                 --metadata date="$(date -u '+%Y-%m-%d - %H:%M:%S %Z')" \
                 -o "$1/''${filename%.md}.pdf"
           done

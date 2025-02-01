@@ -6,7 +6,6 @@ theme: Berlin
 institute: Computer Science Aarhus
 fontsize: 9pt
 lang: en-US
-slide-levels: 2
 section-titles: true
 toc: true
 ---
@@ -22,18 +21,18 @@ toc: true
 
 ## Motivation
 
-- IVC is designed to solve the following problem
+\begin{block}{IVC is designed to solve the following problem:}
+  \vspace{0.6em}
+  \begin{quote}
+    \color{Gray}
+    If a computation runs for hundreds of years and ultimately outputs 42,
+    how can we check its correctness without re-executing the entire process?
+  \end{quote}
+  \vspace{0.4em}
+\end{block}
 
-\vspace{0.6em}
-
-\begin{quote}
-\color{Gray}
-If a computation runs for hundreds of years and ultimately outputs 42, how can
-we check its correctness without re-executing the entire process?
-\end{quote}
-
-- We define the transition function $F$ run on an initial state $s_0$:
-
+\begin{block}{We define the transition function $F$ run on an initial state $s_0$:}
+\vspace{0.5em}
 \centering
 \begin{tikzpicture}[node distance=2cm]
 
@@ -49,32 +48,33 @@ we check its correctness without re-executing the entire process?
   \draw[thick-arrow] (dots) -- node[above] {$F(s_{n-1})$} (sn);
 
 \end{tikzpicture}
+\vspace{0.5em}
+\end{block}
 
-- How can we verify $F^n(s_0)$ without re-executing the computation?
+- _How can we verify $F^n(s_0)$ without re-executing the computation?_
 
 ## IVC chain
 
-- We can use a SNARK to prove each computation step:
+\begin{block}{We can use a SNARK to prove each computation step:}
+  \vspace{0.5em}
+  \centering
+  \begin{tikzpicture}[node distance=1.75cm]
+    % Nodes
+    \node (s0) [node] {$s_0$};
+    \node (s1) [node, right=of s0] {$(s_1, \pi_1)$};
+    \node (dots) [right=1.75cm of s1] {$\dots$};
+    \node (sn) [node, right=2.25cm of dots] {$(s_n, \pi_n)$};
+    % Arrows with labels
+    \draw[thick-arrow] (s0) -- node[above] {$\Pc(s_0, \bot)$} (s1);
+    \draw[thick-arrow] (s1) -- node[above] {$\Pc(s_1, \pi_1)$} (dots);
+    \draw[thick-arrow] (dots) -- node[above] {$\Pc(s_{n-1}, \pi_{n-1})$} (sn);
+  \end{tikzpicture}
+  \vspace{0.5em}
+\end{block}
 
-\centering
-\begin{tikzpicture}[node distance=1.75cm]
-
-  % Nodes
-  \node (s0) [node] {$s_0$};
-  \node (s1) [node, right=of s0] {$(s_1, \pi_1)$};
-  \node (dots) [right=1.75cm of s1] {$\dots$};
-  \node (sn) [node, right=2.25cm of dots] {$(s_n, \pi_n)$};
-
-  % Arrows with labels
-  \draw[thick-arrow] (s0) -- node[above] {$\Pc(s_0, \bot)$} (s1);
-  \draw[thick-arrow] (s1) -- node[above] {$\Pc(s_1, \pi_1)$} (dots);
-  \draw[thick-arrow] (dots) -- node[above] {$\Pc(s_{n-1}, \pi_{n-1})$} (sn);
-
-\end{tikzpicture}
-
-- $\Pc(s_i, \pi_i)$ represents:
+### $\Pc(s_i, \pi_i)$ represents:
   - $R := \text{I.K.} \; w = \{ \pi_{i-1}, s_{i-1} \} \; \text{ s.t. }$
-    $$s_i \meq F(s_{i-1}) \; \land \; (s_{i-1} \meq s_0 \lor \Vc(R_F, x = \{ s_0, s_i \}, \pi_{i-1}))$$
+    - $s_i \meq F(s_{i-1}) \; \land \; (s_{i-1} \meq s_0 \lor \Vc(R_F, x = \{ s_0, s_i \}, \pi_{i-1}))$
   - $\pi_i = \SNARKProver(R_F, x = \{ s_0, s_i \}, w = \{ s_{i-1}, \pi_{i-1} \})$
   - $s_i = F(s_{i-1})$
 
@@ -100,16 +100,18 @@ $$
 \end{alignedat}
 $$
 
-# Accumulation Scheme based DL
+# $\AS$ based on DL
 
-## In general
+## Overview
+
+### Generally
 
 - $\ASSetup(\l) \to \pp_\AS$
 - $\ASProver(\vec{q}: \Instance^m, acc_{i-1}: \Acc) \to \Acc$
 - $\ASVerifier(\vec{q}: \Instance^m, acc_{i-1}: \Option(\Acc), acc_i: \Acc) \to \Result(\top, \bot)$
 - $\ASDecider(acc_i: \Acc) \to \Result(\top, \bot)$
 
-## $\ASDL$
+### $\ASDL$: Based on Discrete Log
 
 - $\ASDLSetup(1^\l, D) \to \pp_\AS$
 - $\ASDLProver(\vec{q}: \Instance^m) \to \Result(\Acc, \bot)$:
@@ -208,37 +210,37 @@ $$
   - $\a := \rho_1(\vec{h}, \vec{U})$ or $z = \rho_1(C, h(X))$ is constructed maliciously.
 - Previous accumulators are instances, as such, they will also be checked.
 
-## Completeness proof
+# $\AS$ Completeness
 
-$\ASDLVerifier$ runs the same algorithm ($\ASDLCommonSubroutine$) with the
-same inputs and, given that $\ASDLProver$ is honest, will therefore get the
-same outputs, these outputs are checked to be equal to the ones received from
-the prover. Since these were generated honestly by the prover, also using
-$\ASDLCommonSubroutine$, the $\ASDLVerifier$ will accept with probability 1,
-returning $\top$. Intuitively, this also makes sense. It's the job of the
-verifier to verify that each instance is accumulated correctly into the
-accumulator. This verifier does the same work as the prover and checks that
-the output matches.
+- $\ASDLVerifier$:
+  - Runs the same algorithm ($\ASDLCommonSubroutine$) with the same inputs
+  - Given that $\ASDLProver$ is honest, $\ASDLVerifier$ will get the
+    same outputs, these outputs are checked to be equal to the ones received
+    from the prover.
+  - Since these were generated honestly by the prover, also using
+    $\ASDLCommonSubroutine$, the $\ASDLVerifier$ will accept with probability 1.
 
-As for the $\ASDLDecider$, it just runs $\PCDLCheck$ on the provided
-accumulator, which represents a evaluation proof i.e. an instance. This
-check will always pass, as the prover constructed it honestly.
+- $\ASDLDecider$:
+  - Runs $\PCDLCheck$ on the provided accumulator, which represents a evaluation
+    proof i.e. an instance. This check will always pass, as the prover
+    constructed the accumulator honestly.
 
-## Soundness proof (1/?)
+# $\AS$ Soundness
 
-Let $\CM = (\CMSetup, \CMCommit)$ be a perfectly binding commitment scheme. Fix
-a maximum degree $D \in \Nb$ and a random oracle $\rho$ that takes commitments
-from $\CM$ to $F_\pp$. Then for every family of functions $\{f_\pp\}_\pp$
-and fields $\{F_\pp\}_\pp$ where:
+## Proving $\AS$ Soundness (1/6): The Zero Finding Game
 
-- $f_\pp \in \Mc \to F_\pp^{\leq D}[X]$
-- $F \in \Nb \to \Nb$
-- $|F_\pp| \geq F(\l)$
+- Let $\CM$ be a perfectly binding commitment scheme.
+- Fix a maximum degree $D \in \Nb$ and a random oracle $\rho \in \CM \to F_\pp$.
+- Then for every family of functions $\{f_\pp\}_\pp$ and fields $\{F_\pp\}_\pp$
+  where:
+  - $f_\pp \in \Mc \to F_\pp^{\leq D}[X]$
+  - $F \in \Nb \to \Nb$
+  - $|F_\pp| \geq F(\l)$ (usually $|F_\pp| \approx F(\l)$)
 
-That is, for all functions, $f_\pp$, that takes a message, $\Mc$ as input and
-outputs a maximum D-degree polynomial. Also, usually $|F_\pp| \approx F(\l)$.
-For every message format $L$ and computationally unbounded $t$-query oracle
-algorithm $\Ac$, the following holds:
+\vspace{0.5em}
+
+- For every message format $L$ and computationally unbounded $t$-query oracle
+  algorithm $\Ac$, the following holds:
 $$
 \Pr\left[
   \begin{array}{c}
@@ -258,55 +260,46 @@ $$
 \right] \leq \sqrt{\frac{D(t+1)}{F(\l)}}
 $$
 
-## Soundness proof (1/?)
+## Proving $\AS$ Soundness (2/6): The Goal
 
 $$
 \Pr \left[
-  \begin{array}{c}
-    \ASDLVerifier^{\rho_1}((q_{\acc_{i-1}} \cat \vec{q}), \acc_i) = \top, \\
-    \ASDLDecider^{\rho_1}(\acc_i) = \top \\
-    \land \\
-    \exists i \in [n] : \Phi_\AS(q_i) = \bot
+  \begin{array}{c|c}
+    \begin{array}{c}
+      \Vc^{\rho_1}((q_{\acc_{i-1}} \cat \vec{q}), \acc_i) = \top, \\
+      \Dc^{\rho_1}(\acc_i) = \top \\
+      \land \\
+      \exists i \in [n] : \Phi_\AS(q_i) = \bot
+    \end{array}
+  & \quad
+    \begin{array}{r}
+      \rho_0 \leftarrow \Uc(\l), \rho_1 \leftarrow \Uc(\l), \\
+      \pp_\AS \leftarrow \ASDLSetup^{\rho_1}_{1^\l}, \\
+      (\vec{q}, \acc_{i-1}, \acc_i) \leftarrow \Ac^{\rho_1}_{\pp_\AS} \\
+      q_{acc_{i-1}} \leftarrow \ToInstance(\acc_{i-1}) \\
+    \end{array}
   \end{array}
-\right] \leq \negl(\l)
-$$
-Given:
-$$
-\begin{alignedat}{4}
-  &\rho_0 &&\leftarrow \Uc(\l),                                               &&\quad \rho_1  &&\leftarrow \Uc(\l), \\
-  &\pp_\PC &&\leftarrow \PCDLSetup^{\rho_0}(1^\l, D),                         &&\quad \pp_\AS &&\leftarrow \ASDLSetup^{\rho_1}(1^\l, \pp_\PC), \\
-  &(\vec{q}, \acc_{i-1}, \acc_i) &&\leftarrow \Ac^{\rho_1}(\pp_\AS, \pp_\PC), &&\quad q_{acc_{i-1}} &&\leftarrow \ToInstance(\acc_{i-1})
-\end{alignedat}
+\right]
 $$
 
-- We call the probability that the adversary $\Ac$ wins the above game
-  $\d$. We bound $\d$ by constructing two adversaries, $\Bc_1, \Bc_2$, for
-  the zero-finding game. Assuming:
-  - $\Pr[\Bc_1 \text{ wins} \lor \Bc_2 \text{wins}] = \delta - \negl(\l)$
-  - $\Pr[\Bc_1 \text{ wins} \lor \Bc_2 \text{wins}] = 0$
-
-## Soundness Proof (3/?)
-
+- $\Pr[\Ac] = \d$. We bound $\d$ by constructing, $\Bc_1, \Bc_2$, for the zero-finding game:
+  - $\Pr[\Bc_1 \text{ wins} \land \Bc_2 \text{ wins}] = 0$
+  - $\Pr[\Bc_1 \text{ wins} \lor \Bc_2 \text{ wins}] = \delta - \negl(\l)$
 $$
 \begin{aligned}
   \Pr[\Bc_1 \text{ wins} \lor \Bc_2 \text{ wins}] &= \Pr[\Bc_1 \text{ wins}] + \Pr[\Bc_2\text{ wins}] - \Pr[\Bc_1 \text{ wins} \land \Bc_2 \text{ wins}]\\
-  \Pr[\Bc_1 \text{ wins} \lor \Bc_2 \text{ wins}] &= \Pr[\Bc_1 \text{ wins}] + \Pr[\Bc_2\text{ wins}] - 0 \\
   \delta - \negl(\l)                              &\leq  \sqrt{\frac{D(t+1)}{F(\l)}} + \sqrt{\frac{D(t+1)}{F(\l)}} \\
-  \delta - \negl(\l)                              &\leq  2 \cdot \sqrt{\frac{D(t+1)}{|\Fb_q|}}                     \\
   \delta                                          &\leq  2 \cdot \sqrt{\frac{D(t+1)}{|\Fb_q|}} + \negl(\l)         \\
 \end{aligned}
 $$
 
-Meaning that $\delta$ is negligible, since $q = |\Fb_q|$ is superpolynomial
-in $\l$.
-
-## Soundness Proof (3/?)
+## Proving $\AS$ Soundness (3/6): The Commitment Schemes for $\Bc_1, \Bc_2$
 
 - $\CM_1$:
   - $\CM_1.\Setup^{\rho_0}(1^\l, D) := \pp_\PC \from \PCDLSetup^{\rho_0}(1^\lambda, D)$
   - $\CM_1.\Commit((p(X), h(X)), \_) := (C \from \PCDLCommit(p(X), d, \bot), h)$
   - $\Mc_{\CM_1} := \{(p(X), h(X) = \a^j h_j(X))\} \in \Pc((\Fb_q^{\leq D}[X])^2)$
-  - $z_{\CM_1} := \rho_1(\CM_1.\Commit((p(X), h(X)), \_)) = \rho_1((C \from \PCDLCommit(p(X), d, \bot), h)) = z_\acc$
+  - $z_{\CM_1} := \rho_1(\CM_1.\Commit((p(X), h(X)), \_)) = z_\acc$
 - $\CM_2$:
   - $\CM_2.\Setup^{\rho_0}(1^\l, D) := \pp_\PC \from \PCDLSetup^{\rho_0}(1^\lambda, D)$
   - $\CM_2.\Commit([(h_j(X), U_j)]^m, \_) := [(h_j(X), U_j)]^m$:
@@ -316,11 +309,11 @@ in $\l$.
 \vspace{1em}
 
 - $f^{(1)}_\pp(p(X), h(X) = [h_j(X)]^m) := a(X) = p(X) - \sum_{j=1}^m \a^j h_j(X)$,
-- $f^{(2)}_\pp(p = [(h_j(X), U_j)]^m) := b(Z) = \sum_{j=1}^m a_j Z^j$ where for each $j \in [m]$:
+- $f^{(2)}_\pp(p = [(h_j(X), U_j)]^m) := b(X) = \sum_{j=1}^m a_j X^j$ where for each $j \in [m]$:
   - $B_j \leftarrow \PCDLCommit(h_j, d, \bot)$
   - Compute $b_j : b_j G = U_j - B_j$
 
-## Soundness Proof (3/?)
+## Proving $\AS$ Soundness (4/6): The intermediate adversary $\Cc$
 
 \begin{algorithm}[H]
 \caption*{\textbf{The Adversary} $\Cc^{\rho_1}(\pp_\PC)$}
@@ -337,81 +330,55 @@ in $\l$.
   - $p(z_\acc) = v_\acc$
   - $\deg(p) \leq d_\acc \leq D$
 
-## Soundness Proof (3/?)
+## Proving $\AS$ Soundness (5/6): Probabilities and Implications
 
-The $\ASDLDecider$ (and $\ASDLVerifier$'s) will accept
-with probability $\d$, s.t. the following holds:
-
-- $\ASDLVerifier^{\rho_1}((q_{\acc_{i-1}} \cat \vec{q}), \acc_i) = \top$
-- $\ASDLDecider^{\rho_1}(\acc_i) = \top$
-- $\exists i \in [n] : \Phi_\AS(q_i) = \bot \implies \PCDLCheck^{\rho_0}(C_i, d_i, z_i, v_i, \pi_i) = \bot$
-
-Let's denote this event as $E_\Dc$. We're interested in the probability $\Pr[E_\Ec
-\land E_\Dc]$. Using the chain rule we get:
-$$
-\begin{aligned}
-  \Pr[E_\Ec \land E_\Dc] &= \Pr[E_\Ec \; | \; E_\Dc] \cdot \Pr[E_\Ec] \\
-                         &= \d \cdot (1 - \negl(\l)) \\
-                         &= \d - \d \cdot \negl(\l) \\
-                         &= \d - \negl(\l)
-\end{aligned}
-$$
-
-## Soundness proof
+\begin{block}{The $\ASDLDecider$, and $\ASDLVerifier$, will accept with probability $\d$, s.t}
+  \vspace{-2em}
+  $$E_\Dc := \exists i \in [n] : \Phi_\AS(q_i) = \bot \implies \PCDLCheck^{\rho_0}(C_i, d_i, z_i, v_i, \pi_i) = \bot$$
+  $$
+    \Pr[E_\Ec \land E_\Dc] = \Pr[E_\Ec \; | \; E_\Dc] \cdot \Pr[E_\Ec]
+                           = \d \cdot (1 - \negl(\l))
+                           = \d - \negl(\l)
+  $$
+\end{block}
 
 - Since $\ASDLVerifier^{\rho_1}((q_{\acc_{i-1}} \cat \vec{q}), \acc_i)$ accepts,
-  then, by construction, all the following holds:
+  then, by construction:
 
   1. For each $j \in [m]$, $\PCDLSuccinctCheck$ accepts.
-  2. Parsing $\acc_i = (C_\acc, d_\acc, z_\acc, v_\acc)$ and setting $\a := \rho_1([(h_j(X), U_j)]^m)$, we have that:
+  2. Parsing $\acc_i = (C_\acc, d_\acc, z_\acc, v_\acc)$ and setting $\a := \rho_1([(h_j(X), U_j)]^m)$:
       - $z_\acc = \rho_1(C_\acc, [h_j(X)]^m)$
-      - $C_\acc = \sum_{j=1}^m \a^j U_j$
-      - $v_\acc = \sum_{j=1}^m \a^j h_j(z)$
+      - $C_\acc = \sum_{j=1}^m \a^j U_j, \; \; v_\acc = \sum_{j=1}^m \a^j h_j(z)$
 
 - By construction, this implies that either:
-  - $\PCDLSuccinctCheck$ rejects, which we showed above is not the case, so therefore,
+  - $\PCDLSuccinctCheck$ rejects, which we showed above is not the case, so:
   - The group element $U_j$ is not a commitment to $h_j(X)$.
 
-## Soundness Proof
+## Proving $\AS$ Soundness (6/6): The Adversaries $\Bc_1, \Bc_2$
 
 \begin{algorithm}[H]
 \caption*{\textbf{The Adversary} $\Bc_k^{\rho_1}(\pp_\AS)$}
 \begin{algorithmic}[1]
-  \State Compute $(D, \acc_i, \vec{q}) \leftarrow C^{\rho_1}(\pp_\AS)$.
-  \State Compute $p \leftarrow \Ec_C^\rho(\pp_\AS)$.
+  \State Compute $(D, \acc_i, \vec{q}) \leftarrow \Cc^{\rho_1}(\pp_\AS)$, $p \leftarrow \Ec_C^\rho(\pp_\AS)$.
   \State For each $q_j \in \vec{q}$ : $(h_j, U_j) \from \PCDLSuccinctCheck(q_j)$.
   \State Compute $\a := \rho_1([(h_j, U_j)]^m)$.
-  \If{$k = 1$}
-    \State Output $((n, D), (p, h := ([h_j]^m)))$
-  \ElsIf{$k = 2$}
-    \State Output $((n, D), ([(h_j, U_j)]^m))$
-  \EndIf
+  \State \textbf{If} $k = 1$ \textbf{Then} Output $((n, D), (p, h := ([h_j]^m)))$
+  \State \textbf{If} $k = 2$ \textbf{Then} Output $((n, D), ([(h_j, U_j)]^m))$
 \end{algorithmic}
 \end{algorithm}
 
-## Soundness Proof
+\vspace{-1.5em}
 
-1. $C_\acc \neq \sum_{j=1}^m \a^j B_j$: This means that for some $j \in [m]$,
-   $U_j \neq B_j$. Since $C_\acc$ is a commitment to $p(X)$, $p(X) - h(X)$ is
-   not identically zero, but $p(z_\acc) = h(z_\acc)$. Thusly, $a(X) \neq 0$
-   and $a(z_\acc) = 0$. Because $z_\acc = z_a$ is sampled using the random
-   oracle $\rho_1$, $\Bc_1$ wins the zero-finding game against $(\CM_1,
-   \{f_\pp^{(1)}\}_\pp)$.
+1. $C_\acc \neq \sum_{j=1}^m \a^j B_j$: Meaning that $\exists j \in [m] : U_j \neq B_j$.
+    - Since $C_\acc$ is a commit to $p(X)$, $p(X) - h(X) \neq 0$, but $p(z_\acc) = h(z_\acc)$.
+    - Thusly, $a(X) \neq 0$ and $a(z_\acc) = 0$.
+    - Because $z_\acc = z_a$ is sampled using the RO, $\Bc_1$ wins against $\CM_1$.
+2. $C = \sum_{j=1}^n \a^j B_j$. Meaning that $\forall j \in [m] : U_j = B_j$.
+    - Since $C = \sum_{j=1}^n \a^j U_j$, $\a$ is a root of the polynomial $a(Z)$, $a(\a) = 0$.
+    - Because $\a$ is sampled using the RO, $\Bc_2$ wins against $CM_2$
+$\Pr[\Bc_1 \text{ wins} \lor \Bc_2 \text{wins}] = \delta - \negl(\l), \Pr[\Bc_1 \text{ wins} \land \Bc_2 \text{wins}] = 0$.
 
-2. $C = \sum_{j=1}^n \a^j B_j$. Which means that for all $j \in [m]$, $U_j =
-   B_j$. Since $C = \sum_{j=1}^n \a^j U_j$, $\a$ is a root of the
-   polynomial $a(Z)$, $a(\a) = 0$. Because $\a$ is sampled using the random
-   oracle $\rho_1$, $\Bc_2$ wins the zero-finding game against $(CM_2,
-   \{f_\pp^{(2)}\}_\pp)$.
-
-\vspace{1em}
-
-- Either $\Bc_1, \Bc_2$ win if $E_\Ec \land E_\Dc$, so $\Pr[\Bc_1 \text{ wins} \lor \Bc_2 \text{wins}] = \delta - \negl(\l)$.
-- Since the above cases are mutually exclusive $\Pr[\Bc_1 \text{ wins} \lor \Bc_2 \text{wins}]$.
-- Thus, the probability that $\Ac$ breaks the soundness of $\ASDL$ is negligible.
-
-
-## Efficiency analysis
+# $\AS$ Efficiency
 
 ### Analysis
 
@@ -437,9 +404,9 @@ $$
 
 <!-- TODO: steps -->
 
-# IVC based on Accumulation
+# IVC based on $\AS$
 
-## test
+## Prerequisites test
 
 - We assume we have an underlying NARK which proof consists of only instances
   $\pi \in \Proof = \{ \vec{q} \}$. We assume this NARK has three algorithms:
@@ -463,7 +430,7 @@ $$
 
 \end{tikzpicture}
 
-## test
+## The circuit
 
 - $\pi_{i-1} = \vec{q}, \acc_{i-1}, s_{i-1}$ from the previous iteration.
 - $s_i = F(s_{i-1})$
@@ -480,7 +447,7 @@ $$
 \end{aligned}
 $$
 
-## test
+## The circuit visualized
 
 \centering
 \begin{tikzpicture}
@@ -542,7 +509,7 @@ $$
 
 \end{tikzpicture}
 
-## test
+## The IVC prover
 
 \begin{algorithm}[H]
 \caption*{\textbf{Algorithm} $\IVCProver$}
@@ -563,7 +530,7 @@ $$
 \end{algorithmic}
 \end{algorithm}
 
-## test
+## The IVC Verifier
 
 \begin{algorithm}[H]
 \caption*{\textbf{Algorithm} $\IVCVerifier$}
@@ -581,7 +548,7 @@ $$
 \end{algorithmic}
 \end{algorithm}
 
-## test
+## Why it works
 
 $$
 \begin{alignedat}[b]{2}
@@ -598,7 +565,7 @@ $$
 1. $\forall i \in [2, n] : \ASVerifier(\pi_{i-1}, \acc_{i-1}, \acc_i) = \top$, i.e, all accumulators are accumulated correctly.
 2. $\forall i \in [2, n] : \NARKVerifierFast(R_{IVC}, x_{i-1}, \pi_{i-1})$, i.e, all the proofs are valid.
 
-## test
+## Efficiency Analysis
 
 - The $\NARKProver$ runtime scales linearly with the $d$ ($\Oc(d)$)
 - The $\NARKVerifierFast$ runtime scales logarithmically with $d$ ($\Oc(\lg(d))$)
@@ -622,7 +589,6 @@ Then we can conclude:
 Notice that although the runtime of $\IVCVerifier$ is linear, it scales
 with $d$, _not_ $n$. So the cost of verifying does not scale with the number
 of iterations.
-
 
 # Conclusion & Benchmarks
 
