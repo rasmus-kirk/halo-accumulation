@@ -33,10 +33,11 @@ jobs:
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@main
 
-      - uses: actions/cache@v4
+      - name: Restore and cache Nix store
+        uses: nix-community/cache-nix-action@v5
         with:
-          path: /nix/store
-          key: cache-${{ hashFiles('**/*.lock') }}
+          # restore and save a cache using this key
+          primary-key: nix-${{ runner.os }}-${{ hashFiles('**/flake.lock') }}
 
       - run: nix build
 
