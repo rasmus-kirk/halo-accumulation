@@ -10,21 +10,21 @@
       "locked": {
         "lastModified": 1,
         "narHash": "sha256-h9jRc0LkpMXB+z4KnepKuX9Papst3+h906R9Ntnh/Do=",
-        "path": "/nix/store/yxknwk8mdxmc3fiihcyzl2k26vc4448g-source/code",
+        "path": "/nix/store/4im17lnwcdb7zh7cava81hbizaq5ss17-source/code",
         "type": "path"
       },
       "original": {
-        "path": "/nix/store/yxknwk8mdxmc3fiihcyzl2k26vc4448g-source/code",
+        "path": "/nix/store/4im17lnwcdb7zh7cava81hbizaq5ss17-source/code",
         "type": "path"
       }
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1738172511,
-        "narHash": "sha256-v/8yB8LIy/KsySZYN6rO/f4kCEkj+fTLkzR0TaNMB+w=",
+        "lastModified": 1738297584,
+        "narHash": "sha256-AYvaFBzt8dU0fcSK2jKD0Vg23K2eIRxfsVXIPCW9a0E=",
         "owner": "nixos",
         "repo": "nixpkgs",
-        "rev": "762a398892576efcc76fb233befbd58c2cef59e0",
+        "rev": "9189ac18287c599860e878e905da550aa6dec1cd",
         "type": "github"
       },
       "original": {
@@ -43,11 +43,11 @@
       "locked": {
         "lastModified": 1,
         "narHash": "sha256-tdQw23Y0VGrrGRBbtOvTAEEU4IXJ5Dns8U6GwZnZQkI=",
-        "path": "/nix/store/yxknwk8mdxmc3fiihcyzl2k26vc4448g-source/report",
+        "path": "/nix/store/4im17lnwcdb7zh7cava81hbizaq5ss17-source/report",
         "type": "path"
       },
       "original": {
-        "path": "/nix/store/yxknwk8mdxmc3fiihcyzl2k26vc4448g-source/report",
+        "path": "/nix/store/4im17lnwcdb7zh7cava81hbizaq5ss17-source/report",
         "type": "path"
       }
     },
@@ -89,12 +89,12 @@
       },
       "locked": {
         "lastModified": 1,
-        "narHash": "sha256-5xhg0ZegCEAW3GY6KKkw34UOiH4mz9z9wJ2SkXsoJak=",
-        "path": "/nix/store/yxknwk8mdxmc3fiihcyzl2k26vc4448g-source/slides",
+        "narHash": "sha256-2hAALqk/1jpldd/gPeHSkaef+4jHYgZJoqawoq+02CQ=",
+        "path": "/nix/store/4im17lnwcdb7zh7cava81hbizaq5ss17-source/slides",
         "type": "path"
       },
       "original": {
-        "path": "/nix/store/yxknwk8mdxmc3fiihcyzl2k26vc4448g-source/slides",
+        "path": "/nix/store/4im17lnwcdb7zh7cava81hbizaq5ss17-source/slides",
         "type": "path"
       }
     },

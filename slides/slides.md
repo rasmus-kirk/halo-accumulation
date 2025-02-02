@@ -295,21 +295,21 @@ $$
 
 ## Proving $\AS$ Soundness (3/6): The Commitment Schemes for $\Bc_1, \Bc_2$
 
-- $\CM_1$:
-  - $\CM_1.\Setup^{\rho_0}(1^\l, D) := \pp_\PC \from \PCDLSetup^{\rho_0}(1^\lambda, D)$
-  - $\CM_1.\Commit((p(X), h(X)), \_) := (C \from \PCDLCommit(p(X), d, \bot), h)$
+- $\CM_a$:
+  - $\CM_a.\Setup^{\rho_0}(1^\l, D) := \pp_\PC \from \PCDLSetup^{\rho_0}(1^\lambda, D)$
+  - $\CM_a.\Commit((p(X), h(X)), \_) := (C \from \PCDLCommit(p(X), d, \bot), h)$
   - $\Mc_{\CM_1} := \{(p(X), h(X) = \a^j h_j(X))\} \in \Pc((\Fb_q^{\leq D}[X])^2)$
-  - $z_{\CM_1} := \rho_1(\CM_1.\Commit((p(X), h(X)), \_)) = z_\acc$
-- $\CM_2$:
+  - $z_a := \rho_1(\CM_1.\Commit((p(X), h(X)), \_)) = z_\acc$
+- $\CM_a$:
   - $\CM_2.\Setup^{\rho_0}(1^\l, D) := \pp_\PC \from \PCDLSetup^{\rho_0}(1^\lambda, D)$
   - $\CM_2.\Commit([(h_j(X), U_j)]^m, \_) := [(h_j(X), U_j)]^m$:
-  - $\Mc_{\CM_2} := \{[(h_j(X), U_j)]^m\} \in \Pc((\Fb_q^{\leq D}[X] \times \Eb(\Fb_q))^m)$
-  - $z_{\CM_2} := \rho_1(\CM_2.\Commit([(h_j(X), U_j)]^m, \_)) = \rho_1([(h_j(X), U_j)]^m) = \a$
+  - $\Mc_b := \{[(h_j(X), U_j)]^m\} \in \Pc((\Fb_q^{\leq D}[X] \times \Eb(\Fb_q))^m)$
+  - $z_b := \rho_1(\CM_2.\Commit([(h_j(X), U_j)]^m, \_)) = \rho_1([(h_j(X), U_j)]^m) = \a$
 
 \vspace{1em}
 
-- $f^{(1)}_\pp(p(X), h(X) = [h_j(X)]^m) := a(X) = p(X) - \sum_{j=1}^m \a^j h_j(X)$,
-- $f^{(2)}_\pp(p = [(h_j(X), U_j)]^m) := b(X) = \sum_{j=1}^m a_j X^j$ where for each $j \in [m]$:
+- $f^{(a)}_\pp(p(X), h(X) = [h_j(X)]^m) := a(X) = p(X) - \sum_{j=1}^m \a^j h_j(X)$,
+- $f^{(b)}_\pp(p = [(h_j(X), U_j)]^m) := b(X) = \sum_{j=1}^m b_j X^j$ where for each $j \in [m]$:
   - $B_j \leftarrow \PCDLCommit(h_j, d, \bot)$
   - Compute $b_j : b_j G = U_j - B_j$
 
@@ -325,7 +325,7 @@ $$
 \end{algorithmic}
 \end{algorithm}
 
-- Running $\Ec_\Cc^{\rho_1}$ on $\Cc$ gives $p$, given $\ASDLDecider$ accepts, with $\Pr[1 - \negl]$:
+- Running $\Ec_\Cc^{\rho_1}$ on $\Cc$ gives $p(X)$, given $\ASDLDecider$ accepts, with $\Pr[1 - \negl(\l)]$:
   - $C_\acc$ is a deterministic commitment to $p(X)$.
   - $p(z_\acc) = v_\acc$
   - $\deg(p) \leq d_\acc \leq D$
@@ -334,13 +334,17 @@ $$
 
 \begin{block}{The $\ASDLDecider$, and $\ASDLVerifier$, will accept with probability $\d$, s.t}
   \vspace{-2em}
-  $$E_\Dc := \exists i \in [n] : \Phi_\AS(q_i) = \bot \implies \PCDLCheck^{\rho_0}(C_i, d_i, z_i, v_i, \pi_i) = \bot$$
+  $$E_\Dc := \exists j \in [m] : \Phi_\AS(q_j) = \bot \implies \PCDLCheck^{\rho_0}(C_j, d_j, z_j, v_j, \pi_j) = \bot$$
   $$
     \Pr[E_\Ec \land E_\Dc] = \Pr[E_\Ec \; | \; E_\Dc] \cdot \Pr[E_\Ec]
                            = \d \cdot (1 - \negl(\l))
                            = \d - \negl(\l)
   $$
 \end{block}
+
+- By construction, this implies that either:
+  - $\PCDLSuccinctCheck$ rejects, which we show below is not the case, so:
+  - The group element $U_j$ is not a commitment to $h_j(X)$.
 
 - Since $\ASDLVerifier^{\rho_1}((q_{\acc_{i-1}} \cat \vec{q}), \acc_i)$ accepts,
   then, by construction:
@@ -350,20 +354,16 @@ $$
       - $z_\acc = \rho_1(C_\acc, [h_j(X)]^m)$
       - $C_\acc = \sum_{j=1}^m \a^j U_j, \; \; v_\acc = \sum_{j=1}^m \a^j h_j(z)$
 
-- By construction, this implies that either:
-  - $\PCDLSuccinctCheck$ rejects, which we showed above is not the case, so:
-  - The group element $U_j$ is not a commitment to $h_j(X)$.
-
 ## Proving $\AS$ Soundness (6/6): The Adversaries $\Bc_1, \Bc_2$
 
 \begin{algorithm}[H]
 \caption*{\textbf{The Adversary} $\Bc_k^{\rho_1}(\pp_\AS)$}
 \begin{algorithmic}[1]
-  \State Compute $(D, \acc_i, \vec{q}) \leftarrow \Cc^{\rho_1}(\pp_\AS)$, $p \leftarrow \Ec_C^\rho(\pp_\AS)$.
+  \State Compute $(D, \acc_i, \vec{q}) \leftarrow \Cc^{\rho_1}(\pp_\AS)$, $p \leftarrow \Ec_\Cc^\rho(\pp_\AS)$.
   \State For each $q_j \in \vec{q}$ : $(h_j, U_j) \from \PCDLSuccinctCheck(q_j)$.
   \State Compute $\a := \rho_1([(h_j, U_j)]^m)$.
-  \State \textbf{If} $k = 1$ \textbf{Then} Output $((n, D), (p, h := ([h_j]^m)))$
-  \State \textbf{If} $k = 2$ \textbf{Then} Output $((n, D), ([(h_j, U_j)]^m))$
+  \State \textbf{If} $k = a$ \textbf{Then} Output $((n, D), (p, h := ([h_j]^m)))$
+  \State \textbf{If} $k = b$ \textbf{Then} Output $((n, D), ([(h_j, U_j)]^m))$
 \end{algorithmic}
 \end{algorithm}
 
@@ -372,11 +372,12 @@ $$
 1. $C_\acc \neq \sum_{j=1}^m \a^j B_j$: Meaning that $\exists j \in [m] : U_j \neq B_j$.
     - Since $C_\acc$ is a commit to $p(X)$, $p(X) - h(X) \neq 0$, but $p(z_\acc) = h(z_\acc)$.
     - Thusly, $a(X) \neq 0$ and $a(z_\acc) = 0$.
-    - Because $z_\acc = z_a$ is sampled using the RO, $\Bc_1$ wins against $\CM_1$.
+    - Because $z_\acc = z_a$ is sampled using the RO, $\Bc_a$ wins against $\CM_a$.
 2. $C = \sum_{j=1}^n \a^j B_j$. Meaning that $\forall j \in [m] : U_j = B_j$.
-    - Since $C = \sum_{j=1}^n \a^j U_j$, $\a$ is a root of the polynomial $a(Z)$, $a(\a) = 0$.
-    - Because $\a$ is sampled using the RO, $\Bc_2$ wins against $CM_2$
-$\Pr[\Bc_1 \text{ wins} \lor \Bc_2 \text{wins}] = \delta - \negl(\l), \Pr[\Bc_1 \text{ wins} \land \Bc_2 \text{wins}] = 0$.
+    - Since $C = \sum_{j=1}^n \a^j U_j$, $\a$ is a root of the polynomial $b(Z)$, $b(\a) = 0$.
+    - $b(X) = b_jX$
+    - Because $\a$ is sampled using the RO, $\Bc_b$ wins against $CM_b$
+$\Pr[\Bc_1 \text{ wins} \lor \Bc_2 \text{ wins}] = \delta - \negl(\l), \Pr[\Bc_1 \text{ wins} \land \Bc_2 \text{ wins}] = 0$.
 
 # $\AS$ Efficiency
 
@@ -409,10 +410,10 @@ $\Pr[\Bc_1 \text{ wins} \lor \Bc_2 \text{wins}] = \delta - \negl(\l), \Pr[\Bc_1 
 ## Prerequisites test
 
 - We assume we have an underlying NARK which proof consists of only instances
-  $\pi \in \Proof = \{ \vec{q} \}$. We assume this NARK has three algorithms:
+  $\pi \in \Proof = [\vec{q}]^m$. We assume this NARK has three algorithms:
   - $\NARKProver(R: \Circuit, x: \PublicInfo, w: \Witness) \to \Proof$
-  - $\NARKVerifier(R: \Circuit, x: \PublicInfo, \pi) \to \Result(\top, \bot)$
-  - $\NARKVerifierFast(R: \Circuit, x: \PublicInfo) \to \Result(\top, \bot)$
+  - $\NARKVerifier(R: \Circuit, x: \PublicInfo, \pi: \Proof) \to \Result(\top, \bot)$
+  - $\NARKVerifierFast(R: \Circuit, x: \PublicInfo, \pi: \Proof) \to \Result(\top, \bot)$
 
 \centering
 \begin{tikzpicture}[node distance=2cm]
@@ -430,24 +431,10 @@ $\Pr[\Bc_1 \text{ wins} \lor \Bc_2 \text{wins}] = \delta - \negl(\l), \Pr[\Bc_1 
 
 \end{tikzpicture}
 
-## The circuit
+## The circuit visualized
 
-- $\pi_{i-1} = \vec{q}, \acc_{i-1}, s_{i-1}$ from the previous iteration.
-- $s_i = F(s_{i-1})$
-- $\acc_i = \ASProver(\vec{q}, \acc_{i-1})$
 - $x = \{ R_{IVC}, s_0, s_i, \acc_i \}$
 - $w = \{ s_{i-1}, \pi_{i-1} = \vec{q}, \acc_{i-1} \}$
-
-$$
-\begin{aligned}
-  x_{i-1} &:= \{ R_{IVC}, s_{i-1}, \acc_{i-1} \} \\
-  \Vc_1   &:= \NARKVerifierFast(R_{IVC}, x_{i-1}, \pi_{i-1}) \meq \top \\
-  \Vc_2   &:= \ASVerifier(\pi_{i-1} = \vec{q}, \acc_{i-1}, \acc_i) \meq \top \\
-  R_{IVC} &:= \text{I.K } w \text{ s.t. } F(s_{i-1}) \meq s_i \land (s_{i-1} \meq s_0 \lor ( \Vc_1 \land \Vc_2 ) ) \\
-\end{aligned}
-$$
-
-## The circuit visualized
 
 \centering
 \begin{tikzpicture}
