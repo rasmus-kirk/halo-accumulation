@@ -65,7 +65,7 @@ toc: true
   \vspace{0.5em}
 \end{block}
 
-### $\Pc(s_i, \pi_i)$ represents:
+### $\Pc(s_{i-1}, \pi_{i-1})$ represents:
   - $s_i = F(s_{i-1})$
   - $\pi_i = \SNARKProver(R, x = \{ s_0, s_i \}, w = \{ s_{i-1}, \pi_{i-1} \})$
   - $R := \text{I.K.} \; w = \{ \pi_{i-1}, s_{i-1} \} \; \text{ s.t. }$
@@ -124,7 +124,7 @@ $$q: \Instance = (C: \Eb(\Fb_q), d: \Nb, z: \Fb_q, v: \Fb_q, \pi: \EvalProof)$$
   \begin{enumerate}
     \item $\pi = \vec{L}, \vec{R}, U, c$
     \item $C_{lg(n)} \meq cU + ch(z) H' = c^{(0)}G^{(0)} + c^{(0)}z^{(0)} H'$
-    \item $U \meq \CMCommit(\vec{G}, \vec{h}^{\text{(coeffs)}}) \meq \ip{G}{\vec{h}^{\text{(coeffs)}}}$
+    \item $U \meq \CMCommit(\vec{G}, \vec{h}^{\text{(coeffs)}}) \meq \ip{\vec{G}}{\vec{h}^{\text{(coeffs)}}}$
   \end{enumerate}
   \vspace{0.5em}
 \end{block}
@@ -279,7 +279,7 @@ Assuming that $\PCDL$ is complete.
     \begin{itemize}
       \item Step 1: Call to $\ASDLCommonSubroutine$, $\Oc(m\lg(d))$ scalar muls.
       \item Step 2: Call to $\PCDLOpen$, $\Oc(d)$ scalar muls.
-      \item Step 3: Evaluation of $h(X)$, $\Oc(\lg(d))$ scalar muls.
+      \item Step 3: Evaluation of $\bar{h}(X)$, $\Oc(m\lg(d))$ scalar muls.
     \end{itemize}
     Step 2 dominates with $\Oc(d)$ scalar muls.
   \end{itemize}
@@ -452,7 +452,7 @@ $$
   \begin{itemize}
     \item $\NARKProver$ runtime scales linearly with $d$ ($\Oc(d)$)
     \item $\NARKVerifier$ runtime scales linearly with $d$ ($\Oc(d)$)
-    \item $\NARKVerifierFast$ runtime scales logarithmically with $d$ ($\Oc(\lg(d))$)
+    \item $\NARKVerifierFast$ runtime scales sub-linearly with $d$ ($\Oc(\lg(d))$)
     \item $F$ runtime is less than $\Oc(d)$, since $|R_F| \lessapprox d$
   \end{itemize}
 \end{block}
@@ -510,10 +510,10 @@ Although the runtime of $\IVCVerifier$ is linear, it scales with $d$,
 
 ### The project:
   - Learned a lot of deep cryptographic theory.
-  - Learned a lot about implementating advanced cryptography
+  - Learned a lot about implementating advanced cryptography.
   - Implementing full IVC is _hard_.
   - Benchmarks looks good, excited to see degree bound increase.
-  - Future work.
+  - Future work...
 
 # TO BE REMOVED
 
