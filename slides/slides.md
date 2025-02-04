@@ -279,7 +279,7 @@ Assuming that $\PCDL$ is complete.
     \begin{itemize}
       \item Step 1: Call to $\ASDLCommonSubroutine$, $\Oc(m\lg(d))$ scalar muls.
       \item Step 2: Call to $\PCDLOpen$, $\Oc(d)$ scalar muls.
-      \item Step 3: Evaluation of $\bar{h}(X)$, $\Oc(m\lg(d))$ scalar muls.
+      \item Step 3: Evaluation of $\bar{h}(X)$, $\Oc(m\lg(d))$ field muls.
     \end{itemize}
     Step 2 dominates with $\Oc(d)$ scalar muls.
   \end{itemize}
@@ -325,7 +325,7 @@ So $\ASDLProver, \ASDLDecider$ are linear and $\ASDLVerifier$ is sub-linear.
 
 \end{tikzpicture}
 
-## The circuit visualized
+## The Circuit Visualized
 
 - $x = \{ R_{IVC}, s_0, s_i, \acc_i \}$
 - $w = \{ s_{i-1}, \pi_{i-1} = \vec{q}, \acc_{i-1} \}$
@@ -429,7 +429,7 @@ So $\ASDLProver, \ASDLDecider$ are linear and $\ASDLVerifier$ is sub-linear.
 \end{algorithmic}
 \end{algorithm}
 
-## Why it works
+## Why Does it Work?
 
 $$
 \begin{alignedat}[b]{2}
