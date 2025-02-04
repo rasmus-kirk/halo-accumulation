@@ -69,7 +69,7 @@ toc: true
   - $s_i = F(s_{i-1})$
   - $\pi_i = \SNARKProver(R, x = \{ s_0, s_i \}, w = \{ s_{i-1}, \pi_{i-1} \})$
   - $R := \text{I.K.} \; w = \{ \pi_{i-1}, s_{i-1} \} \; \text{ s.t. }$
-    - $s_i \meq F(s_{i-1}) \; \land \; (s_{i-1} \meq s_0 \lor \Vc(R_F, x = \{ s_0, s_i \}, \pi_{i-1}))$
+    - $s_i \meq F(s_{i-1}) \; \land \; (s_{i-1} \meq s_0 \lor \Vc(R, x = \{ s_0, s_i \}, \pi_{i-1}))$
 
 ## Proof
 
@@ -269,10 +269,10 @@ Assuming that $\PCDL$ is complete.
     \item $\ASDLCommonSubroutine$:
     \begin{itemize}
       \item Step 4: $m$ calls to $\PCDLSuccinctCheck$, $\Oc(m\lg(d))$ scalar muls.
-      \item Step 8: $m\lg(d)$ scalar muls.
+      \item Step 8: $m\lg(d)$ field muls.
       \item Step 8: $m$ scalar muls.
     \end{itemize}
-    Step 4 and 8 dominates with $\Oc(m\lg(d))$ scalar muls.
+    Step 4 dominates with $\Oc(m\lg(d))$ scalar muls.
   \end{itemize}
   \begin{itemize}
     \item $\ASDLProver$:
@@ -509,164 +509,8 @@ Although the runtime of $\IVCVerifier$ is linear, it scales with $d$,
 ## Conclusion
 
 ### The project:
-  - Learned a lot of deep cryptographic theory.
-  - Learned a lot about implementating advanced cryptography.
+  - Gained a deeper understanding of advanced cryptographic theory.
+  - Learned to better carry theory into practice.
   - Implementing full IVC is _hard_.
   - Benchmarks looks good, excited to see degree bound increase.
   - Future work...
-
-# TO BE REMOVED
-
-## Proving $\AS$ Soundness (1/6): The Zero Finding Game
-
-- Let $\CM$ be a perfectly binding commitment scheme.
-- Fix a maximum degree $D \in \Nb$ and a random oracle $\rho \in \CM \to F_\pp$.
-- Then for every family of functions $\{f_\pp\}_\pp$ and fields $\{F_\pp\}_\pp$
-  where:
-  - $f_\pp \in \Mc \to F_\pp^{\leq D}[X]$
-  - $F \in \Nb \to \Nb$
-  - $|F_\pp| \geq F(\l)$ (usually $|F_\pp| \approx F(\l)$)
-
-\vspace{0.5em}
-
-- For every message format $L$ and computationally unbounded $t$-query oracle
-  algorithm $\Ac$, the following holds:
-$$
-\Pr\left[
-  \begin{array}{c}
-    p \neq 0 \\
-    \land \\
-    p(z) = 0
-  \end{array}
-  \middle|
-  \begin{array}{c}
-    \rho \from \mathcal{U}(\l) \\
-    \pp_\CM \gets \CMSetup(1^\l, L) \\
-    (m, \omega) \gets \Ac^\rho(\pp_\CM) \\
-    C \gets \CMCommit(m, \o) \\
-    z \in F_{\pp} \from \rho(C) \\
-    p := f_{\pp}(m)
-  \end{array}
-\right] \leq \sqrt{\frac{D(t+1)}{F(\l)}}
-$$
-
-## Proving $\AS$ Soundness (2/6): The Goal
-
-$$
-\Pr \left[
-  \begin{array}{c|c}
-    \begin{array}{c}
-      \Vc^{\rho_1}((q_{\acc_{i-1}} \cat \vec{q}), \acc_i) = \top, \\
-      \Dc^{\rho_1}(\acc_i) = \top \\
-      \land \\
-      \exists j \in [m] : \PCDLCheck(q_j) = \bot
-    \end{array}
-  & \quad
-    \begin{array}{r}
-      \rho_0 \leftarrow \Uc(\l), \rho_1 \leftarrow \Uc(\l), \\
-      \pp_\AS \leftarrow \ASDLSetup^{\rho_1}_{1^\l}, \\
-      (\vec{q}, \acc_{i-1}, \acc_i) \leftarrow \Ac^{\rho_1}_{\pp_\AS} \\
-      q_{acc_{i-1}} \leftarrow \ToInstance(\acc_{i-1}) \\
-    \end{array}
-  \end{array}
-\right]
-$$
-
-- $\Pr[\Ac] = \d$. We bound $\d$ by constructing, $\Bc_a, \Bc_b$, for the zero-finding game:
-  - $\Pr[\Bc_a \text{ wins} \land \Bc_b \text{ wins}] = 0$
-  - $\Pr[\Bc_a \text{ wins} \lor \Bc_b \text{ wins}] = \delta - \negl(\l)$
-$$
-\begin{aligned}
-  \Pr[\Bc_a \text{ wins} \lor \Bc_b \text{ wins}] &= \Pr[\Bc_a \text{ wins}] + \Pr[\Bc_b\text{ wins}] - \Pr[\Bc_a \text{ wins} \land \Bc_b \text{ wins}]\\
-  \delta - \negl(\l)                              &\leq  \sqrt{\frac{D(t+1)}{F(\l)}} + \sqrt{\frac{D(t+1)}{F(\l)}} \\
-  \delta                                          &\leq  2 \cdot \sqrt{\frac{D(t+1)}{|\Fb_q|}} + \negl(\l)         \\
-\end{aligned}
-$$
-
-## Proving $\AS$ Soundness (3/6): The Commitment Schemes for $\Bc_a, \Bc_b$
-
-- $\CM_a$:
-  - $\CM_a.\Setup^{\rho_0}(1^\l, D) := \pp_\PC \from \PCDLSetup^{\rho_0}(1^\lambda, D)$
-  - $\CM_a.\Commit((p(X), h(X)), \_) := (C \from \PCDLCommit(p(X), d), h(X))$
-  - $\Mc_a := \{(p(X), h(X) = \a^j h_j(X))\} \in \Pc((\Fb_q^{\leq D}[X])^2)$
-  - $z_a := \rho_1(\CM_a.\Commit((p(X), h(X)), \_)) = z_\acc$
-- $\CM_b$:
-  - $\CM_b.\Setup^{\rho_0}(1^\l, D) := \pp_\PC \from \PCDLSetup^{\rho_0}(1^\lambda, D)$
-  - $\CM_b.\Commit([(h_j(X), U_j)]^m, \_) := [(h_j(X), U_j)]^m$:
-  - $\Mc_b := \{[(h_j(X), U_j)]^m\} \in \Pc((\Fb_q^{\leq D}[X] \times \Eb(\Fb_q))^m)$
-  - $z_b := \rho_1(\CM_b.\Commit([(h_j(X), U_j)]^m, \_)) = \rho_1([(h_j(X), U_j)]^m) = \a$
-
-\vspace{1em}
-
-- $f^{(a)}_\pp(p(X), h(X) = [h_j(X)]^m) := a(X) = p(X) - \sum_{j=1}^m \a^j h_j(X)$,
-- $f^{(b)}_\pp(p = [(h_j(X), U_j)]^m) := b(X) = \sum_{j=1}^m b_j X^j$ where for each $j \in [m]$:
-  - $B_j \leftarrow \PCDLCommit(h_j, d, \bot)$
-  - Compute $b_j : b_j G = U_j - B_j$
-
-## Proving $\AS$ Soundness (4/6): The intermediate adversary $\Cc$
-
-\begin{algorithm}[H]
-\caption*{\textbf{The Adversary} $\Cc^{\rho_1}(\pp_\PC)$}
-\begin{algorithmic}[1]
-  \State Parse $\pp_\PC$ to get the security parameter $1^\l$ and set $\AS$ public parameters $\pp_{\AS} := 1^\l$.
-  \State Compute $(\vec{q}, \acc_{i-1}, \acc_i) \leftarrow \Ac^{\rho_1}(\pp_\AS)$.
-  \State Parse $\pp_\PC$ to get the degree bound $D$.
-  \State Output $(D, \acc_i = (C_\acc, d_\acc, z_\acc, v_\acc), \vec{q})$.
-\end{algorithmic}
-\end{algorithm}
-
-- Running $\Ec_\Cc^{\rho_1}$ on $\Cc$ gives $p(X)$, given $\ASDLDecider$ accepts, with $\Pr[1 - \negl(\l)]$:
-  - $C_\acc$ is a deterministic commitment to $p(X)$.
-  - $p(z_\acc) = v_\acc$
-  - $\deg(p) \leq d_\acc \leq D$
-
-## Proving $\AS$ Soundness (5/6): Probabilities and Implications
-
-\begin{block}{The $\ASDLDecider$, and $\ASDLVerifier$, will accept with probability $\d$, s.t}
-  \vspace{-1em}
-  $$E_\Dc := \exists j \in [m] : \PCDLCheck^{\rho_0}(C_j, d_j, z_j, v_j, \pi_j) = \bot$$
-  $$
-    \Pr[E_\Ec \land E_\Dc] = \Pr[E_\Ec \; | \; E_\Dc] \cdot \Pr[E_\Ec]
-                           = \d \cdot (1 - \negl(\l))
-                           = \d - \negl(\l)
-  $$
-\end{block}
-
-- By construction, this implies that either:
-  - $\PCDLSuccinctCheck$ rejects, which we show below is not the case, so:
-  - The group element $U_j$ is not a commitment to $h_j(X)$.
-
-- Since $\ASDLVerifier^{\rho_1}((q_{\acc_{i-1}} \cat \vec{q}), \acc_i)$ accepts,
-  then, by construction:
-
-  1. For each $j \in [m]$, $\PCDLSuccinctCheck$ accepts.
-  2. Parsing $\acc_i = (C_\acc, d_\acc, z_\acc, v_\acc)$ and setting $\a := \rho_1([(h_j(X), U_j)]^m)$:
-      - $z_\acc = \rho_1(C_\acc, [h_j(X)]^m)$
-      - $C_\acc = \sum_{j=1}^m \a^j U_j, \; \; v_\acc = \sum_{j=1}^m \a^j h_j(z)$
-
-## Proving $\AS$ Soundness (6/6): The Adversaries $\Bc_a, \Bc_b$
-
-\begin{algorithm}[H]
-\caption*{\textbf{The Adversary} $\Bc_k^{\rho_1}(\pp_\AS)$}
-\begin{algorithmic}[1]
-  \State Compute $(D, \acc_i, \vec{q}) \leftarrow \Cc^{\rho_1}(\pp_\AS)$, $p \leftarrow \Ec_\Cc^\rho(\pp_\AS)$.
-  \State For each $q_j \in \vec{q}$ : $(h_j, U_j) \from \PCDLSuccinctCheck(q_j)$.
-  \State Compute $\a := \rho_1([(h_j, U_j)]^m)$.
-  \State \textbf{If} $k = a$ \textbf{Then} Output $(D, (p, h := ([h_j]^m)))$
-  \State \textbf{If} $k = b$ \textbf{Then} Output $(D, ([(h_j, U_j)]^m))$
-\end{algorithmic}
-\end{algorithm}
-
-\vspace{-1.5em}
-
-1. $C_\acc \neq \sum_{j=1}^m \a^j B_j$: Meaning that $\exists j \in [m] : U_j \neq B_j$.
-    - Since $C_\acc$ is a commit to $p(X)$, $p(X) - h(X) \neq 0$, but $p(z_\acc) = h(z_\acc)$.
-    - Thusly, $a(X) \neq 0$ and $a(z_\acc) = 0$.
-    - Because $z_\acc = z_a$ is sampled using the RO, $\Bc_a$ wins against $\CM_a$.
-2. $C_\acc = \sum_{j=1}^m \a^j B_j$. Meaning that $\forall j \in [m] : U_j = B_j$.
-    - Since $C = \sum_{j=1}^m \a^j U_j$, $\a$ is a root of the polynomial $b(X)$, $b(\a) = 0$.
-    - $b(X) = b_jX$
-    - Because $\a$ is sampled using the RO, $\Bc_b$ wins against $CM_b$
-$\Pr[\Bc_a \text{ wins} \lor \Bc_b \text{ wins}] = \delta - \negl(\l), \Pr[\Bc_a \text{ wins} \land \Bc_b \text{ wins}] = 0$.
-
-<!-- TODO: step 2 -->
